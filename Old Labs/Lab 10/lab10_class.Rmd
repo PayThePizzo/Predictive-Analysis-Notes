@@ -1,0 +1,179 @@
+---
+title: "Lab 10 - GLMs in R"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+The `patents.txt` data contain information from the EU patent office on patent citations and patent oppositions. The data also contains information on the year in which the patent was deposited and whether the patent relates to the biopharmaceutical sector. (Data derived as a subset of the patent data in the book [*Regression* by Fahrmeir et al.](https://www.uni-goettingen.de/de/regression+-+models%2c+methods+and+applications/550514.html). 
+
+```{r}
+dat <- read.table("../data/patents.txt")
+summary(dat)
+```
+
+## Modellare dati binari 
+
+```{r}
+dat$nopp <- ifelse(dat$opposed == "opposed", 1, 0)
+dat$yearc <- dat$year - 1979
+fit_bin <- glm(nopp ~ yearc, data = dat, family = "binomial")
+summary(fit_bin)
+```
+
+\[logit(p) = log(p/(1-p)) = \beta_0 + \beta_1 year = \eta\]
+
+```{r}
+head(fitted(fit_bin))
+head(predict(fit_bin, type = "link"))
+head(predict(fit_bin, type = "response"))
+
+nd <- data.frame(yearc = c(1,2,15,16))
+head(predict(fit_bin, type = "link", newdata = nd))
+head(predict(fit_bin, type = "response", newdata = nd))
+
+## vediamo ora che forma ha la stima ottenuta
+par(mfrow=c(1,2))
+nd <- data.frame(yearc = seq(-189,138, by = 0.5))
+plot(nd$yearc, 
+     predict(fit_bin, type = "link", newdata = nd), type = "l")
+plot(nd$yearc, 
+     predict(fit_bin, type = "response", newdata = nd), type = "l")
+```
+
+```{r}
+summary(fit_bin)
+vcov(fit_bin)
+X <- model.matrix(fit_bin)
+V <- diag(exp(fit_bin$coefficients[1] + fit_bin$coefficients[2] * dat$yearc)/((1+exp(fit_bin$coefficients[1] + fit_bin$coefficients[2] * dat$yearc))^2))
+solve(t(X) %*% V %*% X)
+```
+
+In summary R stampa test e p-value per $H_0: \beta_j = 0$. Possiamo costruire test per $H_0: \beta_j = \tilde{\beta}_j$ e possiamo costruire interevalli di confidenza: 
+
+```{r}
+confint.default(fit_bin)
+coef(fit_bin)[2]+qnorm(c(.025, .975)) * sqrt(vcov(fit_bin)[2,2])
+```
+
+Un test per $H_1: \beta_1 = -0.03$: 
+
+```{r}
+ts <- (coef(fit_bin)[2] + 0.03)/sqrt(vcov(fit_bin)[2,2])
+2*pnorm(ts)
+```
+
+
+## Modellare dati di conteggio: ncit
+
+
+```{r}
+fit_pois <- glm(ncit ~ yearc, data = dat, family = "poisson")
+summary(fit_pois)
+```
+
+\[\log(\lambda) = \beta_0 + \beta_1 \ yearc = \eta\]
+
+```{r}
+head(predict(fit_pois, type = "link"))
+head(predict(fit_pois, type = "response"))
+poisson()$linkinv(head(predict(fit_pois, type = "link")))
+```
+
+```{r}
+nd <- data.frame(yearc = seq(0, 20, by = 0.5))
+par(mfrow=c(1,2))
+plot(nd$yearc, 
+     predict(fit_pois, type = "link", newdata = nd), type= "l")
+plot(nd$yearc, 
+     predict(fit_pois, type = "response", newdata = nd), type= "l")
+```
+
+```{r}
+par(mfrow=c(1,1))
+plot(jitter(dat$yearc), jitter(dat$ncit))
+nd <- data.frame(yearc = seq(0, 20, by = 0.5))
+lines(nd$yearc, 
+     predict(fit_pois, type = "response", newdata = nd), type= "l", col = 2, lwd = 2)
+```
+
+```{r}
+summary(fit_pois)
+confint.default(fit_pois)
+```
+
+```{r}
+par(mfrow=c(1,1))
+plot(jitter(dat$yearc), 
+     jitter(log(pmax(dat$ncit, 0.5))))
+nd <- data.frame(yearc = seq(0, 20, by = 0.5))
+lines(nd$yearc, 
+     predict(fit_pois, type = "link", newdata = nd), type= "l", col = 2, lwd = 2)
+```
+
+
+
+```{r}
+fit_pois_quad <- glm(ncit ~ poly(year, degree = 2), data = dat, family = "poisson")
+summary(fit_pois_quad)
+fit_pois_null <- glm(ncit ~ 1, data = dat, family = "poisson")
+summary(fit_pois_quad)
+summary(fit_pois_null)
+```
+
+```{r}
+anova(fit_pois_null, 
+      fit_pois_quad, test = "LRT")
+fit_pois_quad$deviance
+
+## devianza del modello 
+2*(
+## modello saturo 
+sum(dat$ncit * log(pmax(dat$ncit, 1)) - 
+  dat$ncit) - 
+# modello stimato 
+sum(dat$ncit * log(predict(fit_pois_quad, type = "response")) - 
+  predict(fit_pois_quad, type = "response")))
+
+fit_pois$deviance
+
+## devianza del modello 
+2*(
+## modello saturo 
+sum(dat$ncit * log(pmax(dat$ncit, 1)) - 
+  dat$ncit) - 
+# modello stimato 
+sum(dat$ncit * log(predict(fit_pois, type = "response")) - 
+  predict(fit_pois, type = "response")))
+
+```
+
+E se confrontassimo un modello polinomiale di 4o grado con il modello quadratico? 
+
+```{r}
+anova(fit_pois_quad, glm(ncit ~ poly(year, degree = 4), data = dat, family = "poisson"), test = "LRT")
+```
+
+Differenza tra devianze piccola: non rifiutuamo l'ipotesi nulla e mantengo il modello più semplice. 
+
+
+## modellare proporzioni
+
+Per ogni anno deriviamo la proporzione di brevetti per cui c'è una opposizione
+
+```{r}
+byYear <- data.frame( 
+  yearc = tapply(dat$yearc, factor(dat$yearc), unique),
+  num_opp = tapply(dat$nopp, factor(dat$yearc), sum), 
+  num_obs = tapply(dat$nopp, factor(dat$yearc), length)
+  )
+head(byYear)
+byYear$prop_opp <- byYear$num_opp/byYear$num_obs
+
+summary(glm(prop_opp ~ yearc, dat = byYear, family = "binomial", 
+    weights = num_obs))
+
+```
+

@@ -1,0 +1,296 @@
+---
+title: "Lab 07 - categorical variables"
+author: "Ilaria Prosdocimi"
+date: "29/10/2020"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The data 
+
+We focus on the dataset `Prestige`, made available in the `carData` package: 
+
+```{r readData, echo=FALSE}
+data(Prestige, package = "carData")
+plot(Prestige)
+head(Prestige)
+```
+
+We wish to model the prestige level of different jobs as a function of income and education: 
+
+```{r}
+fit1 <- lm(prestige ~ education+income, data = Prestige)
+```
+
+Is the model significant? Does it meet the standard assumptions? 
+
+```{r}
+summary(fit1)
+par(mfrow=c(2,2))
+plot(fit1)
+```
+
+Mostly seems ok. Does any of the other variables in the model appear to be worth including? Do any of them show a relationship with the residuals? 
+
+
+```{r}
+par(mfrow=c(2,2),pch=16)
+plot(Prestige$census, residuals(fit1))
+plot(Prestige$women, residuals(fit1))
+plot(Prestige$type, residuals(fit1))
+```
+
+Census appears to have some residual shape (quadratic?) and so does maybe type.  
+
+Let's try to add them both to the original model: 
+
+```{r}
+fit_wthcensus <- lm(prestige ~ education+income+census, data = Prestige)
+summary(fit_wthcensus)
+```
+
+```{r}
+fit_wthtype <- lm(prestige ~ education+income+type, data = Prestige)
+summary(fit_wthtype)
+```
+
+None of the two variables seem to be significant. When looking at the summary of `fit_wthtype` we notice a big drop in the degrees of freedom: this is due to the fact that some observations do not have a value for `type`:
+
+```{r}
+Prestige[is.na(Prestige$type),]
+```
+
+To compare the models we would need to re-fit them to the same dataset, otherwise AIC and significance tests can not be performed.
+
+```{r}
+sfit1 <- lm(prestige ~ education+income, data = Prestige[!is.na(Prestige$type),])
+sfit_wthcensus <- lm(prestige ~ education+income+census, data = Prestige[!is.na(Prestige$type),])
+```
+
+
+The two models are not nested, so we compare them with AIC 
+
+```{r}
+# this compares models fitted to different datasets, can not be compared
+# AIC(fit_wthtype); AIC(fit_wthcensus)
+AIC(sfit_wthcensus, fit_wthtype)
+```
+
+`fit_wthtype` seems to do better and actually we can see that when we compare the inclusion of the whole variable it is significant:
+
+```{r}
+anova(sfit1,fit_wthtype)
+```
+
+We also can notice that `type` and `census` are related to each other so we really should include either one or the other in the model, not both
+
+```{r}
+plot(census~type,data=Prestige)
+```
+
+Indeed including `type` takes away the residual shape: the model does not have any over- or under- estimation for specific ranges of census. 
+
+```{r}
+plot(Prestige$census[!is.na(Prestige$type)], 
+     residuals(fit_wthtype))
+```
+
+Overall it makes much more sense to use a job-type classification than the census code, so we are better off using a meaningful variable as `type` rather than `census` - this is true even if the model with `census` had been found to be better in terms of AIC or any other goodness of fit measurement. 
+
+
+Let's try to understand the `fit_wthtype` model better: 
+
+```{r}
+Prestige <- Prestige[!is.na(Prestige$type),]
+fit_wthtype$coefficients
+cmod <- signif(fit_wthtype$coefficients,2)
+```
+
+
+
+Education and income have both positive intercept: jobs with higher levels of education and income are related to higher prestige. The `type` variable is a categorical variable with three possible values, this means we effectively estimate three different planes with different intercepts: 
+
+\[\text{if type = bc the model is}: \hat{y}_i = `r signif(cmod[1])` + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
+\[\text{if type = prof the model is}: \hat{y}_i =  (`r signif(cmod[1])` + `r signif(cmod[4])`) + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
+\[\text{if type = wc the model is}: \hat{y}_i = (`r signif(cmod[1])` + `r signif(cmod[5])`) + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
+
+
+The level `bc` of the `type` variable is the baseline, the other two fitted planes differ from this plane by a constant value. 
+
+Let's have a look at the original data underlying the model (and the fitted lines for the three groups when allowing for different intercepts): 
+
+```{r}
+par(mfrow=c(1,2))
+plot(prestige~education, data=Prestige[!is.na(Prestige$type),], 
+     pch=16+ifelse(Prestige$type == "prof",1,0)+ifelse(Prestige$type == "wc",2,0), 
+     col=1+ifelse(Prestige$type == "prof",1,0)+ifelse(Prestige$type == "wc",3,0))
+#### add the three lines evaluated at mean income
+nd <- data.frame(education = rep(seq(min(Prestige$education),max(Prestige$education), 
+                                     length.out=40), times=3), 
+                 income = rep(mean(Prestige$income), 40*3),
+                 type = rep(levels(Prestige$type), each=40))
+lines(nd$education[nd$type == "bc"], predict(fit_wthtype,nd[nd$type == "bc",]))
+lines(nd$education[nd$type == "prof"], predict(fit_wthtype,nd[nd$type == "prof",]),col=2)
+lines(nd$education[nd$type == "wc"], predict(fit_wthtype,nd[nd$type == "wc",]),col=4)
+legend("topleft", col = c(1,2,4), pch = c(16,17,18), bty = "n", 
+       legend = c("type = bc", "type = prof","type = wc"))
+plot(prestige~income, data=Prestige[!is.na(Prestige$type),], 
+     pch=16+ifelse(Prestige$type == "prof",1,0)+ifelse(Prestige$type == "wc",2,0), 
+     col=1+ifelse(Prestige$type == "prof",1,0)+ifelse(Prestige$type == "wc",3,0))
+#### add the three lines evaluated at mean income
+nd <- data.frame(education = rep(mean(Prestige$education), 40*3),
+                 income = rep(seq(min(Prestige$income),max(Prestige$income), 
+                                     length.out=40), times=3), 
+                 type = rep(levels(Prestige$type), each=40))
+lines(nd$income[nd$type == "bc"], predict(fit_wthtype,nd[nd$type == "bc",]))
+lines(nd$income[nd$type == "prof"], predict(fit_wthtype,nd[nd$type == "prof",]),col=2)
+lines(nd$income[nd$type == "wc"], predict(fit_wthtype,nd[nd$type == "wc",]),col=4)
+```
+
+It is clear that the three groups have some different overall levels, and there is some interaction between `type` and both `education` and `income`. Does this need to be included in the model? Let's fit models with interactions, i.e models in which for each group we have different intercepts and different slopes. We can have `type` interact with `income` or `education` only or with both of them. Let's start with the latter, the most complex model:  
+
+```{r allInteraction}
+fit_intrall <- lm(prestige~education+income+type+education:type+income:type, data = Prestige)
+# summary(fit_intrall)
+```
+
+The model fitted to the data is the following:
+
+\begin{equation} 
+\begin{split}
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +  \beta_{type:prod} \text{type:prof} +  \beta_{type:wc} \text{type:wc} +
+  \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} + \\  
+  \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   +
+  \beta_{inc,type:prof} * \text{income}_i * \text{type:prof} +  
+  \beta_{inc,type:wc} *   \text{income}_i * \text{type:wc}   + \epsilon_i
+\end{split}
+\end{equation}
+
+<!-- \[ Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +  \beta_{type:prod} \text{type:prof} +  \beta_{type:wc} \text{type:wc} + -->
+<!--   \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} +   -->
+<!--   \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   +  -->
+<!--   \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} +   -->
+<!--   \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   + \epsilon_i -->
+<!-- \] -->
+where $\epsilon_i$ is the error $\epsilon_i \sim N(0, \sigma^2)$. 
+
+This entails three different models with different intercepts and slopes for each group: 
+\[\text{if type = bc}: 
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i + \epsilon_i
+\]
+
+\[\text{if type = prof}: 
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +
+  \beta_{type:prof}  \text{type:prof} + \\
+  \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} +  
+  \beta_{inc,type:prof} * \text{income}_i * \text{type:prof} +  
+ \epsilon_i
+\]
+
+\[\text{if type = wc}: 
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +
+  \beta_{type:wc} \text{type:wc} + \\
+  \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   +
+  \beta_{inc,type:wc} *   \text{income}_i * \text{type:wc}   + \epsilon_i
+\]
+
+We can see the estimated parameter values obtained for our data: 
+
+```{r showAllInteraction}
+summary(fit_intrall)
+```
+
+We can see that now several variables in the model are not significant. The variability of the estimation has increased a lot (compare for example `confint(fit_wthtype, parm ="education")` and `confint(fit_intrall, parm ="education")`): we are estimating many parameters using a limited amount of data points. 
+The model appears to still explain a large proportion of the variability and is significant against the model with no interactions: 
+
+```{r}
+anova(sfit_wthcensus, fit_intrall)
+```
+
+Nevertheless it might be not a very sensible model to use in practice. 
+
+What about the models in which only one of the continuous variables interact with the categorical variable? 
+
+```{r singleIntercaction}
+fit_intred <- lm(prestige~education+income+type+education:type, data = Prestige)
+#summary(fit_intred)
+fit_intrinc <- lm(prestige~education+income+type+income:type, data = Prestige)
+#summary(fit_intrinc)
+```
+
+Let's see if both interactions are needed or if we could use a reduced/nested model in which only `education` is allowed to interact with `type` or only `income` is allowed to interact with `type`: 
+
+Let's start to assess whether the null hypothesis that we can remove the education*type interaction can be rejected
+
+```{r}
+anova(fit_intrall, fit_intrinc)
+```
+
+At the traditional 5\% level we can reject the null hypothesis. 
+
+Let's check if the null hypothesis that we can remove the income*type interaction can be rejected
+
+```{r}
+anova(fit_intrall, fit_intred)
+```
+
+This gets rejected quite strongly. 
+
+Lastly, is the model in which only the income*type interaction is maintained significant against the no-interaction model?
+
+```{r}
+anova(fit_wthtype, fit_intrinc)
+```
+
+The interaction seems to explain a large proportion of variability. 
+
+```{r}
+summary(fit_intrinc)
+```
+
+Let's compare the various model using AIC and BIC: 
+
+```{r}
+AIC(fit_wthtype, fit_intred, fit_intrinc, fit_intrall)
+BIC(fit_wthtype, fit_intred, fit_intrinc, fit_intrall)
+```
+
+
+Depending on the criterion we decide to use we obtain different indication of which one is the optimal model: unluckily we do not have a way to say which one is the _right_ answer. 
+
+*Additional comment: we have been using the `type` variable as provided in the dataset, but possibly the interaction between education and type is the same for the `"bc"` and `"wc"` categories. Create a new dichotomous variable and explore this alternative model* 
+
+
+## The baseline level: working with factors
+
+R chooses the level `"bc"` as the baseline because it sorts the factor in alphabetical order. This means the estimated values we get are the difference in value for the intercept and slope of the `"prof"` and `"wc"` group compared to `"bc"`. What if we wished to change the baseline level and obtain the estimated parameters for the factor levels to be the values in comparison to, say `"prof"`, so that `"prof"` acts as a baseline? We need to use the `levels` option in the `factor` function to specify the levels: 
+
+```{r}
+class(Prestige$type)
+levels(Prestige$type)
+Prestige$newtype <- factor(Prestige$type, levels = c("prof","wc","bc"))
+```
+
+```{r}
+fit_newlevels <- lm(prestige ~ education + income + newtype, data = Prestige)
+fit_newlevels$coefficients
+```
+
+We notice now that the estimates for the level-specific intercept are referred to the `"bc"` and  `"wc"` levels, and  `"prof"` now acts as a baseline. Regardless if we compare the numerical values, we can see the estimated model is effectively the same: 
+
+```{r}
+fit_newlevels$coefficients
+fit_wthtype$coefficients
+nd <- data.frame(education = rep(mean(Prestige$education),3),
+                 income = rep(mean(Prestige$income),3),
+                 type = c("bc","prof","wc"),
+                 newtype = c("bc","prof","wc"))
+predict(fit_wthtype, nd)
+predict(fit_newlevels, nd)
+```
+

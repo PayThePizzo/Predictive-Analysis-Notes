@@ -1,0 +1,360 @@
+---
+title: "Lab 10 - GLMs in R: an introduction"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+The `patents.txt` data contain information from the EU patent office on patent citations and patent oppositions. The data also contains information on the year in which the patent was deposited and whether the patent relates to the biopharmaceutical sector. (Data derived as a subset of the patent data in the book [*Regression* by Fahrmeir et al.](https://www.uni-goettingen.de/de/regression+-+models%2c+methods+and+applications/550514.html). 
+
+```{r}
+dat <- read.table("../data/patents.txt")
+summary(dat)
+```
+
+
+# Modelling binary events 
+
+For each patent we have the information on whether the patent has been opposed or not: this is recorded in the variable `opposed`. We can have a look at it 
+
+```{r}
+summary(dat$opposed)
+table(dat$opposed)
+```
+
+and see we have a majority of cases in which the patent is not opposed. 
+
+Is there an effect of the year in which the patent was deposited on whether the patent has been opposed or not?
+
+```{r,eval=FALSE}
+plot(opposed~year, data = dat)
+## this doesn't work 
+```
+
+
+```{r,eval=TRUE}
+plot((opposed == "opposed") ~year, data = dat)
+```
+
+Hard to see the effect: let's use `jitter`
+
+
+```{r,eval=FALSE}
+plot(jitter(opposed == "opposed") ~year, data = dat)
+## this doesn't work
+```
+
+
+```{r}
+plot(jitter(ifelse(opposed == "opposed", 1,0)) ~year, data = dat)
+```
+
+The effect is not so obvious. 
+
+How to fit a glm? 
+
+```{r, eval=FALSE}
+fit_bin <- glm(opposed ~ year, data = dat, family = binomial)
+## this doesn't work 
+```
+
+Having a look at the `?family` we see that a character version is not an acceptable way to define the response variable for a bernoulli: we can instead specify a factor. 
+
+```{r}
+dat$fopp <- as.factor(dat$opposed)
+levels(dat$fopp) ## first level is the "failure", that's what we wanted 
+```
+
+```{r}
+fit_bin <- glm(fopp ~ year, data = dat, family = binomial)
+summary(fit_bin)
+```
+
+The estimated parameter for the effect of year is negative - but notice the very high intercept: let's make `year` easier to interpret. 
+
+
+```{r}
+dat$subyear <- dat$year - 1979
+fit_bin <- glm(fopp ~ subyear, data = dat, family = binomial)
+summary(fit_bin)
+```
+
+Finally we could make the decoding of the variable manually: let's create a numeric version of `opposed`. 
+
+```{r}
+dat$nopp <- ifelse(dat$opposed == "opposed", 1,0)
+table(dat$fopp)  
+table(dat$nopp) ## ok
+summary(glm(nopp ~ subyear, data = dat, family = binomial)) 
+## all good 
+```
+
+We have standard error for our estimates: where do these come from? 
+
+```{r}
+X <- model.matrix(fit_bin)
+V <- diag(exp(fit_bin$coefficients[1]+fit_bin$coefficients[2]*dat$subyear)/((1+exp(fit_bin$coefficients[1]+fit_bin$coefficients[2]*dat$subyear))^2))
+solve(t(X) %*% V %*% X)
+vcov(fit_bin)
+```
+
+A combination of the design matrix and the variances of $Y_i$ derived at different values of $Y_i$. 
+
+We can use the standard error to perform inference: to construct confidence intervals we can either do this "by hand" or use the `confint.default` function: 
+
+
+```{r}
+confint.default(fit_bin)
+confint.default(fit_bin, parm = "subyear")
+coef(fit_bin)[2] + qnorm(c(0.025,0.975))*sqrt(vcov(fit_bin)[2,2])
+```
+
+Notice that we use qnorm: estimates are approximately normal so this will be an approximate confidence interval and the approximation will be better when the sample size is large. 
+
+Now let's try to understand something more about the estimated model. 
+
+
+How should we interpret the estimated coefficients? [Relevant video!](https://twitter.com/ChelseaParlett/status/1304436259926896640).  
+
+```{r}
+nd <- data.frame(subyear = c(1, 2, 17, 18))
+(lpred <- predict(fit_bin, newdata = nd))
+(lpred <- predict(fit_bin, newdata = nd, 
+                  type = "link"))
+diff(lpred)
+(rpred <- predict(fit_bin, newdata = nd, 
+                  type="response"))
+rpred/(1-rpred) 
+exp(lpred)
+(rpred/(1-rpred))[2]/(rpred/(1-rpred))[1]
+(rpred/(1-rpred))[4]/(rpred/(1-rpred))[3]
+exp(fit_bin$coefficients[2])
+```
+
+The coefficient represents the (log-)effect of the covariate on the odds-ratio: a positive coefficient indicates that higher values of the covariate are linked to a higher probability of the "success" event to happen. We can visualize the effect of covariate on the linear predictor and on the response variable: 
+
+```{r}
+# binomial()$link
+# binomial()$inv.link
+par(pch = 16, bty = "l", mfrow=c(1,2))
+nd <- data.frame(subyear = seq(1, 18, by = 1))
+### we can not plot the inverse-link transformed data
+### they take values -inf or + inf 
+plot(nd$subyear, 
+     predict(fit_bin, newdata = nd),
+     type="l")
+plot(nd$subyear,
+     predict(fit_bin, newdata = nd, type="response"),
+     type="l", ylim = c(-0.25,1.25))
+### we can plot the original data
+points(dat$subyear, jitter(dat$nopp))
+```
+
+# Modelling the number of citations 
+
+We now move to a different variable: the number of citations of a patent `ncit`. This can be viewed as an indicator of the patent's success: we wish to assess whether patents deposited in more recent year are more or less successful. 
+We can assume for the moment that the variable NCIT follow a Poisson distribution. Let's have a look at the data: 
+
+```{r}
+plot(jitter(ncit, amount = 0.2)~jitter(subyear, amount = 0.2), 
+     data = dat) # notice we already use subyear
+```
+
+Hardly a clear effect, but maybe something quadratic? Let's start with a simple model: 
+
+```{r}
+fit_pois <- glm(ncit~subyear, data = dat, family = poisson)
+summary(fit_pois)
+```
+
+Year is significant and has a negative effect.
+
+We have standard error for our estimates: where do these come from? 
+
+```{r}
+X <- model.matrix(fit_pois)
+V <- diag(exp(fit_pois$coefficients[1]+fit_pois$coefficients[2]*dat$subyear))
+solve(t(X) %*% V %*% X)
+vcov(fit_pois)
+```
+
+These can be used to derive confidence intervals: 
+
+
+```{r}
+confint.default(fit_pois, "subyear")
+coef(fit_pois)[2] + qnorm(c(.025, .975)) * sqrt(vcov(fit_pois)[2,2])
+```
+
+Let's have a better look at the fitted model: what is exactly the model we fitted? 
+
+\[Y_i \sim Pois(\lambda(subyear_i)) \]
+with 
+\[\lambda(subyear_i) = \exp\{\beta_0 + \beta_1 subyear_i \} \]
+so we have a linear predictor $\eta(subyear_i) = \log(\lambda(subyear_i))$:
+\[\eta(subyear_i) = \beta_0 + \beta_1 subyear_i\]
+Since $Y$ is assumed to follow a Poisson we have that $E[Y_i] = \lambda_i$. This means subyear impacts the expected value of the distribution via the link function. Two years which are $c$ years apart would have the two different expected value: 
+
+\[\lambda(x_0) = \exp\{\beta_0 + \beta_1 x_0 \} \quad \lambda(x_0 + c) = \exp\{\beta_0 + \beta_1 (x_0 + c) \}\]
+
+so that $\lambda(x_0 + c)  = \lambda(x_0) \exp\{c\}$: the effect of the explanatory variable is multiplicative on the expected value. 
+
+We can see this using the `predict` function: 
+
+```{r}
+nd <- data.frame(subyear = c(1,2, 17, 18))
+(lpred <- predict(fit_pois, newdata = nd,type = "link"))
+diff(lpred)
+(rpred <- predict(fit_pois, newdata = nd,type = "response"))
+exp(lpred)
+rpred[2]/rpred[1]; rpred[4]/rpred[3]
+log(rpred[2])-log(rpred[1]); log(rpred[4])-log(rpred[3])
+rpred[1]* exp(fit_pois$coefficients[2]); rpred[2]
+rpred[3]* exp(fit_pois$coefficients[2]); rpred[4]
+rpred[1]* exp(fit_pois$coefficients[2]*17); rpred[4]
+```
+
+
+If we wish to visualize the effect of the predictor on the variable of interest we can plot either the linear term or the transformed linear term: 
+
+```{r}
+par(mfrow=c(1,2), pch = 16, col = "grey40")
+plot(dat$subyear, log(dat$ncit))
+## but careful about any(dat$ncit == 0)
+nd <- data.frame(subyear=seq(1, 18, by=1))
+lines(nd$subyear, predict(fit_pois, newdata = nd),
+      col = 2, lwd = 2)
+plot(dat$subyear, dat$ncit)
+lines(nd$subyear, 
+      predict(fit_pois, newdata = nd, type="response"),
+      col = 4, lwd = 2)
+```
+
+To "show" the 0 values in the log-scale plot: 
+
+```{r}
+par(mfrow=c(1,1), pch = 16, col = "grey40")
+plot(dat$subyear, log(pmax(dat$ncit, 0.5)))
+## but careful about any(dat$ncit == 0)
+nd <- data.frame(subyear=seq(1, 18, by=1))
+lines(nd$subyear, predict(fit_pois, newdata = nd),
+      col = 2, lwd = 2)
+```
+
+From the plot we can see that maybe a quadratic term might better capture the relationship between `subyear` and `ncit`: let's give that a try. 
+
+```{r}
+fit_pois_quad <- glm(formula = ncit ~ poly(subyear,2), 
+                     family = poisson, data = dat)
+summary(fit_pois_quad)
+```
+
+The term is highly significant: how to compare nested models? Use the deviance. 
+
+## Computing deviances to compare models
+
+We see that R prints out the null and residual deviance of the model: the residual deviance is a measure of the goodness of fit of the model to the data, akin to the residual sum of squares for linear models. 
+
+```{r}
+fit_pois$deviance
+fit_pois_quad$deviance
+```
+
+Adding the quadratic term reduces the deviance. 
+
+Let's see where these numbers come from. The deviance is defined as:
+
+\[D = 2 \sum_{i=1}^{n} d_i =  \sum_{i=1}^{n}(l^{sat} -  l(\hat{\beta}))  \]
+
+where $l^{sat}$ is the maximum possible value fo the likelihood obtained when $\mu^{sat} = y_i$. 
+
+The log-likelihood for the Poisson model is: 
+
+\[l(\mu_i, y_i) =  y_i log \mu_i  - \mu_i \]
+
+so $l^{sat} = y_i \log y_i - y_i$. This results in a deviance of the form: 
+
+\[D = \sum_{i=1}^{n}\left( (y_i \log y_i - y_i) - (y_i \log \hat{\mu}_i  - \hat{\mu}_i)  \right)  \]
+where $\hat{\mu}_i = \exp\{ \beta_0 + \beta_1 x_{i,1} + \ldots + \beta_{p-1} x_{i, p-1} \}$
+
+For the model in which `subyear` only is included as explanatory variable we can derive
+
+```{r}
+2 * sum( (dat$ncit * log(pmax(dat$ncit,1)) - dat$ncit) - 
+       (dat$ncit* log(fit_pois$fitted.values) - fit_pois$fitted.values))
+## notice the convention that when y=0, y*log(y) = 0
+fit_pois$deviance
+```
+
+Under some assumptions (typically met for well behaved models) we can show that: 
+
+\[D \sim \chi^2_{n-p} \]
+
+The null deviance is instead the deviance for the simplest possible model, i.e. the model in which no explanatory variable is included and $\hat{\mu} = \bar{y}$.  
+
+
+```{r}
+2 * sum( (dat$ncit * log(pmax(dat$ncit,1)) - dat$ncit) - 
+       (dat$ncit* log(mean(dat$ncit)) - dat$ncit))
+fit_pois$null.deviance
+```
+
+We use the deviance values to perform a likelihood ratio test (via the ANOVA function):
+
+```{r}
+fit_pois_null <- glm(ncit ~ 1, data = dat, family = poisson)
+anova(fit_pois_null, fit_pois, test = "LRT")
+(lrt_stats <- fit_pois_null$deviance - fit_pois$deviance)
+pchisq(lrt_stats, 
+        df = fit_pois_null$df.residual - fit_pois$df.residual, 
+        lower.tail = FALSE)
+```
+
+Let's compare the quadratic model against the null model and the model with only the linear term for `subyear`
+
+```{r}
+anova(fit_pois_null, fit_pois_quad, test = "LRT")
+anova(fit_pois, fit_pois_quad, test = "LRT")
+```
+
+Finally we could assess the usefulness of adding a further third order polynomial to the model: 
+
+```{r}
+anova(fit_pois_quad, 
+      glm(formula = ncit ~ poly(subyear, 3), family = poisson, data = dat),
+      test = "LRT")
+```
+
+Marginally significant: could decide to include. 
+
+
+# Modelling proportions 
+
+The `family = binomial` option can be used to also model proportions of successes. As described in the Details of ?family binomial type data can be specified in two different ways: 
+
+* As a numerical vector with values between 0 and 1, interpreted as the proportion of successful cases (with the total number of cases given by the weights).
+* As a two-column integer matrix: the first column gives the number of successes and the second the number of failures.
+
+First we create a dataset with binomial type data. We can notice that for each year we have a number of patents which have been opposed or not: in essence or any given year in which patents were deposited we know what is the proportion of patents for which an opposition has been raised. We therefore can summarize the whole information in a smaller dataset in which we keep the information on the total number of patents deposited and on the number of opposed patents (notice that we can not keep the information on the number of citation of each patent): 
+
+
+```{r}
+# dat <- dat[order(dat$year),]
+byYear <- data.frame(year = tapply(dat$year, factor(dat$year), unique), 
+                     nopp = tapply(dat$nopp, factor(dat$year), sum), 
+                     tpat = tapply(dat$nopp, factor(dat$year), length)) 
+byYear$n_notopp <- byYear$tpat - byYear$nopp
+byYear$propOpp <- byYear$nopp/byYear$tpat
+head(byYear)
+##first specification
+fit_t1_bin <- glm(cbind(nopp, n_notopp)~year, family = binomial, data = byYear)             
+summary(fit_t1_bin)
+## second specification
+fit_t2_bin <- glm(propOpp~year, family = binomial, weights = tpat, data = byYear)             
+summary(fit_t2_bin)
+summary(fit_bin)
+```
+
+We see that we get the same results than the ones based on the raw data: this is only true because our explanatory variable `year` has the same value for all observations in the grouping variable (also `year`). In general though, modelling proportions-type data is very similar to modelling binary-type data: proportions are indeed obtained as sums of binary variables, hence it is natural that the inference should be similar. The difference in the type of analysis we can make comes is connected on whether we do have the information on covariates at individual-level if assessing binary-type variables. 

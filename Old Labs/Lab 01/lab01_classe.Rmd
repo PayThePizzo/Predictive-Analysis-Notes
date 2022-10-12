@@ -1,0 +1,145 @@
+---
+title: "Ricordi di R"
+author: "Me Myself and I"
+date: "20/09/2021"
+output: 
+  html_document: 
+    toc: yes
+    highlight: kate
+    theme: cosmo
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Affitti a Monaco 
+
+
+```{r}
+getwd()
+mrents <- read.table(file = "../data/rent99.raw", 
+                     header = TRUE) 
+```
+
+
+```{r}
+summary(mrents$rent)
+```
+
+
+```{r}
+hist(mrents$rent)
+abline(v = mean(mrents$rent), col = "orange")
+abline(v = median(mrents$rent), col = "purple")
+```
+
+
+```{r}
+hist(mrents$rentsqm)
+```
+
+```{r}
+barplot(table(mrents$bath))
+```
+
+Notiamo che ci sono molti più bagni standard che premium: `r table(mrents$bath)[1]` bagni standard su `r nrow(mrents)` totali. 
+
+## Grafici di relazioni bivariate 
+
+```{r}
+summary(mrents$rent[mrents$kitchen == 0])
+summary(mrents$rent[mrents$kitchen == 1])
+```
+
+```{r}
+boxplot(mrents$rent)
+```
+
+
+```{r}
+boxplot(mrents$rent~mrents$kitchen)
+```
+
+
+```{r}
+plot(mrents$rent~mrents$kitchen)
+```
+
+```{r}
+plot(mrents$area, mrents$rent, 
+     pch = 16, cex = 1.2, col = "darkred")
+title(main = "Affitti a Monaco - relazione tra area e prezzo")
+```
+
+```{r}
+plot(mrents)
+```
+
+# Predittori lineari ottimali 
+
+
+Usiamo il dataset `cars`: 
+
+```{r}
+data(cars)
+plot(cars)
+```
+
+Desideriamo stimare una retta $y = b_0 + b_1 x$
+
+```{r}
+plot(cars)
+b0_1 <- -16; b1_1 <- 3
+abline(b0_1, b1_1, col = 4)
+b0_2 <- -17; b1_2 <- 4
+abline(a = b0_2, b = b1_2, col = 3)
+```
+
+```{r}
+plot(cars)
+b0_1 <- -16; b1_1 <- 3
+abline(b0_1, b1_1, col = 4)
+b0_2 <- -17; b1_2 <- 4
+abline(a = b0_2, b = b1_2, col = 3)
+```
+
+```{r}
+y <- cars$dist
+x <- cars$speed
+sum((y - (b0_2+b1_2 * x))^2)
+sumSq <- function(b0, b1, y, x){
+  observed <- y
+  modelled <- b0 + b1 * x
+  sum((observed - modelled)^2)
+}
+sumSq(b0_1, b1_1, y = cars$dist, cars$speed)
+sumSq(b0_2, b1_2, y = cars$dist, cars$speed)
+```
+
+```{r}
+b0seq <- seq(-20,-5, length.out = 7)
+b1seq <- seq(3.4,4.6,length.out = 9)
+ssqseq <- matrix(NA, ncol = 9, nrow= 7)
+for(i in 1:7){
+  for(j  in 1:9){
+    ssqseq[i,j] <- sumSq(b0seq[i], b1seq[j], 
+                         y= cars$dist,  x = cars$speed)
+  }
+}
+ssqseq
+plot(b0seq, ssqseq[,1], type="l", ylim = range(ssqseq))
+lines(b0seq, ssqseq[,3], col = 2)
+lines(b0seq, ssqseq[,5], col = 3)
+lines(b0seq, ssqseq[,7], col = 4)
+lines(b0seq, ssqseq[,9], col = 5)
+
+
+plot(b1seq, ssqseq[1,], type="l", ylim = range(ssqseq))
+lines(b1seq, ssqseq[3,], col = 2)
+lines(b1seq, ssqseq[5,], col = 3)
+lines(b1seq, ssqseq[7,], col = 4)
+```
+

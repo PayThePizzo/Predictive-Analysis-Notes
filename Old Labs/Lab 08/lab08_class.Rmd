@@ -1,0 +1,148 @@
+---
+title: "lab 08 - class"
+author: "Me Myself and I"
+date: "09/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# bodyfat data 
+
+```{r}
+bodyfat <- read.csv("bodyfat.csv", header = TRUE)
+bodyfat$Height <- bodyfat$Height * 2.54
+bodyfat$Weight <- bodyfat$Weight / 2.205
+```
+
+Inziamo con un modello che includa tutti i predittori 
+
+```{r}
+fit_all <- lm(Pct.BF ~ ., bodyfat[,-1])
+summary(fit_all)
+```
+
+```{r}
+fit_all <- lm(Pct.BF ~ ., bodyfat[,-c(1, 9)])
+summary(fit_all)
+```
+
+```{r}
+signif(cor(bodyfat[,-c(1, 9)]),3)
+```
+
+```{r}
+car::vif(fit_all)
+```
+
+
+```{r}
+summary(lm(Pct.BF~Hip, data = bodyfat))
+summary(lm(Pct.BF~Weight, data = bodyfat))
+summary(lm(Pct.BF~Hip+Weight, data = bodyfat))
+car::vif(lm(Pct.BF~Hip+Weight, data = bodyfat))
+```
+
+
+```{r}
+nd <- data.frame(Hip = 110, Weight = 90)
+predict(lm(Pct.BF~Hip, data = bodyfat), newdata = nd, 
+        se.fit = TRUE)$se.fit
+predict(lm(Pct.BF~Weight, data = bodyfat), newdata = nd, 
+        se.fit = TRUE)$se.fit
+predict(lm(Pct.BF~Hip+Weight, data = bodyfat), newdata = nd, 
+        se.fit = TRUE)$se.fit
+car::vif(lm(Pct.BF~Hip+Weight, data = bodyfat))
+```
+
+```{r}
+sort(car::vif(fit_all))
+mean(car::vif(fit_all))
+```
+
+
+
+```{r}
+1/(1-summary(lm(Weight ~ Ankle + Age + Forearm + Wrist + Bicep + Height+ Neck + Knee + Thigh + Chest + Abdomen+Hip, data = bodyfat))$r.square)
+```
+
+```{r}
+fit_sub1 <- lm(Pct.BF ~ Age + Forearm+Wrist+Bicep+Height+Neck+Knee+Thigh, data = bodyfat)
+summary(fit_sub1)
+anova(fit_sub1, fit_all)
+AIC(fit_sub1, fit_all)
+car::vif(fit_sub1)
+mean(car::vif(fit_sub1))
+par(mfrow=c(2,2)); plot(fit_sub1)
+```
+
+```{r}
+fit_sub2 <- lm(Pct.BF ~ Age + Forearm, data = bodyfat)
+summary(fit_sub2)
+car::vif(fit_sub2)
+```
+
+
+```{r}
+fit_step <- step(fit_sub2, direction = "forward", 
+     scope = list(lower = fit_sub2, upper = fit_all))
+car::vif(fit_step)
+```
+
+
+## Bodyfat - episodio 2o
+
+```{r}
+par(mfrow=c(1,1))
+plot(bodyfat[, c("Ankle", "Pct.BF")])
+```
+
+```{r}
+plot(bodyfat[, c("Ankle", "Pct.BF")])
+abline(coef(lm(Pct.BF~Ankle, data = bodyfat)), pch = 16)
+abline(coef(lm(Pct.BF~Ankle, data = bodyfat[bodyfat$Ankle < 30, ])), col = 2)
+```
+
+```{r}
+fit_ankle <- lm(Pct.BF~Ankle, data = bodyfat)
+plot(bodyfat$Ankle, hatvalues(fit_ankle), ylab = "Leverage - Hii")
+X <- model.matrix(fit_ankle)
+head(diag(X %*% solve(crossprod(X)) %*% t(X)))
+head(hatvalues(fit_ankle))
+```
+
+Cosa succede in un modello multivariato? 
+
+```{r}
+fit_mul <- lm(Pct.BF~Ankle+Weight+Age+Forearm+Hip, data = bodyfat)
+par(mfrow=c(1,2))
+plot(bodyfat$Ankle, hatvalues(fit_mul), ylab = "Leverage - Hii")
+plot(bodyfat$Age, hatvalues(fit_mul), ylab = "Leverage - Hii")
+X <- model.matrix(fit_mul)
+head(diag(X %*% solve(crossprod(X)) %*% t(X)))
+head(hatvalues(fit_mul))
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(fit_ankle)
+```
+
+Cosa sono i residui standardizzati? 
+
+```{r}
+head(rstandard(fit_ankle))
+head(residuals(fit_ankle)/(summary(fit_ankle)$sigma * sqrt(1-hatvalues(fit_ankle))))
+```
+
+```{r}
+head(rstudent(fit_ankle))
+
+
+```
+
+
+

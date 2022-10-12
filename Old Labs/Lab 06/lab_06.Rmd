@@ -1,0 +1,324 @@
+---
+title: "Lab 6 - Model selection"
+author: "Ilaria Prosdocimi"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output: html_document
+---
+  
+We will analyze the dataset `prostate`: 
+  
+```{r}
+urlLocation <- "https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.data"
+prostate <- read.table(urlLocation, header=TRUE)[,1:9]
+## explanation of the data 
+## https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.info.txt
+```
+
+The variables in the dataset are
+
+* lcavol: log cancer volume
+* lweight: log prostate weight
+* age: age of patient
+* lbph: log of the amount of benign prostatic hyperplasia
+* svi: seminal vesicle invasion (binary variable)
+* lcp: log of capsular penetration
+* gleason: Gleason score
+* pgg45: percent of Gleason scores 4 or 5
+* lpsa: log PSA score
+
+
+We aim to select a model that to explain how `lpsa` is affected by other variables: this might be useful both for prediction purposes (i.e. predict the `lpsa` for a new patient) and for inference purposes (i.e. understanding which factors influence the `lpsa` values).  
+
+The relationship of `lpsa` against all the other variables in the dataset can be seen in the plot below: 
+
+```{r plotMatrix}
+plot(prostate)
+```
+
+
+The first two model we can think to fit are the simplest and most complex possible models, i.e. a model in which only the intercept is used and a model in which all the variables are included as predictors. To do that correctly we first transform the `svi` variable into a factor rather than a continuous variable: 
+
+
+```{r}
+prostate$svi <- as.factor(prostate$svi)
+fit_int_only <- lm(lpsa~1,data = prostate)
+fit_all_vars <- lm(lpsa~.,data = prostate)
+```
+
+A first question is whether the more complex variable is "significant": 
+
+```{r}
+anova(fit_int_only, fit_all_vars)
+```
+
+It appears that including all variables explains a large proportion of the variability of the data. How can we find a model which is not too complex but complex enough to explain the a large proportion of the variability. We can use AIC to choose a model in which reductions in the negative log-likelihood are penalized by a function of the number of degrees of freedom for complex models. The AIC for the intercept-only model is `r AIC(fit_int_only)`. We could think of finding the best model with one explanatory variable: 
+
+```{r}
+for(j in 1:(ncol(prostate)-1)) print(c(names(prostate)[j],AIC(lm(prostate$lpsa~prostate[,j]))))
+## the lcavol variable is the one that reduces AIC the most 
+```
+
+The next logical step would be to see whether adding any further variable decreases the AIC further. Rather than doing this manually we use the `step` function to perform a _forward_ model selection, i.e. a model selection in which we start from a small model and add explanatory variables one by one as long as the AIC is reduced: 
+
+```{r}
+fit_int_only <- lm(lpsa~1,data = prostate)
+fit_all_vars <- lm(lpsa~.,data = prostate)
+sel_forw <- step(object = fit_int_only, direction = "forward", 
+                 ## scope give the lower, i.e. simplest, and upper, most complex, limits 
+                 ## the "range" of models in which the algorithm will perform its search 
+     scope = list(lower=fit_int_only, upper = fit_all_vars))
+```
+
+After 5 steps the algorithm stops and identifies the model using the following variables:
+
+```{r}
+names(sel_forw$coefficients)
+```
+
+The addition of any further variable does not reduce the AIC further, so we can stop here in our search. The AIC of the final model is `r AIC(sel_forw)`: a much lower value than the one with no predictors included. Remember the AIC is computed as: 
+\[AIC(M) = - 2 * logLik(M) + 2 * p(M)\]
+where $p(M)$ is the number of degrees in freedom in the model $M$. For linear model after some calculations it can be shown that: 
+\[AIC(M) = \text{constant} + n*MSS(M) + 2 * p(M)\]
+where $MSS(M)$ is the mean residual sum of squares for the model $M$. In R this can be evaluated as: 
+
+```{r}
+-2*as.numeric(logLik(sel_forw)) + 2*(length(sel_forw$coefficients)+1)
+## or more simply
+AIC(sel_forw)
+### step uses the MSS based definition 
+nrow(sel_forw$model)*log(mean(sel_forw$residuals^2)) + 2*(length(sel_forw$coefficients))
+## it's OK to use slightly different definition up or minus a constant, since what matters is the ranking 
+```
+
+The other possible approach for model selection we can take is _backward_ selection, in which from a more complex model we remove predictors one by one: 
+
+```{r}
+sel_back <- step(object = fit_all_vars, direction = "backward", 
+     scope = list(lower=fit_int_only, upper = fit_all_vars))
+```
+
+In this case we find the same model. 
+
+The last possible approach to follow is _stepwise_ model selection in which the algorithm at each time tests whether adding or removing any predictor improves the goodness of fit of the model. The algorithm can be implemented starting from a simple or a complex model: 
+
+```{r}
+sel_both <- step(object = fit_int_only, direction = "both", 
+     scope = list(lower=fit_int_only, upper = fit_all_vars))
+sel_both_bis <- step(object = fit_all_vars, direction = "both", 
+     scope = list(lower=fit_int_only, upper = fit_all_vars))
+### regardless of where we start we find the same model
+identical(sort(names(sel_both$coefficients)), 
+          sort(names(sel_both_bis$coefficients)))
+```
+
+In this particular case all three selection methods indicate that the same variables should be included in the model: 
+
+```{r}
+identical(sort(names(sel_back$coefficients)), 
+          sort(names(sel_forw$coefficients)))
+identical(sort(names(sel_back$coefficients)), 
+          sort(names(sel_both_bis$coefficients)))
+```
+
+Let's have a look at how well the model fits the observed data: 
+
+```{r}
+summary(sel_back)
+plot(fitted(sel_back),prostate$lpsa, pch=16)
+abline(0,1) ## not bad 
+```
+
+We can see that the model is significant against the null model and seems to retrieve a decent for for the original data. On the other hand when we compare the chosen model with the most complex model possible we see that the inclusion of additional variables does not result in a significant difference in the RSS: 
+
+```{r}
+anova(sel_back, fit_all_vars)
+```
+
+Till now we have used AIC as the criterion to choose which variables to include. An alternative is to use the BIC, in which more complex models are penalized more for a dataset with large $n$ since its form is: 
+\[BIC(M) = - logLik(M) + \log(n) * p(M).\]
+
+Let's compare AIC and BIC values for the two most extreme models: 
+
+```{r}
+AIC(fit_all_vars); AIC(fit_int_only)
+BIC(fit_all_vars); BIC(fit_int_only)
+## alternatively AIC(fit_int_only, k=log(nrow(prostate)))
+```
+
+We can still use the `step` function to identify models which minimize the BIC: 
+
+```{r}
+sel_bic_back <- step(object = fit_all_vars, direction = "backward", 
+     scope = list(lower=fit_int_only, upper = fit_all_vars),k=log(nrow(prostate)))
+sel_bic_forw <- step(object = fit_int_only, direction = "forward", 
+     scope = list(lower=fit_int_only, upper = fit_all_vars),k=log(nrow(prostate)))
+sel_bic_both <- step(object = fit_all_vars, direction = "both", 
+     scope = list(lower=fit_int_only, upper = fit_all_vars),k=log(nrow(prostate)))
+```
+
+Finally we can use the _exhaustive_ search method, in which we compare in an exhaustive way all possible models which can be fitted to the data. The algorithm is implemented in the `regsubsets` function in the package `leaps`: 
+
+```{r}
+if(!any(rownames(installed.packages()) == "leaps")) install.packages("leaps")
+library(leaps)
+all_mod <-summary(regsubsets(lpsa ~ ., data = prostate))
+all_mod
+```
+
+The output shows at each line which variables are to be included in model of increasing complexity: each line indicates which combination of $p$ variables gives the smallest RSS (and consequently the smallest AIC/BIC and adjusted R square for the given level of complexity $p$). 
+The `all_mod` object contains the following information
+
+```{r}
+names(all_mod)
+```
+
+Some of these are the vectors of $R^2$, $R_{adj}^2$, $SS_{res}$ and BIC. We do not discuss in this course the `cp` quantity, but it is the Mallow's $C_p$. The `outmat` object is the matrix plotted in the summary, while the `which` matrix present a similar information in the from of a matrix of logical values: 
+
+```{r}
+all_mod$which
+```
+
+We can choose the model by finding which model maximizes the $R_{adj}^2$ or minimizes BIC: 
+
+```{r}
+which.min(all_mod$bic)
+## the selected model is 
+colnames(all_mod$which)[all_mod$which[which.min(all_mod$bic),]]
+## Adhusted R2 chooses a different model 
+which.max(all_mod$adjr2)
+colnames(all_mod$which)[all_mod$which[which.max(all_mod$adjr2),]]
+sel_adj <- lm(lpsa ~ lcavol+lweight+age+lbph+svi+lcp+pgg45, data=prostate)
+```
+
+Notice that `regsubset` can also be used to perform _forward_ and _backward_ selection by changing the `method` option. 
+
+# Leave-one-out cross validation
+
+A totally different approach to model selection is the cross-validation approach. Rather than simply evaluating each model using the same sample that was used to estimate it we assess how well would the model do if used to predict _out-of-sample_ values. Specifically to quantify the error we can expect to make when predicting a new observation using  a fitted model we compute the leave-one-out error $e[i] = y_i - \hat{y}[i]$, where $\hat{y}[i]$ denotes the estimated value for $i$ obtained estimating the model without including observation $i$ in the model. 
+
+We exemplify the concept using the `sel_bic_both` model: 
+
+```{r}
+i = 1 ; X <- model.matrix(sel_bic_both)
+esqi <- prostate$lpsa[i] -  X[i,]%*%lm(lpsa ~ lcavol + lweight + svi, data = prostate[-i,])$coef
+esqi
+```
+
+The $RMSE_{LOOCV}$ can then be calculated as 
+
+```{r}
+esq <- rep(NA,length = nrow(prostate))
+for(i in seq_along(esq)){
+  esq[i] <- prostate$lpsa[i] -  X[i,]%*%lm(lpsa ~ lcavol + lweight + svi, data = prostate[-i,])$coef
+}
+sqrt(mean(esq^2))
+```
+
+It can actually be shown that the $RMSE_{LOOCV}$ can be derived without estimating the model $n$ times as:
+
+\[
+\text{RMSE}_{\text{LOOCV}} = \sqrt{\frac{1}{n}\sum_{i=1}^n \left(\frac{e_{i}}{1-h_{ii}}\right)^2},
+\]
+
+where $h_{ii}$ are the diagonal elements of the hat matrix: 
+
+```{r}
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+calc_loocv_rmse(sel_bic_both)
+```
+
+What are the `hatvalues`? 
+
+```{r}
+head(hatvalues(sel_bic_both))
+H <- X %*% solve(crossprod(X)) %*% t(X)
+head(diag(H))
+```
+
+We can now use the `calc_loocv_rmse` function to compare some of the models we have found to be "optimal" 
+
+```{r}
+calc_loocv_rmse(sel_back)
+calc_loocv_rmse(sel_bic_back)
+calc_loocv_rmse(sel_adj)
+```
+
+The `sel_bic_back` is the model with the lowest CV error. 
+
+
+# Checking the assumptions 
+
+We have found several candidate models which are selected as "optimal" according to some criterion. The fact that using different criteria results in selecting different models indicates how complex the model selection problem is. 
+Regardless of which criteria we use to choose the model, after a model is selected it is always necessary to check the model assumption: Linearity, Independence, Normality, Equal variances (LINE). We check these assumptions in R for the BIC-selected model `sel_bic_both`. 
+
+* Linearity 
+
+Are the relationship between each of the predictors in the model and the response linear? Or in other words, one we have fitted the model, is there any remaining relationship between each X and the residuals? And is the relationship between the fitted values and the residuals looking random or is there some structural form which a are not explaining?  
+
+First we do the plot of each predictor against the residuals: 
+
+```{r}
+sel_model <- sel_bic_both
+whichCols <- names(sel_bic_both$coefficients)[-1]
+if(any(whichCols == "svi1")) whichCols[whichCols == "svi1"] <- "svi"
+par(mfrow=c(2,ceiling(length(whichCols)/2)),pch=16)
+for(j in seq_along(whichCols)){
+ plot(prostate[,whichCols[j]], residuals(sel_model)) 
+  abline(h=0,lty=2)
+}
+```
+
+Next we plot fitted values against the residuals: 
+
+```{r fittedAginstResid}
+plot(sel_model$fitted.values, sel_model$residuals)
+abline(h=0,lty=2)
+# can also be derived with
+# plot(sel_model,which=1)
+```
+
+
+These plots are also useful to identify issues with the homoschedasticity (equal variances) assumption. 
+
+For the `sel_bic_both` model there do not seem to be major issues. Let's now check for normality: 
+
+```{r}
+qqnorm(sel_model$residuals)
+qqline(sel_model$residuals)
+# can also be derived with
+# plot(sel_model,which=2)
+```
+
+The qqplot looks nice, nothing major to report. 
+
+Since these are hospital patients which have undergone surgery there is no clear reason why the measurements should be dependent. With the information given we do not know for example if we have several subjects who belong to the same family or have lived in the same area and might have therefore be exposed to similar pollution levels. If the measurements were taken in two different hospitals we might also need to check if patients in one hospital are more similar to each other than to patients in the other hospital. We do not have these information, so we can not have strong arguments against the assumption of independence.  
+
+\ 
+ 
+## The qqplot
+
+The qqplot compares the distribution of the residuals to a normal. How is the  constructed? The idea is that if the sample was normally-behaved, the sorted sample should be similar to a random sample of size $n$ from normal distribution. But what would a sample of size $n$ from the normal look like? The most "likely" sample we could extract from the normal is the one extracted with probabilities $(1,\ldots,n)/(n+1)$ for which we can compute the quantiles, either from the standard normal of from the normal with mean and standard deviation corresponding to the sample mean and standard deviation: 
+
+```{r}
+## empirical quantiles 
+n <- nrow(sel_model$model)
+head(sort(sel_model$residuals))
+## theoretical quantiles under the standard normal
+head(qnorm(seq(1,n)/(n+1)))
+plot(qnorm(seq(1,n)/(n+1)),
+     sort(sel_model$residuals))
+```
+
+
+The choice of how to define the probabilities for the theoretical sample can be quite important. The formula to define this is written in the general form as 
+\[ \frac{i-a}{n+1-2a}\]
+and referred to as "plotting position" - see `ppoints` for some more information on how R implements this. By default R for larger datasets take plotting positions with $a=0.5$, so: 
+\[\frac{i-0.5}{n}\]
+```{r}
+plot(qnorm((seq(1,n)-0.5)/n),
+     sort(sel_model$residuals))
+```
+
+

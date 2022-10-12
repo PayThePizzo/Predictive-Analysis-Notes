@@ -1,0 +1,310 @@
+---
+title: "Lab 1 - Regressione Lineare in R"
+author: "Ilaria Prosdocimi"
+date: "Semestre 1 - AA 2022/23"
+output:
+  html_document:
+    fig_caption: yes
+    theme: flatly #sandstone #spacelab #flatly
+    highlight: pygments
+    code_folding: show
+    toc: TRUE
+    toc_depth: 2
+    number_sections: TRUE
+    toc_float:
+      smooth_scroll: FALSE
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+In questo lab useremo il file che contiene informazioni sui pinguini delle isole Palmers: 
+
+```{r}
+pengs <- read.csv("../data/penguins.csv")
+summary(pengs)
+## eliminiamo le righe con valori mancanti (non è sempre una buona idea) 
+pengs <- na.omit(pengs)
+nrow(pengs)
+```
+
+Il primo modello in esame prevede di stimare come la lunghezza della pinna di un pinguino (`flipper_length_mm`) varia in funzione della massa `body_mass_g`. 
+
+```{r}
+plot(pengs[,c("flipper_length_mm","body_mass_g")])
+```
+
+Possiamo usare gli stimatori plug-in ed ottenre: 
+
+\[\hat{\beta}_1 = \frac{c_{XY}}{s^2_{X}} =  r_{XY} \frac{s_{Y}}{s_{X}},\quad \mbox{and} \quad \hat{\beta}_0 = \overline{y}-\hat{\beta}_1 \overline{x}  \]
+
+```{r byHandCalc}
+rxy <- cor(pengs$flipper_length_mm, pengs$body_mass_g)
+sx <- sd(pengs$body_mass_g); sy <- sd(pengs$flipper_length_mm)
+mx <- mean(pengs$body_mass_g)
+my <- mean(pengs$flipper_length_mm)
+beta1_hat <- rxy*sy/sx
+beta0_hat <- my - beta1_hat * mx
+c(beta0_hat, beta1_hat)
+```
+
+Oppure, più realisticamente possiamo usare le funzioni già presenti in R. 
+
+# Modelli lineari in R 
+
+La principale funzione da usare per stimare modelli lineari in R è `lm` - (si veda `help(lm)`). 
+
+I primo argomento di `lm` è `formula`: con questo argomento si specifica a sinistra di una tilde quale è la variabile risposta e a destra della tilde quale sia il predittore del modello (o i predittori): 
+
+```{r}
+fit <- lm(flipper_length_mm~body_mass_g, data = pengs)
+```
+
+Possiamo a questo punto *stampare* `fit` per avere informazioni di base: 
+
+```{r}
+fit ## in R this corresponds to print(fit)
+```
+
+La stampa mostra i valori dei coefficienti di un modello lineare semplice: questi sono i valori stimati tramite least square. Possiamo ottenere i valori dei parametri anche con 
+
+```{r}
+coef(fit)
+```
+
+Vi sono infatti una serie di funzioni che possiamo applicare all'oggetto `fit` che ha classe `lm`: 
+
+```{r}
+class(fit)
+```
+
+Tra le funzioni più utili ci sono per esempio `fitted`, che deriva i valori stimati per le $y_i$ (quindi valuta la funzione $\beta_0 + \beta_1 x_i$ prendendo le stime dei minimi quadrati per $\beta_0$ e $\beta_1$): 
+
+
+```{r}
+head(coef(fit)[1]+coef(fit)[2]*pengs$body_mass_g)
+head(fitted(fit))
+```
+
+Vedremo poi che una funzione molto utile è `summary`
+
+```{r}
+summary(fit)
+```
+
+che stampa molte informazioni: vedremo nel corso le varie parti dell'output. 
+
+Notiamo che è presente il valore stimato di $\sigma^2$, la varianza della variabile casuale che descrive l'errore del modello ($\varepsilon$): 
+
+\[s_e^2 = \frac{1}{n}\sum_{i=1}^{n-2} (y_i - \hat{y}_i)\]
+
+```{r}
+summary(fit)$sigma
+sqrt(sum((pengs$flipper_length_mm  - fitted(fit))^2)/(nrow(pengs)-2))
+```
+
+La stima di $\sigma$ viene usata per stimare l'incertezza della stima dei coefficienti del modello: 
+
+$$Var[\widehat{\beta}_0]= sigma_e^2\left[\frac{1}{n} + \frac{\overline{x}^2}{n s^2_X}\right]$$
+$$Var[\widehat{\beta}_1] = \frac{ sigma_e^2}{n s^2_X}$$
+
+```{r}
+se <- summary(fit)$sigma
+n <- nrow(pengs)
+s2x <- sum((pengs$body_mass_g - mean(pengs$body_mass_g))^2)/n
+c(se * sqrt(1/n + mean(pengs$body_mass_g)^2/(n * s2x)), se * sqrt(1/(n * s2x)))
+summary(fit)$coef[,2]
+```
+
+**Esercizio**
+
+Cosa succede alla variabilità della stima dei coefficienti se si usa come variabile esplicativa una nuova variabile 
+```{r}
+pengs$mass_minus_4000 <- pengs$body_mass_g - 4000
+```
+E cosa succede invece se il peso viene espresso in grammi: 
+```{r}
+pengs$body_mass_Kg <- pengs$body_mass_g/1000
+```
+Infine, cosa cambia invece quando si cambia anche la variabile risposta, per esempio esprimendo il valori in cm
+```{r}
+pengs$bill_length_cm <- pengs$bill_length_mm*10
+```
+
+
+
+Anche il valore di $R^2$ è presente nell'output:
+
+```{r}
+summary(fit)$r.squared
+## SSreg/SStot
+sum((fitted(fit) - mean(pengs$flipper_length_mm))^2)/sum((pengs$flipper_length_mm  - mean(pengs$flipper_length_mm ))^2)
+# 1- SSres/SStot 
+1 - sum((pengs$flipper_length_mm  - fitted(fit))^2)/sum((pengs$flipper_length_mm  - mean(pengs$flipper_length_mm ))^2)
+```
+
+Infine la funzione `residuals` restituisce i residui del modello: 
+
+```{r}
+head(residuals(fit))
+head((pengs$flipper_length_mm - fitted(fit)))
+```
+
+Ricordiamo alcune proprietà dei residui che derivano dalle equazioni di stima (estimating equations): 
+
+```{r}
+# mean of residuals is null 
+mean(residuals(fit))
+# no correlation with X - 
+# this does not mean that there is not relationship left between X and the residuals 
+cor(residuals(fit), pengs$body_mass_g)
+```
+
+
+# Predizione ed incertezza
+
+Ora che il modello è stato stimato, possiamo usarlo per predirre nuovi valori di $Y|X=x$: mentre la funzione `fitted` restituisce i valori di $Y$ stimati *per le x osservate nel campione* ($\hat{y_i}$), possiamo usare la funzione `predict` per valutare la funzione in dei diversi valori di $x$ (di default però la funzione predice i valori nel campione osservato):  
+
+```{r fittedValues,class.source = "fold-show"}
+head(fitted(fit))
+head(predict(fit))
+predict(fit, newdata = data.frame(body_mass_g = c(3500,4000,4700)))
+coef(fit)[1]+coef(fit)[2] * 3500; coef(fit)[1]+coef(fit)[2] * 4000; coef(fit)[1]+coef(fit)[2] * 4700
+## what does the slope value mean? 
+predict(fit, newdata = data.frame(body_mass_g = 3501)) - predict(fit, newdata = data.frame(body_mass_g = 3500))
+coef(fit)[2]
+## what does the intercept value mean? 
+predict(fit, newdata = data.frame(body_mass_g = 0))
+coef(fit)[1]
+```
+
+
+La funzione `predict` inoltre permette di specificare se desideriamo ottenere qualche informazione sull'incertezza della stima: in particolare si possono ottenere i valori della deviazione standard attorno ad $E[m(x)]$, derivati come:
+\[\hat{SE}[\hat{m}(x)] = s_e\sqrt{\frac{1}{n}+\frac{(x-\bar{x})^2}{\sum_{i = 1}^n(x_i-\overline{x})^2}}\]
+dove $s_e$ è la deviazione standard dell'errore:
+```{r, class.source = "fold-show"}
+sepengs <- sqrt(sum((pengs$flipper_length_mm-fit$fitted.values)^2)/(nrow(pengs)-2))
+sepengs
+```
+Il valore della deviazione standard attorno al valore atteso di $Y|X=x$ dipende da $x$, il valore in cui valutiamo la funzione $m(x)$: 
+
+```{r}
+n <- nrow(pengs)
+# error for x = 4000
+sepengs * sqrt((1/n + ((4000-mean(pengs$body_mass_g))^2)/sum((pengs$body_mass_g-mean(pengs$body_mass_g))^2)))
+(pred1 <- predict(fit, newdata = data.frame(body_mass_g = 4000), se.fit = TRUE))
+pred1$se.fit
+# error for x = 5000
+sepengs * sqrt((1/n + ((5000-mean(pengs$body_mass_g))^2)/sum((pengs$body_mass_g-mean(pengs$body_mass_g))^2)))
+pred2 <- predict(fit, newdata = data.frame(body_mass_g = 5000), se.fit = TRUE)
+pred2$se.fit
+```
+
+
+Possiamo derivare l'incertezza attorno a diverse predizioni: 
+
+```{r}
+mean(pengs$body_mass_g)
+predict(fit, newdata = data.frame(body_mass_g = c(1500,4200,5000,8000)), se.fit = TRUE)$se.fit
+```
+
+Si nota come vi sia incertezza sempre maggiore più il valore di $x$ è distante da $\overline{x}$. 
+
+# Verifica delle assunzioni del modello 
+
+La stima dei minimi quadrati si basa su alcune assunzioni non troppo stringenti: si assume che la relazione tra $X$ ed $Y$ possa essere approssimata da una relazione lineare. Altre assunzioni sono necessarie per poter derivare proprietà essenziali degli stimatori, in particolare si assume che gli errori del modello siano indipendenti e identicamente distribuiti con varianza costante. 
+
+Sebbene non sia possibile osservare gli errori del modello, possiamo osservare i residui, cioè la differenza tra valori osservati e stimati (dal modello) della variabile risposta: $r_i = (y_i-\hat{y}_i)$. In R si possono ottenere i valori di $r_i$ con `residuals`: 
+
+```{r residuals, class.source = "fold-show"}
+head(residuals(fit))
+# by hand
+head(pengs$flipper_length_mm-fitted(fit))
+## another option is 
+head(fit$residuals)
+```
+
+L'assunzione di indipendenza è difficile da testare, ma dato che ogni osservazione è derivata da un pinguino diverso è probabile che le osservazioni siano indipendenti (ma cosa succede se per esempio c'è un effetto della colonia sulla relazione di interesse e noi campioniamo pinguini solo da una colonia?). 
+Per verificare che la varianza sia costante possiamo invece guardare un grafico di $x_i$ VS $r_i$ e $\hat{y}_i$ VS $r_i$: 
+
+```{r homeSched, fig.asp=0.6}
+par(mfrow=c(1,2), pch=16,bty="l")
+plot(pengs$body_mass_g, residuals(fit))
+plot(fitted(fit), residuals(fit))
+```
+
+Non ci sono forti segnali di varianza non costante, ma è presente una qualche struttura nei grafici. 
+
+R inoltre produce di default una serie di utili grafici basati sui residui quando si usa la funzione `plot` su un oggetto di classe `lm`: 
+
+```{r residChecks}
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+Vedremo più in dettaglio questi grafici nelle prossime lezioni.  
+
+Sebbene sia stato mostrato come il modello di regressione lineare sia relativamente robusto ad alcune deviazioni dal modello - la stima dei parametri si basa sulle assunzioni specificate: se queste assunzioni non sono riscontrabili nei dati si corre il rischio di fare un inferenza non affidabile. è sempre raccomandabile verificare che le assunzioni del modello siano soddisfatte prima di utilizzare un modello per fare predizioni e prendere decisioni. 
+
+
+# Verifiche della teoria tramite simulazione 
+
+La simulazione è un approccio molto utile per indagare come si comportano i vari metodi di stima e per verificare in maniera empirica come si comportano gli stimatori. Il creare una procedura di simulazione dei dati per altro aiuta molto a capire in profondità quali sia il processo sotteso alla generazione dei dati che viene ipotizzato dal modello. 
+
+Valutiamo quindi alcune proprietà degli stimatori tramite la simulazione di dati le cui caratteristiche possiamo controllare, per esmepio valutiamo la proprietà di non-distorsione e le formule derivate per la varianza degli stimatori:  
+
+```{r}
+set.seed(324) # per riproducibilità 
+n <- 100 
+x <- runif(n, -1, 1)
+## le x sono fissate
+## i veri valori dei coefficienti del modello 
+b0 <- 1; b1 <- 2
+
+# una possibile realizzazione del modello 
+epsilon <- rexp(n,1)-1 ## errori a media 0 
+# alcune alternative 
+# epsilon <- runif(n,-1,1) ## errori a media 0 
+# epsilon <- runif(n,-3,3) ## errori a media 0 
+# epsilon <- rgamma(n,shape = 4, scale = 2)-8  ## errori a media 0 
+# epsilon <- rexp(n,4)-1/4 ## errori a media 0 
+# epsilon <- rnorm(n,0,2) ## errori a media 0 
+y <- b0 + b1 * x + epsilon
+coef(lm(y~x)) # close enough 
+## do this 1000 time 
+generate_get_betas <- function(bs, epsilonpar, x){
+  ytemp <- b0 + b1 * x + (rexp(length(x),epsilonpar)-1/epsilonpar)
+  lm(ytemp~x)$coef
+}
+generate_get_betas(bs= c(b0,b1), epsilonpar = 1, x = x)
+out <- replicate(1000, generate_get_betas(bs= c(b0,b1), epsilonpar = 1, x = x))
+par(mfrow=c(1,2))
+hist(out[1,]);hist(out[2,])
+# che forma hanno questi istogrammi? 
+# unbiased 
+rowMeans(out)
+# variability
+apply(out,1,sd)
+se <- 1 # V[Y] = 1/lambda^2, when Y ~ exp(1)
+s2x <- sum((x-mean(x))^2)/n
+c(se * sqrt(1/n + mean(x)^2/(n * s2x)), se * sqrt(1/(n * s2x)))
+
+## change the variability of the error 
+out2 <- replicate(1000, generate_get_betas(bs= c(b0,b1), epsilonpar = 0.45, x = x))
+apply(out2,1,sd)
+# still unbiased 
+apply(out2,1,mean)
+```
+
+
+
+
+

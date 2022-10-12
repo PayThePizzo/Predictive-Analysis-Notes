@@ -1,0 +1,228 @@
+---
+title: "Lab 3 - Regressione Lineare Semplice"
+author: "Ilaria Prosdocimi"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output: html_document
+---
+
+
+Si prenda in esame il dataset `bodyfat`: 
+
+```{r}
+urlLocation <- "https://dasl.datadescription.com/download/data/3079"
+bodyfat <- read.table(urlLocation, header=TRUE)
+```
+
+Il dataset (che è stato recuperato dal sito https://dasl.datadescription.com/datafile/bodyfat/) comprende molte variabili: per il momento prendiamo in considerazione sono le variabili `Weight` e `Height`, che contengono i valori di peso e altezza per 250 uomini di varie età. In particolare vogliamo valutare come l'altezza influenzi il peso. 
+
+```{r}
+bodyfat <- bodyfat[,c("Weight","Height")]
+plot(Weight~Height, data = bodyfat)
+```
+
+* Si dia una stima del modello: valori dei coefficienti e loro significatività. Si interpreti il valore di ognuno dei coefficienti. 
+
+Il modello che dobbiamo stimare è
+
+\[E[Y|X=x] = \beta_0 + \beta_1 x. \]
+
+In R questo si stima con: 
+
+```{r}
+fit <- lm(Weight~Height, data = bodyfat)
+```
+
+Si può ottonere un panoramica del modello stimato: 
+
+```{r}
+summary(fit)
+```
+
+La stima dell'intercetta del modello lineare è `r signif(coef(fit)[1],4)`: la retta stimata passa per il punto (0, `r signif(coef(fit)[1],4)`). Il valore dell'intercetta è significativamente diverso da 0 (pvalue < 0.001). 
+
+La stima del coefficiente angolare del modello lineare è `r signif(coef(fit)[2],3)`: due uomini che abbiano una differenza di altezza di un pollice hanno in media una differenza di peso di `r signif(coef(fit)[2],3)` libbre. Il valore del coefficiente angolare è significativamente diverso da 0 (pvalue < 0.001). 
+
+* Qual è il valore del coefficiente $R^2$ - come si può interpretare questo valore? 
+
+Il valore di $R^2$ è `r signif(summary(fit)$r.square,2)`: circa il `r signif(summary(fit)$r.square,2)*100`% della varianza totale dei dati è spiegato dalla relazione tra peso e altezza.  
+
+* Vi è evidenza della veridicità dell'affermazione: "Due uomini la cui altezza differisca di un pollice hanno in media una differenza di peso di 5 libbre"? 
+
+Vogliamo verificare se sia possibile falsificare l'affermazione "Due uomini la cui altezza differisca di un pollice hanno in media una differenza di peso di 5 libbre". Questo corrisponde a falsificare l'affermazione $\beta_1 = 5$, cioè a testare il sistema di ipotesi: 
+
+\[H_0: \beta_1 = 5 \quad VS \quad  H_1: \beta_1 \neq 5 \]
+
+Per fare cioè calcoliamo la statistica test: 
+\[TS = \frac{\hat{\beta}_1 - 5}{SE(\hat{\beta}_1 )}  = \frac{`r coef(fit)[2]` - 5}{`r summary(fit)$coef[2,2]`} =  `r (summary(fit)$coef[2,1]-5)/summary(fit)$coef[2,2]`\]
+
+Il p-value del test è dato da: 
+
+```{r}
+TS <- (summary(fit)$coef[2,1]-5)/summary(fit)$coef[2,2]
+2*pt(abs(TS),df= nrow(bodyfat)-2, lower.tail = FALSE)
+```
+
+
+Dato che il p-value è grande non si può negare l'affermazione "Due uomini la cui altezza differisca di un pollice hanno in media una differenza di peso di 5 libbre". 
+Questo si sarebbe anche potuto dedurre dal fatto che l'intervallo di confidenza al 90\% per $\beta_1$ è (`r confint(fit, "Height")`): il valore 5 è dentro all'intervallo, quindi non si può rigettare l'ipotesi nulla (al 10% di significatività). 
+
+
+* Si diano un intervallo di confidenza e di predizione al 90\% per due nuovi soggetti di altezza 70 e 78 pollici. Si dia un commento sull'ampiezza dei due intervalli di confidenza. 
+
+
+Intervalli di confidenza
+
+```{r}
+nd <- data.frame(Height = c(70,78))
+predict(fit, newdata = nd, 
+        level = 0.9, interval = "conf")
+```
+
+
+Intervalli di predizione
+
+```{r}
+predict(fit, newdata = nd, 
+        level = 0.9, interval = "pred")
+```
+
+L'intervallo di confidenza per l'uomo di altezza 70 pollici è molto più stretto (preciso) di quello per l'uomo di 78 pollici: questo perché la media campionaria dell'altezza osservata nel campione in esame è di `r signif(mean(bodyfat$Height),3)`, un valore molto vicino a 70. Dato che la retta stimata passa necessariamente per il punto $(\bar{x}, \bar{y})$ vi è meno incertezza nella stima del valore di $Y|X=x_0$ quando $x_0$ è vicino a $\bar{x}$. Il valore di 78 pollici invece è piuttosto estremo nel nostro campione: la stima del valore atteso di $Y$ per questo valore di $X$ è più incerta. 
+
+* Si elenchino le assunzioni fatte per poter stimare il modello. Si usino dei grafici utili ad investigare se le assunzioni risultano essere valide per il modello stimato.  
+
+Le assunzioni si possono scrivere in maniera sintetica come $Y_i|X=x_i \stackrel{iid}{\sim} N(\beta_0 + \beta_1 x_i, \sigma)$ per ogni $i= 1, \ldots, n$. 
+
+Si deve quindi verificare che la relazione tra X e Y sia lineare e che le osservazioni seguano una normale e abbiano varianza costante. 
+
+Dal grafico tra la variabile predittore e i residui non emerge nessuna forte indicazione di una qualche forma relazionale tra `Height` e `Weight` non spiegata dal modello lineare:
+
+```{r}
+plot(bodyfat$Height, resid(fit))
+abline(h=0)
+```
+
+Si notano invece alcuni residui con un valore piuttosto alto. Questi sono visibili anche nel qqplot che aiuta a verificare la normalità dei residui: 
+
+```{r}
+qqnorm(resid(fit))
+qqline(resid(fit))
+```
+
+Sebbene si notino i valori alti e una leggera curvatura dei punti, il qqplot risulta abbastanza soddisfacente e i residui sembrano comportarsi come un campione di una normale. 
+
+Infine, il grafico di valori stimati contro residui è spesso utile per controllare l'assunzione di varianza costante: 
+
+```{r}
+plot(fitted(fit), resid(fit))
+abline(h=0)
+```
+
+Non sembrano esserci segni che la varianza cambi in funzione del valore stimato della funzione. 
+
+Verificare che le osservazioni siano indipendenti è complicato in questo caso: non abbiamo un test per farlo. Possiamo sperare che lo schema di campionamento usato abbia evitato per esempio di inserire persone della stessa famiglia (fratelli, cugini, etc...) o non abbiano selezionato molti giocatori di basket professionisti (alti e probabilmente con una costituzione corporea diversa da quella della popolazione generale). Con le informazioni disponibili possiamo sperare che il campione sia composto da osservazioni indipendenti e rappresentative della popolazione generale. 
+
+
+
+# Domande aggiuntive
+
+- Qual è l'interpretazione dell'intercetta nel modello? Cosa succede se si stima un modello usando una nuova variabile `HightCentred = Height - mean(Height)`. 
+
+L'interpretazione dell'interecetta nel modello originale è poco utile: non esistono persone alte 0 pollici. Se si usa invece la variabile centrata l'intercetta diventa il valore di $\bar{y}$, dato che $\bar{x} = 0$: 
+
+```{r}
+bodyfat$HeightCentred <- bodyfat$Height - mean(bodyfat$Height)
+colMeans(bodyfat)
+summary(lm(Weight~HeightCentred, data = bodyfat))
+```
+
+L'intercetta ora descrive il valore medio del peso di un uomo di statura media. 
+Il valore del coefficiente angolare non cambia: questo perché non cambiano la covarianza tra i due campioni e la somma dei scarti quadrati di $x$ (per le proprietà di varianza e covarianza). Questo implica che non cambia la differenza di peso tra due uomini la cui altezza differisce per un pollice.  
+
+
+- Si creino le variabili `HightScale = (Height - mean(Height))/sd(Height)` e `WeightScale = (Weight - mean(Weight))/sd(Weight)`. Come si possono interpretare intercetta a coefficiente angolare per questo modello? Si confronti il valore di $R^2$ e il p-value del test di significatività per $\beta_1$ nel modello stimato usando i dati modificati e i dati originali: cpsa si può notare? [Per creare le nuove variabili si può anche usare direttamente la funzione `scale`.]
+
+```{r}
+bodyfat$HightScale <- scale(bodyfat$Height); bodyfat$WeightScale<- scale(bodyfat$Weight)
+lmScale <- lm(WeightScale ~ HightScale, data = bodyfat)
+summary(lmScale)
+```
+
+La significatività del coefficiente angolare e il valore di $R^2$ sono gli stessi: la relazione tra le due variabili non è cambiata. La retta passa ancora per il centre delle due variabili (il punto (0,0)). Il valore stiamto per il coeffciente angolare ora indica il cambiamento atteso in standard deviations di Peso per un cambimaneto di 1 standard deviation dell'Altezza. Questo tipo di trasformazione può essere particolamente utile quando si stimano modelli multivariati e nella situazione in cui si stiano usando variabili con valori numerici molto alti o molto piccoli (e/o scale di misura che possono coprire valori molto diversi): in questo modo si possono evitare problemi di tipo numerico. 
+
+
+- Le variabili sono state misurate rispettivamente in pollici e libbre. Si trasformino i dati in centimetri e chilogrammi: come cambiano le stime dei parametri del modello lineare? Come cambia la loro interpretazione? [Nota: per passare da pollici a cm è necessario moltiplicare i valori originali per 2.54; per passare da libbre a chilogrammi è necessario dividere i valori originali per 2.205]. 
+
+Per prima cosa creiamo le nuove variabili e facciamone un grafico
+
+```{r}
+bodyfat$cmHeight <- bodyfat$Height*2.54
+bodyfat$kgWeight <- bodyfat$Weight/2.205
+## the relationship between the two variables is the same
+plot(bodyfat$cmHeight, bodyfat$kgWeight)
+cor(bodyfat$cmHeight, bodyfat$kgWeight)
+cor(bodyfat$Height, bodyfat$Weight)
+## the covariance does change - because it is not scaled
+cov(bodyfat$cmHeight, bodyfat$kgWeight)
+cov(bodyfat$Height, bodyfat$Weight)
+### the variances are also different - properties of the variances
+```
+
+Mentre la relazione delle due variabili l'una con l'altra non cambia, i valori delle varianze dei due campioni e la covarianza cambieranno - questo è una conseguenza delle proprietà di varianza e covarianza: 
+
+```{r}
+var(bodyfat$Height); var(bodyfat$cmHeight)
+## cmHeight is 2.54*Height
+## Its variance is Var(a*Y) = a^2 * Var(Y)
+(2.54^2) * var(bodyfat$Height)
+```
+
+Di conseguenza, nello stimare un nuovo modello si avranno valori diversi sia per il coefficiente angolare che per l'intercetta
+
+```{r}
+fitEurope <- lm(kgWeight ~ cmHeight, data = bodyfat)
+summary(fitEurope)
+```
+
+Il coefficiente angolare ora rappresenta la differenza in Kg tra due uomini che differiscono in altezza di un centimetro. 
+
+
+Il modello sui dati originali corrisponde a: 
+
+\[E[Y|X=x] = \beta_0 + \beta_1 x . \]
+
+Quando si trasformano le variabili X e Y si ottiene un nuovo modello: 
+
+\[E[ a * Y|X=x] = \beta^*_0 + \beta^*_1 (b * x) . \]
+
+Questo implica che 
+
+\[ a * E[Y|X=x] = \beta^*_0 +  (b * \beta^*_1) x  \]
+
+da cui segue che $\beta_0 = \beta^*_0/ a$ e $\beta_1 = b * \beta^*_1/ a$: 
+
+```{r}
+a <- 1/2.205
+b <- 2.54
+c(coef(fitEurope)[1]/a , coef(fitEurope)[2]*b/a)
+coef(fit)
+## confermato
+```
+
+Si noti che nonostante il cambiamento dei valori di intercetta e coefficiente angolare non sono cambiati i valori della statistica test. 
+
+
+- Quale potrebbe essere l'intervallo di confidenza del peso di una donna alta 72 pollici? 
+
+Il campione comprende solo uomini - i valori stimati dal modello non sono applicabili ad una popolazione diversa da quella campionata. 
+
+- Si estragga (usando in maniera appropriata la funzione `sample`) un sottocampione del dataset di 50 osservazioni: si confrontino le stime ottenute usando tutto il campione e le stime ottenute usando il sottocampione. 
+
+```{r}
+set.seed(178); sampledObs <- sample(seq(1, 250), size = 50)
+fitSub <- lm(Weight ~ Height, data = bodyfat[sampledObs,])
+summary(fitSub)
+summary(fit)
+```
+
+Le stime dei parametri cambiano, ma rimangono nel range dato dalla stima originale. Quello che cambia molto è la stima della variabilità delle stime, che aumenta. Da questo segue che il p-value per il test della significatività dei parametri sia leggermente più alto. Questo è legato al fatto che la variabilità delle stime è legata alla numerosità campionaria: con un campione con meno osservazioni si ottengono stime più variabili. 
+Cambia invece di poco il valore di $R^2$: avendo preso un sottocampione casuale non cambia di molto cosa capiamo della relazione tra X e Y: la proporzione di variabilità di $y$ spiegata da $x$ rimane simile [questo potrebbe non sempre essere vero a seconda del sottocampione].  

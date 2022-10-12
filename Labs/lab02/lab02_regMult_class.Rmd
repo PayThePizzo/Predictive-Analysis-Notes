@@ -1,0 +1,174 @@
+---
+title: "Lab 02 - Multiple Linear Regression - CLASS"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+    code_folding: show
+---
+
+
+Il dataset che useremo riguarda dati di automobili - per poter usare il dataset rendiamo il dataset più approcciabile con alcune manipolazioni:  
+
+```{r, class.source = "fold-hide"}
+# read the data
+fl <- "http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
+autompg = read.table(fl, quote = "\"",
+comment.char = "", stringsAsFactors = FALSE)
+# give the dataframe headers
+colnames(autompg) <- c("mpg", "cyl", "disp", "hp", "wt",
+"acc", "year", "origin", "name")
+# remove missing data, which is stored as "?"
+autompg <-subset(autompg, autompg$hp != "?")
+# remove the plymouth reliant, as it causes some issues
+autompg <- subset(autompg, autompg$name != "plymouth reliant")
+# give the dataset row names, based on the engine, year and name
+rownames(autompg) <- paste(autompg$cyl, "cylinder",
+autompg$year, autompg$name)
+# remove the variable for name, as well as origin
+autompg <- subset(autompg,
+select = c("mpg", "cyl", "disp", "hp", "wt", "acc", "year"))
+# change horsepower from character to numeric
+autompg$hp <- as.numeric(autompg$hp)
+```
+
+Desideriamo per ora stimare come le miles per gallon `mpg` varino in funzione del peso `wt`  e dell'anno di produzione `year`. 
+
+
+```{r dataplot}
+par(mfrow=c(1,2), bty="l",pch=16)
+plot(mpg~wt, data= autompg)
+plot(mpg~year, data= autompg)
+```
+
+# Il modello 
+
+\[mpg = \beta_0 + \beta_1 wt + \beta_2 year + \varepsilon\]
+
+In R usiamo la funzione `lm`: 
+
+
+```{r}
+fit <- lm(mpg ~ wt + year,  data = autompg)
+class(fit)
+coef(fit)
+head(fitted(fit))
+head(residuals(fit))
+# proprietà dei residui 
+sum(residuals(fit))
+cor(residuals(fit), autompg$wt)
+cor(residuals(fit), autompg$year)
+```
+
+
+```{r}
+summary(fit)
+```
+
+```{r}
+n <- nrow(autompg)
+X <- cbind(rep(1, n), autompg$wt, autompg$year)
+beta_hat <- solve(t(X) %*% X) %*% t(X) %*% autompg$mpg
+beta_hat
+coef(fit)
+(est_sigma <- sqrt(sum(residuals(fit)^2)/(n-length(beta_hat)) ))
+summary(fit)$sigma
+```
+
+```{r}
+resid <- (autompg$mpg - X %*% beta_hat)
+head(residuals(fit))
+head(resid)
+sum(resid^2)
+# per qualunque valore di (beta0, beta1, beta2) MSE > MSE(\hat{\beta})
+sum(((autompg$mpg - X %*% c(-16, 0.06, 0.67)))^2)
+```
+
+Incertezza nella stima di $\hat{\beta}$: 
+
+```{r}
+(est_sigma <- sqrt(sum(residuals(fit)^2)/(n-length(beta_hat)) ))
+est_sigma^2 * (solve(t(X) %*% X))
+vcov(fit)
+sqrt(diag(est_sigma^2 * (solve(t(X) %*% X))))
+summary(fit)$coef
+```
+
+```{r}
+# (est - valore_0)/se
+#H0: beta_j = valore_0 VS H_1: beta_j \neq valore_0 
+## per beta2 
+TS <- (beta_hat[3] - 0)/sqrt(diag(est_sigma^2 * (solve(t(X) %*% X))))[3]
+TS
+# pvalue 
+2 * pt(abs(TS), df = n-length(beta_hat), lower.tail = FALSE)
+## per una sistema di verifica di ipotesi
+# H_0 beta_2 = beta* 
+# con beta* un valore di interesse
+# per esmepio H_0: beta_2 = 0.75 VS H_1: beta2 != 0.75 
+(TS <- (beta_hat[3] - 0.75)/sqrt(diag(est_sigma^2 * (solve(t(X) %*% X))))[3])
+# pvalue 
+2 * pt(abs(TS), df = n-length(beta_hat), lower.tail = FALSE)
+## in realtà tutte le informazioni sono contenutenegli inetravlli di confidenza
+confint(fit)
+
+(TS <- (beta_hat[3] - 0.86)/sqrt(diag(est_sigma^2 * (solve(t(X) %*% X))))[3])
+# pvalue 
+2 * pt(abs(TS), df = n-length(beta_hat), lower.tail = FALSE)
+
+```
+
+```{r}
+car::confidenceEllipse(fit)
+car::confidenceEllipse(fit, which = c(1,3))
+vcov(fit)
+cov2cor(vcov(fit))
+S <- diag(sqrt(diag(est_sigma^2 * (solve(t(X) %*% X)))))
+S %*% cov2cor(vcov(fit)) %*% S
+```
+
+Per stimare il valore di $\hat{y}(x_0)$ e l'incertezza nella stima usiamo `predict`: 
+
+```{r}
+nd <- data.frame(wt = c(1650, 3000, 5000), 
+                 year = c(72, 75, 82))
+predict(fit, newdata = nd)
+x0 <- cbind(rep(1, 3), c(1650, 3000, 5000), c(72, 75,82))
+x0 %*% beta_hat
+(cint <- predict(fit, newdata = nd, interval = "confidence"))
+(pint <- predict(fit, newdata = nd, interval = "prediction"))
+cint[,3] - cint[,2]
+pint[,3] - pint[,2]
+plot(autompg$wt, autompg$year, col = "grey70")
+points(nd$wt, nd$year, col = "red")
+points(mean(autompg$wt), mean(autompg$year), col = "orange", cex = 1.5)
+```
+
+
+# Visulaizzare il modello 
+
+
+```{r dataplot}
+par(mfrow=c(1,2), bty="l",pch=16)
+plot(mpg~wt, data= autompg, col = "grey70")
+points(autompg$wt, fitted(fit), col = "red")
+plot(mpg~year, data= autompg, col = "grey70")
+points(autompg$year, fitted(fit), col = "red")
+```
+
+
+```{r dataplot}
+par(mfrow=c(1,2), bty="l",pch=16)
+plot(mpg~wt, data= autompg, col = "grey70")
+nd <- data.frame(wt = seq(1500, 5000, by = 100), 
+                 year = 85)
+lines(nd$wt, predict(fit, newdata = nd), col = "red")
+nd <- data.frame(wt = seq(1500, 5000, by = 100), 
+                 year = 75)
+lines(nd$wt, predict(fit, newdata = nd), col = "orange")
+plot(mpg~year, data= autompg, col = "grey70")
+points(autompg$year, fitted(fit), col = "red")
+```
+
+
+

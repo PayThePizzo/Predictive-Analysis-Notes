@@ -1,0 +1,483 @@
+---
+title: "Lab 05 - Multiple Linear Regression, model assessment"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+    code_folding: show
+---
+
+
+# The data 
+
+We have already seen how to read the dataset. We can either copy the code from last week - or use the file in Moodle and read it in: 
+
+```{r, class.source = "fold-hide",echo=FALSE,eval=FALSE}
+#### this is the code used to write the file which is in Moodle
+# read the data
+fl <- "http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
+autompg = read.table(fl, quote = "\"",
+comment.char = "", stringsAsFactors = FALSE)
+# give the dataframe headers
+colnames(autompg) <- c("mpg", "cyl", "disp", "hp", "wt",
+"acc", "year", "origin", "name")
+# remove missing data, which is stored as "?"
+autompg <-subset(autompg, autompg$hp != "?")
+# remove the plymouth reliant, as it causes some issues
+autompg <- subset(autompg, autompg$name != "plymouth reliant")
+# give the dataset row names, based on the engine, year and name
+rownames(autompg) <- paste(autompg$cyl, "cylinder",
+autompg$year, autompg$name)
+# remove the variable for name, as well as origin
+autompg <- subset(autompg,
+select = c("mpg", "cyl", "disp", "hp", "wt", "acc", "year"))
+# change horsepower from character to numeric
+autompg$hp <- as.numeric(autompg$hp)
+write.csv(x = autompg, file = "autompg.csv",row.names = FALSE,quote = FALSE)
+```
+
+```{r}
+autompg <- read.csv(file = "autompg.csv")
+```
+
+
+We have a dataset with 7 variables: one dependent variable (`mpg`) and 6 predictors: 
+
+```{r dataplot}
+## use rgb to define proportion of reg-green-blue in a color
+## extra 4th argument is alpha - the transparency of the points 
+par(col= rgb(0.3,0.3,0.3,0.8),pch=16)
+plot(autompg)
+```
+
+Some of the predictors appear to be more related to Y than others:
+```{r}
+signif(cor(autompg),3)
+```
+
+But important to also notice: they are related between each other! 
+
+
+# Models specification 
+
+Last week we had fitted a model with two explanatory variables: 
+
+\[
+Y_i = \beta_0 + \beta_{wt} \text{wt}_{i} + \beta_{year} \text{year}_{i} + \epsilon_i, \qquad i = 1, 2, \ldots, n
+\]
+where $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$ (and independent). 
+
+```{r, class.source = "fold-show"}
+fit_base <- lm(mpg~wt+year, data = autompg)
+```
+
+We can derive inference on the single $\beta_j$ parameters in the table provided by `summary` - but this only tells us about each $\beta$ when also taking the other variables in the model. What can we say about the significance of *the model* as a whole: does the model explain the variability of $Y$ better than a model based only on the mean (i.e. the simplest possible model?). 
+We formalize this using the system of hypothesis: 
+$$ H_0: \beta_{wt} = \beta_{year} = 0 \quad VS \quad H_1: \text{ any of } \beta_{wt} \text{ or } \beta_{year} \neq 0 $$
+
+Notice that under the null hypothesis the model reduces to 
+\[
+Y_i = \beta_0 + \epsilon_i, \qquad i = 1, 2, \ldots, n
+\]
+a model which only includes a parameter to describe the mean. 
+
+The idea is to compare the sum of residuals obtained under the two different models. Eventually the test statistic we use can be shown to be: 
+
+\[
+F = \frac{\sum_{i=1}^{n}(\hat{Y}_{A,i} - \bar{Y})^2 / (p - 1)}{\sum_{i=1}^{n}(Y_i - \hat{Y}_{A,i})^2 / (n - p)},
+\]
+
+```{r}
+fit_null <- lm(mpg ~ 1, data = autompg)
+anova(fit_null,fit_base)
+```
+
+Let's see what each of the numbers in the table is. First the sum of squares: 
+
+```{r}
+### SS under null (i.e. SStotal)
+sum(fit_null$residuals^2); sum((autompg$mpg - mean(autompg$mpg))^2)
+## SS under alternative
+sum(fit_base$residuals^2)
+## difference in Sum of Squares 
+sum(fit_null$residuals^2) - sum(fit_base$residuals^2)
+## this is equivalent to 
+sum((fit_null$fitted.values - fit_base$fitted.values)^2)
+### to compute the F: 
+# scale each Sum of Squares by the appropriate number of degrees of freedom 
+```
+
+How many degrees of freedom does each the Sum of Square components have? 
+
+```{r}
+## larger model (alternative)
+fit_base$df.residual
+## null model 
+fit_null$df.residual
+## their difference 
+fit_null$df.residual - fit_base$df.residual
+```
+
+Scale each of the Sum of Square components by the appropriate number of degrees of freedom: 
+
+```{r}
+## Alternative model
+sum(fit_base$residuals^2)/fit_base$df.residual
+## difference in Sum of Squares 
+(sum(fit_null$residuals^2) - sum(fit_base$residuals^2))/(fit_null$df.residual - fit_base$df.residual)
+```
+
+The F-statistic is: 
+
+```{r}
+num <- (sum(fit_null$residuals^2) - sum(fit_base$residuals^2))/(fit_null$df.residual - fit_base$df.residual)
+den <- sum(fit_base$residuals^2)/fit_base$df.residual
+(Fstat <- num/den)
+```
+
+We can then compute the p-value using `pf` or check whether the $F_{obs}$ we have is large under a F distribution with `r fit_null$df.residual-fit_base$df.residual` and  `r fit_base$df.residual` degrees of freedom:
+
+```{r}
+## p-value
+pf(Fstat, df1 = fit_null$df.residual-fit_base$df.residual,
+   df2 = fit_base$df.residual, lower.tail = FALSE) 
+### very small p-value
+## Find the rejection region for the 1% significance test
+qf(0.99,  df1 = fit_null$df.residual-fit_base$df.residual,
+   df2 = fit_base$df.residual)
+### reject H_0 at 1% if Fstat > 4.666
+## definitely reject 
+```
+
+In practice rather than specifying the `fit_null` object we get the F-statistic value from the `summary`: 
+
+```{r}
+summary(fit_base)$fstatistic
+```
+
+indeed, R already does the p-value calculations in the printing of the summary
+
+```{r}
+summary(fit_base)
+```
+
+What about comparing different models with different number of predictor variables? Let's fit a model with all explanatory variables in the dataset: 
+
+```{r}
+fit_all <- lm(mpg~.,data = autompg) 
+### using the . (dot) is a shortcut to say: include everything
+fit_all <- lm(mpg~cyl+disp+hp+wt+acc+year,data = autompg) 
+summary(fit_all)
+```
+
+The F-statistic for the model is large - the model is significant, i.e. it explains an amount of variability of the observed data that is considerably larger than using the mean only. Is it a better model than the simpler model which only had `wt` and `year` as predictors? Do we really need to keep these extra variables in the model? At first sight one might think that the larger model is better since it has a smaller MSE and a higher $R^2$
+
+```{r}
+## rquare and mse for two models 
+summary(fit_base)$r.square; sum(fit_base$residuals^2)
+summary(fit_all)$r.square; sum(fit_all$residuals^2)
+```
+but look what happens to confidence intervals for the function mean: 
+
+```{r}
+nd <- data.frame(apply(autompg,2,quantile,c(0.01,0.5,0.9)))
+(ci_all <- predict(fit_all,newdata = nd,interval = "conf"))
+(ci_base <- predict(fit_base,newdata = nd,interval = "conf"))
+ci_all[,3]-ci_all[,2]
+ci_base[,3]-ci_base[,2]
+# (ci_null <- predict(fit_null,newdata = nd,interval = "conf"))
+### also look at the uncertainty for the beta parameters for wt and year in the two models
+```
+
+Using too many predictors makes the prediction uncertain: we need to only keep predictors which are useful. Find a balance between being able to explain some variability but keeping the number of predictors low enough to avoid inflating the model variability. In statistics we say that we wish to find *parsimonious* models. 
+
+We formalize this within the statistical hypothesis testing framework by noticing that the `fit_base` model can be seen as a nested model of `fit_all` under the following null hypothesis: 
+$$H_0: \beta_{cyl} = \beta_{disp} = \beta_{hp}= \beta_{acc} = 0$$
+which can be contrasted to 
+$$H_1: \text{ any of } \beta_{cyl} \text{ or } \beta_{disp}  \text{ or } \beta_{hp} \text{ or } \beta_{acc} \neq 0$$ 
+
+We use again the ANOVA testing framework to compare the two models: 
+
+
+```{r}
+anova(fit_base,fit_all)
+```
+
+What numbers does the table show? Let's start with the sum of squares 
+
+```{r}
+## sumsq under null
+sum(residuals(fit_base)^2)
+## sumsq under alternative
+sum(residuals(fit_all)^2)
+### their difference 
+sum(residuals(fit_base)^2) - sum(residuals(fit_all)^2) 
+```
+
+The difference in the sum of squares is not very large. The F-statistic gives us a way to assess whether the difference is indeed large or not, considering the difference in degrees of freedom between the two models. What degrees of freedom? Let's see: 
+
+
+```{r}
+## df of the null
+fit_base$df.residual
+## df of the alternative
+fit_all$df.residual
+### their difference 
+fit_base$df.residual - fit_all$df.residual
+```
+
+The F-statistic 
+
+```{r}
+dfnum <- fit_base$df.residual-fit_all$df.residual
+dfden <- fit_all$df.residual
+num <- (sum(fit_base$residuals^2) - sum(fit_all$residuals^2))/dfnum
+den <- sum(fit_all$residuals^2)/dfden
+(Fstat <- num/den)
+```
+
+We can then compute the p-value using `pf` or check whether the $F_{obs}$ we have is large under a F distribution with `r fit_base$df.residual-fit_all$df.residual` and  `r fit_all$df.residual` degrees of freedom:
+
+```{r}
+## p-value
+pf(Fstat, df1 = dfnum, df2 = dfden, lower.tail = FALSE) 
+### very small p-value
+## Find the rejection region for the 10% significance test
+qf(0.9, df1 = dfnum, df2 = dfden)
+### reject H_0 at 10% if Fstat > 1.96
+## definitely can reject 
+```
+
+Let's have a look at the F-distribution:
+
+```{r}
+curve(df(x, df1 = dfnum, df2 = dfden),from=0,to=5, ylab="density")
+reg_cutoff <- qf(0.9, df1 = dfnum, df2 = dfden)
+segments(x0 = reg_cutoff, y0=0,y1=df(reg_cutoff, df1 = dfnum, df2 = dfden))
+points(Fstat, 0, col=2, pch=4)
+### Fstat is within the non-rejection region
+```
+
+We can not reject the null hypothesis that 4 of the regression parameters are 0: we can drop these from the model and achieve a sum of squares which is comparable in size to the one obtained with the simple `fit_base` model. 
+
+# Quality criteria
+
+The ANOVA table can be used to do some statistical hypothesis tests on nested models, i.e. to compare larger models against smaller model which can be derived by setting some of the $\beta_j$ parameters in the model to 0. Sometimes we might wish to compare models (fitted to the same dataset!) which are not nested. We can then use some quality criterion which allows for comparison of different models. Examples of these are the adjusted $R^2$ and information criteria such as AIC and BIC. 
+
+## Adjusted $R^2$ 
+
+We have defined $R^2$, the coefficient of determination, as: 
+\[R^2 = 1-\frac{SS_{res}}{SS_{tot}}\]
+
+```{r}
+summary(fit_base)$r.square
+## derived as 
+1- sum(fit_base$residuals^2)/sum(fit_null$residuals^2)
+```
+
+but we this coefficient keeps on increasing even if we add variables which do not actually add information to the model (the $R^2$ for the `fit_all` model is `r summary(fit_all)$r.square`). To account for that we introduce *the adjusted* $R^2$ - which is adjusted so to account for the model complexity. This is defined as: 
+\[R_{Adj}^2 = 1-\frac{SS_{res}/(n-p-1)}{SS_{tot}/(n-1)}\]
+
+```{r}
+##  add useless variables and R2 increases! 
+## set.seed(134); fit_useless <- lm(autompg$mpg~cbind(autompg$wt,autompg$year,matrix(rnorm(390*40),ncol=40)))
+## summary(fit_useless)$r.square
+## summary(fit_useless)$adj.r.square
+summary(fit_base)$adj.r.square
+1- (sum(fit_base$residuals^2)/(fit_base$df.residual))/(sum(fit_null$residuals^2)/fit_null$df.residual)
+summary(fit_all)$adj.r.square
+```
+
+With the adjusted $R^2$ we see that the more complex model results in lower adjusted $R^2$: the improvement in terms of the standard $R^2$ is mitigated when accounting for the increased complexity of the model. 
+
+## Information criteria 
+
+Other useful measures of the goodness of fit which take into account the complexity of the estimated models are likelihood-based information criteria: 
+
+\[IC = -2*logLik(M) + k * p(M) \]
+
+AIC is defined with $k=2$, BIC is defined with $h=log(n)$.
+
+R allows to derive the log-likelihood of an estimated linear model: 
+
+```{r}
+logLik(fit_base)
+## can be directly calculated as 
+sum(dnorm(autompg$mpg, fit_base$fitted.values, summary(fit_base)$sigma,log = TRUE))
+```
+
+From this one can derive AIC and BIC: 
+
+```{r}
+## AIC 
+- 2*as.numeric(logLik(fit_base)) + 2 * (1+length(fit_base$coef))
+AIC(fit_base)
+- 2*as.numeric(logLik(fit_all)) + 2 * (1+length(fit_all$coef))
+AIC(fit_all)
+### one can fit many models and then compare them
+AIC(fit_null,fit_base,fit_all)
+which.min(AIC(fit_null,fit_base,fit_all)$AIC)
+```
+
+
+```{r}
+## BIC
+n <- nrow(autompg)
+- 2*as.numeric(logLik(fit_base)) + log(n) * (1+length(fit_base$coef))
+BIC(fit_base)
+- 2*as.numeric(logLik(fit_all)) + log(n)  * (1+length(fit_all$coef))
+BIC(fit_all)
+BIC(fit_null,fit_base,fit_all)
+```
+
+Both AIC and BIC tend to favor `fit_base`. 
+
+We will use these quality criteria to select which variables to include in a regression model. 
+
+
+# Verifying theory through simulations
+
+In the slides it is stated that: 
+
+
+\[
+\text{E}[\hat{\beta}_j] = \beta_j.
+\quad \text{ and } \quad 
+\text{Var}[\hat{\beta}] = \sigma^2 \left(  X^\top X  \right)^{-1}
+\]
+
+Let's see if that hold up (under a correctly specified model). To do this, let's use the `fit_base` model and generate data which could have been originated from the model: 
+
+```{r}
+X <- model.matrix(fit_base); beta_true <- fit_base$coefficients
+sigma_true <- summary(fit_base)$sigma; n <- nrow(X)
+fake_y <- X %*% beta_true + rnorm(n,0,sigma_true)
+fake_auto <- data.frame(mpg = fake_y, wt=autompg$wt,year=autompg$year)
+par(mfrow=c(1,2),pch=16,col="grey40")
+plot(X[,2],fake_y)
+plot(X[,3],fake_y)
+summary(lm(mpg~wt+year,data=fake_auto))
+## results are in line with the original estimates 
+```
+
+
+We can do this several times: 
+
+```{r}
+generate_and_estimate <- function(X,trueBetas,trueSigma){
+  fake_data <- data.frame(X[,-1])
+  nobs <- nrow(X)
+  fake_data$y <- X %*% trueBetas + rnorm(n,0,trueSigma)
+  fake_fit <- lm(y~.,data=fake_data)
+  fake_fit$coef
+}
+generate_and_estimate(X=X,trueBetas = beta_true,trueSigma = sigma_true)
+NSIM = 500; set.seed(4836)
+out_sim <- t(replicate(n = NSIM,generate_and_estimate(X=X,trueBetas = beta_true,trueSigma = sigma_true)))
+```
+
+`out_sim` contains `NSIM` replications of the estimation of the $\beta$ parameters in the model: we can use these to mimic the *asymptotic* behavior of $\hat{\beta}$. 
+
+First let's see if the estimates are unbiased
+
+```{r}
+colMeans(out_sim)
+fit_base$coefficients
+```
+
+Not bad. The theory based variance-covariance matrix of the model parameter estimates is: 
+
+```{r}
+vcov(fit_base)
+```
+
+From the simulation we find 
+
+```{r}
+cov(out_sim)
+```
+
+Pretty similar! We can increase the number of `NSIM` to improve out montecarlo estimation. 
+
+We can use the simulated slopes to make a plot that exemplifies the variability in the estimated parameters. Let's start with the `fit_base` model: 
+
+
+```{r}
+par(mfrow=c(1,2),col="gray40")
+### fix year to its mean
+nd <- data.frame(wt=sort(autompg$wt),year=mean(autompg$year))
+Xnd <- as.matrix(cbind(rep(1,nrow(nd)),nd))
+## rgb takes red - green - blue proportions; the fourth parameter is a transparency parameter
+plot(mpg~wt,data=autompg,col=rgb(0.9,0.9,0.9),pch=16)
+for(j in 1:50) lines(nd$wt,Xnd%*%out_sim[j,]) # 50 lines is already enough
+### fix wt to its mean
+nd <- data.frame(wt=mean(autompg$wt),year=sort(autompg$year))
+Xnd <- as.matrix(cbind(rep(1,nrow(nd)),nd))
+plot(mpg~year,data=autompg,col=rgb(0.9,0.9,0.9),pch=16)
+for(j in 1:50) lines(nd$year,Xnd%*%out_sim[j,])
+```
+
+There is very little variability in the estimates (and indeed we have found the significance testing to strongly reject the null hypothesis that these parameters are 0). Let's have a look at a model in which one of the variables appear to have no influence on `mpg`, such as the model in which `cyl` is included as predictor
+
+```{r}
+fit_added <- lm(mpg~wt+year+cyl,data=autompg); summary(fit_added)
+NSIM = 500; set.seed(554)
+added_out_sim <- t(
+  replicate(n = NSIM,
+            generate_and_estimate(X=model.matrix(fit_added),
+                                  trueBetas = fit_added$coefficients,
+                                  trueSigma = summary(fit_added)$sigma)))
+cov(added_out_sim); vcov(fit_added) # ok 
+```
+
+```{r}
+### fix year and cyl to their mean
+par(mfrow=c(1,3),col="gray40")
+nd <- data.frame(wt=sort(autompg$wt),year=mean(autompg$year),cyl=mean(autompg$cyl))
+Xnd <- as.matrix(cbind(rep(1,nrow(nd)),nd))
+plot(mpg~wt,data=autompg,col=rgb(0.9,0.9,0.9),pch=16)
+for(j in 1:50) lines(nd$wt,Xnd%*%added_out_sim[j,]) # 50 lines is already enough
+### fix wt and cyl to their mean
+nd <- data.frame(wt=mean(autompg$wt),year=sort(autompg$year),cyl=mean(autompg$cyl))
+Xnd <- as.matrix(cbind(rep(1,nrow(nd)),nd))
+plot(mpg~year,data=autompg,col=rgb(0.9,0.9,0.9),pch=16)
+for(j in 1:50) lines(nd$year,Xnd%*%added_out_sim[j,])
+### fix wt and year to their mean
+nd <- data.frame(wt=mean(autompg$wt),year=mean(autompg$year),cyl=sort(autompg$cyl))
+Xnd <- as.matrix(cbind(rep(1,nrow(nd)),nd))
+plot(mpg~cyl,data=autompg,col=rgb(0.9,0.9,0.9),pch=16)
+for(j in 1:50) lines(nd$cyl,Xnd%*%added_out_sim[j,])
+```
+
+
+
+We can use the simulation-based approach to see what happens to the estimation when some of the assumptions are not met. For example, what happens if the errors are not normally distributed? 
+
+
+```{r}
+generateT_and_estimate <- function(X,trueBetas,trueSigma){
+  fake_data <- data.frame(X[,-1])
+  nobs <- nrow(X)
+  fake_data$y <- X %*% trueBetas + trueSigma * rt(n,df=3)
+  fake_fit <- lm(y~.,data=fake_data)
+  fake_fit$coef
+}
+NSIM = 500; set.seed(4836)
+Tout_sim <- t(replicate(n = NSIM,generateT_and_estimate(X=X,trueBetas = beta_true,trueSigma = sigma_true)))
+```
+
+The errors still have 0 mean but are generated using a T with 3 degrees of freedom: this produces many points in the tails of the distribution. We can first check that the estimation is unbiased
+
+```{r}
+colMeans(Tout_sim)
+```
+
+and that seems to be OK, but when we look at the covariance matrix 
+
+```{r}
+cov(Tout_sim)
+```
+
+we see that errors become inflated. 
+
+

@@ -1,0 +1,374 @@
+---
+title: "Lab 3 - More on Linear regression and simulation"
+author: "Ilaria Prosdocimi"
+date: "Semestre 1 - AA 2021/22"
+output:
+  html_document:
+    fig_caption: yes
+    theme: flatly #sandstone #spacelab #flatly
+    highlight: pygments
+    code_folding: show
+    toc: TRUE
+    toc_depth: 2
+    number_sections: TRUE
+    toc_float:
+      smooth_scroll: FALSE
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+
+# Inference for the linear model under the assumption of normal errors 
+
+If one is ready to make the additional assumption that the errors of the linear model are distributed according to a Gaussian distribution, one can derive the sampling distribution of the estimators for the model parameters and for the model prediction. These can then be used to derive confidence intervals and tests. 
+
+Let's start with the sampling distribution of the model parameters: 
+
+\[
+\hat{\beta}_0 \sim \mathcal{N}\left(  \beta_0, \ \sigma^2 \left(\frac{1}{n}+\frac{\overline{x}^2}{ \sum_{i = 1}^{n}(x_i - \bar{x})^2} \right)\right)
+\]
+and 
+\[
+	\hat{\beta}_1 \sim \mathcal{N}\left(  \beta_1, \ \frac{\sigma^2}{\sum_{i = 1}^{n}(x_i - \bar{x})^2} \right).
+\]
+
+Since we typically do not know the true value of $\sigma$ this is estimated with $s_e$ and we need to use the t-distribution with $n-2$ degrees of freedom for out inference. 
+
+Let's see what type of inference we can obtain from `lm`:
+
+```{r}
+data(cars) 
+fit <- lm(dist~speed, data = cars)
+summary(fit)
+```
+
+By default the `summary` in R shows us the test statistic and p-value for the system of hypotheses: 
+
+\[H_0: \beta_0 = 0 \quad VS \quad H_1: \beta_0 \neq 0\]
+and 
+\[H_0: \beta_1 = 0 \quad VS \quad H_1: \beta_1 \neq 0\]
+
+These are derived as: 
+\[
+TS = \frac{\hat{\beta}_0 - 0}{\mbox{SE}[\hat{\beta}_0]} 
+\]
+\[
+TS = \frac{\hat{\beta}_1 - 0}{\mbox{SE}[\hat{\beta}_1]} 
+\]
+
+
+Let's see: 
+
+```{r}
+ctab <- summary(fit)$coefficient
+(ctab[1,1] - 0)/ctab[1,2]; ctab[1,3]
+(ctab[2,1] - 0)/ctab[2,2]; ctab[2,3]
+```
+
+From the test statistics the p-value of the test can be then derived as: 
+
+\[pvalue=2*P(T_{n-2} > |TS|)\]
+
+```{r}
+2*(1-pt(abs(ctab[1,3]), df = fit$df.residual)); ctab[1,4]
+2*(1-pt(abs(ctab[2,3]), df = fit$df.residual)); ctab[2,4]
+```
+
+We will reject the hull hypothesis when the p-value is "small". Typical cutoff values to identify a small p-values can be 0.05 or 0.01. 
+
+Notice these are the p-values associated with a specific test. If we could not reject the null hypothesis of any of the two parameters being =0 this would indicate that we might as well remove the parameter from the model and use a simpler model: this will become more relevant in the multivariate model. 
+
+There are many situations in which we might be interested in testing whether any parameter (say $\beta_1$) has a specific value $\beta_1^*$: it is possible to construct tests for any value of $\beta_1$: 
+
+\[H_0: \beta_1 = 3.5 \quad VS \quad H_1: \beta_1 \neq 3.5\]
+
+These are derived as: 
+\[
+TS = \frac{\hat{\beta}_1 - 3.5}{\mbox{SE}[\hat{\beta}_1]} 
+\]
+
+
+Let's see: 
+
+```{r}
+TS <- (ctab[2,1] - 3.5)/ctab[2,2]; TS
+```
+
+From the test statistics the absolute value of the test can be then derived as: 
+
+\[pvalue=2*P(T_{n-2} > |TS|)\]
+
+```{r}
+2*(1-pt(abs(TS), df = fit$df.residual))
+```
+
+p-value is pretty large: at the 5\% or 1\% significance we can not reject $H_0: \beta_1 = 3.5$
+
+
+Another (more informative) way to perform inference on the parameter values is to use confidence intervals (at pre-specified levels $1-\alpha$):
+
+We can derive these by hands with: 
+
+```{r}
+alpha = 0.01
+ctab[1,1] + qt(c(alpha/2,1-alpha/2), df = fit$df.residual) * ctab[1,2]
+ctab[2,1] + qt(c(alpha/2,1-alpha/2), df = fit$df.residual) * ctab[2,2]
+```
+
+or directly use 
+
+```{r}
+confint(fit, level = 1-alpha)
+```
+
+We can specifically ask for the interval only for one parameter as well
+
+```{r}
+confint(fit, level = 1-alpha, parm = "speed")
+```
+
+We can notice that the $\beta_1^* = 3.5$ value is included in the interval: there is a duality between confidence intervals and tests: test on the parameter being equal to a certain value will not be rejected at the $\alpha$ level of significance if the value is included in the confidence interval at level $(1-\alpha)$. 
+
+## Inference on the prediction
+
+*Partially based on Section 3.5 in Faraway, Linear Models with R.*
+
+The `predict` function allows to obtain point prediction of the estimated function for any value of the predictor. It is also possible to obtain confidence and prediction intervals: these intervals are based on a $T_{n-2}$ distribution and their construction is also dependent on the assumption of gaussian errors.  
+
+We must also distinguish between predictions of the future mean response and predictions of future observations. Thinking of the `fit` model, there are two kinds of predictions that can be made for a given $speed_0$: 
+
+* Suppose a specific cars drives at 22 mph. Its stopping distance will be $\hat{\beta}_0 + \hat{\beta}_1 * speed_0 + \varepsilon$. Since $E[\varepsilon] = 0$, the predicted price is $\hat{\beta}_0 + \hat{\beta}_1 * speed_0$ but in assessing the variance of this prediction, we must include the variance of $\varepsilon$.
+* Suppose we ask the question: "How much space does **on average** a car with characteristics $speed_0$ need to stop?". The distance is again predicted by $\hat{\beta}_0 + \hat{\beta}_1 + speed_0$ but now only the variance in $(\hat{\beta}_0, \hat{\beta}_1)$ needs to be taken into account.
+
+Most times, we will want the first case, which is called "prediction of a future value", while the
+second case, called "prediction of the mean response" is less commonly required.
+
+We build the two intervals applying the following formulas: 
+
+\[
+\text{Confidence intervals: }\hat{m}(x) \pm t_{\alpha/2, n - 2} \times s_e\sqrt{\frac{1}{n}+\frac{(x-\bar{x})^2}{\sum_{i = 1}^n(x_i-\overline{x})^2}} 
+\]
+
+\[
+\text{Prediction intervals: }\hat{m}(x) \pm t_{\alpha/2, n - 2} \times s_e\sqrt{1+\frac{1}{n}+\frac{(x-\bar{x})^2}{\sum_{i = 1}^n(x_i-\overline{x})^2}} 
+\]
+
+We can obtain both types of interval by changing the argument `interval` in `predict`: 
+
+```{r}
+nd <- data.frame(speed = c(4,15,22))
+predict(fit, newdata = nd, interval = "prediction")
+predict(fit, newdata = nd, interval = "confidence")
+```
+
+```{r}
+sumsq_x <- sum((cars$speed-mean(cars$speed))^2)
+s_e <- summary(fit)$sigma
+s_pred <- s_e * sqrt(1+1/nrow(cars)+((nd$speed-mean(cars$speed))^2)/sumsq_x)
+s_conf <- s_e * sqrt(1/nrow(cars)+((nd$speed-mean(cars$speed))^2)/sumsq_x)
+s_pred; s_conf # prediction is more uncertain 
+# prediction interval
+cbind((fit$coefficients[1] + fit$coefficients[2]*nd)+ qt(0.025, df = fit$df.residual) * s_pred,
+      (fit$coefficients[1] + fit$coefficients[2]*nd)+ qt(0.975, df = fit$df.residual) * s_pred)
+
+# confidence interval
+cbind((fit$coefficients[1] + fit$coefficients[2]*nd)+ qt(0.025, df = fit$df.residual) * s_conf,
+      (fit$coefficients[1] + fit$coefficients[2]*nd)+ qt(0.975, df = fit$df.residual) * s_conf)
+```
+
+
+We can display prediction and confidence intervals (this time at the 90\% level) - to do that nicely we compute them for a fairly fine range of values: 
+
+```{r}
+nd <- data.frame(speed = seq(3,26, length.out = 150))
+pint <- predict(fit, newdata = nd, interval = "prediction", level = 0.9)
+cint <- predict(fit, newdata = nd, interval = "confidence", level = 0.9)
+plot(cars, pch = 16, col = "grey70", bty = "l"); abline(coef(fit), col = "darkblue")
+lines(nd$speed, pint[,"lwr"], lty = 2, col = 2); lines(nd$speed, pint[,"upr"], lty = 2, col = 2)
+lines(nd$speed, cint[,"lwr"], lty = 2); lines(nd$speed, cint[,"upr"], lty = 2)
+legend("topleft", col = c(1,2), lty = 2, legend=c("Pred. int.", "Conf. int."), bty = "n")
+```
+
+
+
+# Verifying theory by simulation 
+
+In the slides we have the following formualae: 
+
+\[
+Var[\hat{\beta}_0| x_1,\ldots,x_n]= \sigma^2\left[\frac{1}{n} +\frac{ \overline{x}^2}{n s^2_X}\right] \quad \text{and} \quad 
+Var[\hat{\beta}_1| x_1,\ldots,x_n]= \frac{ \sigma^2}{n s^2_X}
+\]
+
+Instead of trusting the formulas given in the slides - let's understand how the estimation behaves through a simulation study. First let's study the uncertainty of the estimated coefficients. 
+
+
+The first step is to generate data which are similar to the ones we have observed. We use the same $(x_1, \ldots, x_n)$ values of the observed sample, but generate $y_i$ from the fitted model. 
+
+```{r generate_fake_dataFun, class.source = "fold-show"}
+sigma_model = 15.4 # summary(fit)$sigma
+true_betas <- c(-17.6, 3.9) # fit$coefficients
+fixed_xs <- sort(round(runif(50, 4,26))) # cars$speed
+generate_fake_data <- function(betas, sigma, x){
+  y_fake <- betas[1] + betas[2] * x + rnorm(length(x), 0, sigma)
+  y_fake
+}
+set.seed(49487)
+fake_dist <- generate_fake_data(betas = true_betas, 
+        sigma = sigma_model, x = fixed_xs)
+plot(fixed_xs, fake_dist) 
+```
+
+Next we estimate the linear regression line on the fake data 
+```{r get_betasFun}
+get_betas <- function(x, y){
+  lm(y~x)$coef
+}
+get_betas(x = fixed_xs, y = fake_dist)
+plot(fixed_xs, fake_dist, pch=16, col="grey40") 
+abline(get_betas(x = fixed_xs, y = fake_dist))
+abline(true_betas, col = 4)
+title(main="Simulated data and fitted model")
+legend("topleft", col = c(1,4),  lty = 1,
+       legend=c("estimate from fake data","true relationship"))
+### the line is similar to the true one 
+```
+
+Now let's create a function which generates data and outputs only the estimated parameters: 
+
+```{r generate_get_betasFun}
+generate_get_betas <- function(betas, sigma, x){
+  ytemp <- generate_fake_data(betas = betas, sigma=sigma, x=x)
+  lm(ytemp~x)$coef
+}
+generate_get_betas(betas= true_betas, sigma= sigma_model, x = fixed_xs)
+```
+
+Let's see what these estimated regression lines look like:
+
+```{r generate_fake_b1}
+NSIM = 50; set.seed(45)
+fake_pars <- replicate(NSIM, 
+  generate_get_betas(betas= true_betas, sigma= sigma_model, x = fixed_xs))
+dim(fake_pars)
+plot(cars, bty="l", type="n") # no plot
+for(i in 1:NSIM) abline(fake_pars[,i],col="grey70") 
+abline(true_betas, lwd = 2)
+```
+
+They vary randomly around the original true values. The standard deviation of the fake parameters are not far from the standard deviation derived from theory: 
+
+```{r simRes1}
+# original parameters  
+true_betas
+# means of parameters of simulated data
+c(mean(fake_pars[1,]),mean(fake_pars[2,]))
+# true values
+true_betas
+# se of intercept - simulated and theory 
+c(sd(fake_pars[1,]),
+  sigma_model * sqrt(1/50 + (mean(fixed_xs)^2)/(sum((fixed_xs - mean(fixed_xs))^2))))
+# se of slope - simulated and theory
+c(sd(fake_pars[2,]), 
+  sigma_model * sqrt(1/(sum((fixed_xs - mean(fixed_xs))^2))))
+```
+
+We can improve the precision of our estiamtion of the standard errors by increasing the number of simulations we do: 
+
+```{r simRes2}
+NSIM = 1000; set.seed(155)
+fake_pars <- replicate(NSIM, 
+  generate_get_betas(betas= true_betas, sigma= sigma_model, x = fixed_xs))
+## parameter estimates - from simulation 
+c(mean(fake_pars[1,]), mean(fake_pars[2,]))
+## true values
+true_betas
+# simulation based based uncertainty 
+c(sd(fake_pars[1,]), sd(fake_pars[2,]))
+# theory based uncertainty 
+c(sigma_model * sqrt(1/50 + (mean(fixed_xs)^2)/(sum((fixed_xs - mean(fixed_xs))^2))),
+  sigma_model * sqrt(1/(sum((fixed_xs - mean(fixed_xs))^2))))
+```
+
+Let's have a look at the distribution of the slope parameters
+
+```{r histFakeSlopes}
+hist(fake_pars[2,], prob=TRUE)
+```
+
+This looks fairly symmetrical. We can show that $\beta_1$ is normally distributed and for the simulated slopes we know that they should follow a $N(\hat{\beta}, \sigma_{\hat{\beta}})$. What happens if we superimpose the normal distribution to the histogram?  
+
+```{r histCurveFakeSlopes}
+hist(fake_pars[2,], prob=TRUE)
+curve(dnorm(x,true_betas[2], 
+            sigma_model * sqrt(1/(sum((fixed_xs - mean(fixed_xs))^2)))), 
+       from = 2.1, to = 5.5, add=TRUE)
+```
+
+What about the uncertainty of our prediction? Let's estimate the fitted curve for $x=20$
+
+```{r histPredictionFakeSlopes}
+x20_fakes <- fake_pars[1,] + fake_pars[2,] * 20
+## true and mean estimated value
+true_betas[1]+true_betas[2]*20 ; mean(x20_fakes)
+## var(hat(m(x))) from theory
+(sigma_model^2/length(fixed_xs)) * (1+((20-mean(fixed_xs))^2)/var(fixed_xs))
+# var of hat(m(x)) from simulated estimates 
+var(x20_fakes)
+hist(x20_fakes, prob=TRUE)
+abline(v = true_betas[1]+true_betas[2]*20, col = 2)
+```
+
+We can see we are able to retrieve the variability of the prediction derived from theory using a simulation-based approach.  
+
+
+We can use simulations to explore the impact on our inference of some of the assumptions not being valid. For example below we simulate data which come from a normal distribution but do not have constant variance (the variance grows with speed). 
+
+
+```{r changeVarSim}
+set.seed(6464)
+fake_pars_changeV <- replicate(NSIM, 
+  generate_get_betas(betas= true_betas, 
+                     sigma= -2.5+sigma_model+0.32*fixed_xs, x = fixed_xs))
+## intercept
+c(mean(fake_pars_changeV[1,]), sd(fake_pars_changeV[1,]))
+## slope
+c(mean(fake_pars_changeV[2,]), sd(fake_pars_changeV[2,]))
+## true values
+true_betas
+# theory based uncertainty 
+c(sigma_model * sqrt(1/50 + (mean(fixed_xs)^2)/(sum((fixed_xs - mean(fixed_xs))^2))),
+  sigma_model * sqrt(1/(sum((fixed_xs - mean(fixed_xs))^2))))
+```
+
+We can see that the standard errors derived from the simulated data with non-constant variance are now less precise. The effect of violating one of the assumptions is that we are overconfident in our estimation: the real variability in the estimates is higher than what we derive from the theory (based on the assumption of constant variance). 
+
+The histogram of the slopes derived from the simulated data sis shown below with the normal distribution superimposed: we can see that now the histogram is wider than the theoretical normal distribution derived under the assumption of constant variances. 
+
+```{r changeVarSimPLots}
+hist(fake_pars_changeV[2,], prob=TRUE)
+curve(dnorm(x,true_betas[2], 
+            sigma_model * sqrt(1/(sum((fixed_xs - mean(fixed_xs))^2)))), 
+       from = 2.1, to = 5.5, add=TRUE)
+```
+
+
+With simulations we could ask questions like: 
+
+* What happens to the estimation of $\beta_1$ when $\sigma$ increases (bias and variability)
+* What happens to the estimation of $\beta_1$ when $Var(X)$ increases (bias and variability)
+* What happens to the estimation of $\beta_0$ when the errors do not have 0 mean 
+* What happens to the estimation of $\hat{\sigma} = s_e$ when the variances of the errors are not constant 
+* ... 
+
+
+

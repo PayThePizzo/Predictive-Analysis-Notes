@@ -1,0 +1,163 @@
+---
+title: "Lab 04 - Multiple Linear Regression"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+    code_folding: show
+---
+
+
+# The data 
+
+First off we read (and manipulate a bit) the data: 
+
+```{r, class.source = "fold-hide"}
+# read the data
+fl <- "http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
+autompg = read.table(fl, quote = "\"",
+comment.char = "", stringsAsFactors = FALSE)
+# give the dataframe headers
+colnames(autompg) <- c("mpg", "cyl", "disp", "hp", "wt",
+"acc", "year", "origin", "name")
+# remove missing data, which is stored as "?"
+autompg <-subset(autompg, autompg$hp != "?")
+# remove the plymouth reliant, as it causes some issues
+autompg <- subset(autompg, autompg$name != "plymouth reliant")
+# give the dataset row names, based on the engine, year and name
+rownames(autompg) <- paste(autompg$cyl, "cylinder",
+autompg$year, autompg$name)
+# remove the variable for name, as well as origin
+autompg <- subset(autompg,
+select = c("mpg", "cyl", "disp", "hp", "wt", "acc", "year"))
+# change horsepower from character to numeric
+autompg$hp <- as.numeric(autompg$hp)
+```
+
+For the moment we focus on explaining $mpg$ as a function of $wt$ and $year$.
+
+```{r dataplot}
+par(mfrow=c(1,2), bty="l",pch=16)
+plot(mpg~wt, data= autompg)
+plot(mpg~year, data= autompg)
+```
+
+In the course of this lab we will make use fo an additional library (`car`) which implements a number of useful functions which expand the possible range of ways to interact with linear models in R. 
+
+We can install it using the command `install.package`, but first we check if the package is already installed. Once the package is installed we don't need to install it again, but we can simply load it in our workspace using the command `library` (alternatively we can use the functions in the package by using the package::function syntax). 
+
+```{r}
+if(!any(installed.packages() == "car")) install.packages("car")
+library(car)
+```
+
+
+# Stimare un modello lineare 
+
+\[ y = \beta_0 +\beta_1 wt  + \beta_2 year\]
+
+```{r}
+fitmpg <- lm(mpg ~ wt+year, data = autompg)
+summary(fitmpg)
+```
+
+Creiamo la matrice di disegno X: 
+
+```{r}
+X <- cbind(rep(1, nrow(autompg)), 
+           autompg$wt, 
+           autompg$year)
+head(X)
+```
+
+```{r}
+solve(t(X) %*% X) %*% t(X) %*% autompg$mpg 
+coef(fitmpg)
+```
+
+Stimiamo ora la varianza residua (cioè la varianza degli errori $\varepsilon$): 
+
+```{r}
+sqrt(sum(residuals(fitmpg)^2)/(nrow(autompg) - 3))
+summary(fitmpg)$sigma
+```
+
+varianza-covarianza delle stime di $\beta$:
+
+```{r}
+(summary(fitmpg)$sigma^2) * solve(t(X) %*% X)
+sqrt(diag((summary(fitmpg)$sigma^2) * solve(t(X) %*% X)))
+summary(fitmpg)$coef[,2]
+```
+
+```{r}
+(summary(fitmpg)$sigma^2) * solve(t(X) %*% X)
+vcov(fitmpg)
+cov2cor(vcov(fitmpg))
+```
+
+Possiamo fare inferenza sui valori singoli dei parametri: 
+
+```{r}
+confint(fitmpg)
+```
+
+o fare inferenza sulla distribuzione bi-variata dei parametri: 
+
+```{r}
+library(car)
+confidenceEllipse(fitmpg, which=c(2,3))
+abline(v=confint(fitmpg, parm = "wt"))
+abline(h=confint(fitmpg, parm = "year"))
+```
+
+```{r}
+confidenceEllipse(fitmpg, which=c(1,3))
+abline(v=confint(fitmpg, parm = "(Intercept)"))
+abline(h=confint(fitmpg, parm = "year"))
+```
+
+Matrici utili che R ci mette a disposizione  
+
+```{r}
+head(model.matrix(fitmpg)) 
+head(fitmpg$model)
+```
+
+# Interepretare e visualizzare la stima del modello 
+
+```{r}
+coef(fitmpg)
+par(mfrow=c(1,2), bty="l",pch=16)
+plot(mpg~wt, data= autompg)
+plot(mpg~year, data= autompg)
+# plot(wt~year, data= autompg)
+```
+
+```{r}
+par(mfrow=c(1,2))
+plot(mpg~wt, data= autompg, col = "grey")
+nd <- data.frame(wt = seq(1500, 5000, length.out=150), 
+                 year = mean(autompg$year))
+lines(nd$wt,predict(fitmpg, newdata = nd), col = 2, lwd = 2)
+plot(mpg~year, data= autompg, col = "grey")
+nd <- data.frame(wt = mean(autompg$wt), 
+                 year = seq(70, 83, length.out=150))
+lines(nd$year,predict(fitmpg, newdata = nd), col = 4, lwd = 2)
+nd <- data.frame(wt = 4500, 
+                 year = seq(70, 83, length.out=150))
+lines(nd$year,predict(fitmpg, newdata = nd), col = 4, lwd = 2, lty =2)
+```
+
+```{r}
+predict(fitmpg, interval = "confidence", 
+        newdata = data.frame(wt = c(3500, 4000),
+                                     year = c(76,76))) 
+          
+predict(fitmpg, interval = "prediction", 
+        newdata = data.frame(wt = c(3500, 4000),
+                                     year = c(76,76))) 
+```
+
+
+

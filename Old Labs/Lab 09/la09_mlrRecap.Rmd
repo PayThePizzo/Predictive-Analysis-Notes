@@ -1,0 +1,387 @@
+---
+title: "Lab 8 - transformation, model selection and estimation"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Dati, prime analisi esplorative e modello iniziale 
+
+Si prenda in esame il dataset `ukrivers`: il dataset contiene osservazioni riguardanti caratteristiche di diversi fiumi nel Regno Unito. Per ogni stazione di misurazione delle portate fluviali sono presenti alcune caratteristiche riguardanti il bacino del fiume e la variabile `QMED` che è una misura del flusso mediano della piena del fiume. La variabile `QMED` è una delle variabili usate per stimare il rischio di alluvione in siti in cui non sono presenti stazioni di misurazione, ed è quindi necessario predirre valori di `QMED` basati su modelli di regressione derivati usando le stazioni per cui esistono dati misurati. 
+
+Le variabili incluse nel dataset sono:  
+
+* Station: in numero della stazione di misurazione 
+* River: il nome del fiume 
+* Location: il luogo dove si trova la stazione 
+* Easting: Coordinate (est) della stazione
+* Northing: Coordinate (nord) della stazione
+* Area: area del bacino del fiume (in $km^2$)
+* ALTBAR: quota/altitudine media del bacino  
+* BFI: Baseflo index - un indice della permeabilità del bacino 
+* PROPWET: indice di propensione alla saturazione del suolo. Un indice che indica quanto il il suolo sia prono ad essere saturo di acqua.  
+* SAAR: precipitazione media annuale sul bacino (calcolata sul periodo 1961-1990)
+* QMED: mediana del massimo annuale della portata misurate alla stazione ($m^3/s$)
+* Ireland: in indicatore che indica se il bacino si trova in Irlanda o no (i.e. in Gran Bretagna). variabile non da considerarsi predittiva. 
+
+
+Tutte le informazioni sui dati e sulle loro misurazioni sono disponibili sul sito del  [https://nrfa.ceh.ac.uk/](National River Flow Archive). 
+
+```{r dataRead}
+ukrivers <- read.csv("ukrivers.csv",header=TRUE)
+plot(ukrivers[,6:12])
+```
+
+La prima variabile che si può pensare essere importante per spiegare `QMED` è `Area`: fiumi che drenano aree molto grandi tenderanno ad avere portate più grandi: 
+
+```{r}
+plot(QMED~Area, data = ukrivers)
+```
+
+La relazione sembra essere positiva ma si nota un forte variabilità per entrambe le variabili. Inoltre i residui di un modello lineare semplice in cui si usa `Area` come predittore per `QMED` presentano una forte asimmetricità:  
+
+```{r}
+par(mfrow=c(1,2))
+hist(ukrivers$QMED, main = "QMED",xlab = "QMED")
+hist(residuals(lm(QMED~Area, data = ukrivers)), xlab = "Residuals - QMED~Area", main = "Residuals - QMED~Area")
+```
+
+Potrebbe essere possibile aggiungere variabili esplicative al modello che riducano la asimmetricità dei residui, vediamo cosa succede se aggiungiamo tutte le variabili predittive (sensate) al modello: 
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm(QMED~Area+BFI+PROPWET+SAAR, data = ukrivers))
+```
+
+I residui presentano forti problematiche legate alla non-linearità della relazione tra le variabili predittive e `QMED` e di eteroschedasticità e in generale la variabile `QMED` presenta valori molto grandi per alcune osservazioni. Invece che modellare la variabile così com'è useremo quindi il suo logaritmo:
+
+```{r}
+tukrivers <- ukrivers
+tukrivers$lqmed <- log(tukrivers$QMED)
+plot(lqmed~Area, data = tukrivers,pch=16)
+```
+
+La relazione tra Area e `lqmed` sembra essere non-linear - usiamo quindi la trasformazione logaritmica anche sulla variabile `Area`: 
+
+```{r}
+tukrivers$larea <- log(tukrivers$Area)
+plot(lqmed~larea, data = tukrivers,pch=16)
+```
+
+e notiamo che ora la relazione sembra essere lineare e più regolare. Il modello di partenza è 
+\[\text{lqmed}_i = \beta_0 + \beta_1 \text{larea} + \epsilon_i\]
+
+Una prima occhiata ai residui sembra indicare che vi è ancora abbastanza asimmetria nei residui: 
+
+```{r}
+lfit0 <- lm(lqmed ~ larea, data = tukrivers)
+summary(lfit0)
+par(mfrow=c(1,2))
+plot(fitted(lfit0), residuals(lfit0))
+hist(residuals(lfit0))
+```
+
+
+## Che trasformazione per la variabile risposta? 
+
+Si noti che usando la trasformazione di boxcox si sarebbe scelta un'altra trasformazione, rispetto alla trasformazione logaritmica. 
+
+```{r}
+par(mfrow=c(1,2))
+bc0 <- MASS::boxcox(lm(QMED~Area, data = ukrivers), lambda = seq(0.12,0.25,by=0.025))
+## potremmo ad esempio scegliere lambda = 0.18
+tukrivers$bcqmed <- (ukrivers$QMED^0.18-1)/0.18
+hist(residuals(lm(bcqmed ~ larea, data = tukrivers)))
+```
+
+La trasformazione logaritmica ha il vantaggio di permettere di predirre valori della variabile originale usando un modello moltiplicativo facile da implementare e da comunicare agli utenti del modello. Una volta finita la fase di costruzione del modello si potrebbe tornare a valutare la scelta della trasformazione usata per la variabile risposta. 
+
+
+# Trasformazioni delle variabili esplicative
+
+Il prossimo passo per la costruzione del modello è di tentare di aggiungere variabili esplicative e vedere se spiegano parte della variabilità residua. Si potrebbe per esempio usare un algoritmo backward o foreward per selezionare le variabili che più migliorano il BIC. Dato che la relazione tra le variabili predittive a la risposta dovrebbe essere (secondo le assunzioni del modello) lineare, potrebbe essere opportuno pensare in primo luogo se conviene inserire le variabili così come sono nell'algoritmo e se sarebbe invece opportuno trasformare queste variabili per rendere la relazione tra le variabili stesse e la variabile dipendente (o i residui del modello base) più lineari.
+
+Andando in ordine di variabile del dataset:
+
+* ALTBAR 
+
+```{r}
+par(mfrow=c(1,2), pch = 16)
+plot(tukrivers$ALTBAR, tukrivers$lqmed)
+plot(tukrivers$ALTBAR, residuals(lfit0))
+```
+
+Vi è una chiara non-linearità nella relazione tra `ALTBAR` e `lqmed`, che potrebbe essere risolta usando una trasformazione logaritmica di `ALTBAR` o usando la radice quadrata di ALTBAR: 
+
+```{r}
+par(mfrow=c(1,2), pch = 16)
+plot(log(tukrivers$ALTBAR), tukrivers$lqmed)
+plot(sqrt(tukrivers$ALTBAR), tukrivers$lqmed)
+```
+
+Prendiamo la trasformazione logaritmica che risulta in una relazione più lineare e ha inoltre il vantaggio interpretativo (la scelta della radice quadrata sarebbe accettabile): 
+
+```{r}
+tukrivers$laltbar <- log(tukrivers$ALTBAR)
+```
+
+* BFI
+
+```{r}
+par(mfrow=c(1,2), pch = 16)
+plot(tukrivers$BFI, tukrivers$lqmed)
+plot(tukrivers$BFI, residuals(lfit0))
+```
+
+Vi è una chiara non-linearità nella relazione tra `ALTBAR` e `lqmed`, e una forte relazione abbastanza lineare tra BFI e i residui del modello iniziale. Sembra che inserire BFI nel modello possa spiegare parte della variabilità dei dati e forse la relazione dovrà essere inserita usando anche trasformazioni polinomiali di BFI, dato che la forma relazionale tra `BFI` e `lqmed` sembra quadratica: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(tukrivers$BFI^2, tukrivers$lqmed)
+plot(tukrivers$BFI^2, residuals(lfit0))
+```
+
+Creiamo la variabile in cui trasformiamo `BFI` elevando la variabile al quadrato: 
+
+```{r}
+tukrivers$bfisq <- (tukrivers$BFI^2)
+```
+
+Quando useremo questa variabile nel modello sarà sempre opportuno inserire anche `BFI` e non solo la trasformazione (e si potrebbe usare `I(BFI^2)`). 
+
+* PROPWET 
+
+```{r}
+par(mfrow=c(1,2), pch = 16)
+plot(tukrivers$PROPWET, tukrivers$lqmed)
+plot(tukrivers$PROPWET, residuals(lfit0))
+```
+
+Vi è una chiara non-linearità nella relazione tra `PROPWET` e `lqmed`, che potrebbe essere risolta usando una trasformazione logaritmica di `PROPWET`, usando la radice quadrata di `PROPWET` o anche invertendo `PROPWET`:  
+
+```{r}
+par(mfrow=c(1,3), pch = 16)
+plot(log(tukrivers$PROPWET), tukrivers$lqmed)
+plot(sqrt(tukrivers$PROPWET), tukrivers$lqmed)
+plot((1/tukrivers$PROPWET), tukrivers$lqmed)
+```
+
+Scegliamo (sempre per motivazioni di interpretazione del modello) di trasformare `PROPWET` usando la trasformazione logaritmica: 
+
+```{r}
+tukrivers$lpropwet <- log(tukrivers$PROPWET)
+```
+
+* SAAR
+
+```{r}
+par(mfrow=c(1,2), pch = 16)
+plot(tukrivers$SAAR, tukrivers$lqmed)
+plot(tukrivers$SAAR, residuals(lfit0))
+```
+
+Vi è una chiara non-linearità nella relazione tra `SAAR` e `lqmed`, che potrebbe essere risolta usando una trasformazione logaritmica di `SAAR` o invertendo `SAAR`:  
+
+```{r}
+par(mfrow=c(1,2), pch = 16)
+plot(log(tukrivers$SAAR), tukrivers$lqmed)
+plot((1/tukrivers$SAAR), tukrivers$lqmed)
+```
+
+In questo caso l'inversione sembra essere a trasformazione che rende la relazione tra `SAAR` e `lqmed` la più lineare possibile. Si noti però che i valori numerici della variabile invertita sono molto piccoli: trasformiamo quindi la variabile usando `(1000/SAAR)`, sebbene questo non cambi la relazione tra la variabile trasformata e `lqmed`:
+
+```{r}
+tukrivers$isaar <- (1000/tukrivers$SAAR)
+```
+
+Adesso che abbiamo scelto delle possibili trasformazioni per le variabili esplicative possiamo guardare come queste variano con la variabile dipendente e cercare di usare le variabili trasformate per selezionare un modello che sia adeguato a predirre `lqmed`: 
+
+```{r}
+plot(tukrivers[,c("lqmed","larea","laltbar","bfisq","lpropwet","isaar")])
+```
+
+
+## Scegliere il modello 
+
+Passiamo ora alla selezione del modello. Si provi ad usare un algoritmo a scelta sui dati originali e sui dati trasformati. 
+
+Iniziamo con un algoritmo *stepwise* basato su BIC per i dati originali. 
+
+```{r stepOr, echo=FALSE}
+BICk = log(nrow(tukrivers))
+or_selection <- 
+  step(lm(lqmed~larea,data=tukrivers), 
+     scope = list(lower=lm(lqmed~larea,data=tukrivers), 
+                  upper = lm(lqmed~larea+ALTBAR+BFI+PROPWET+SAAR,data=tukrivers)),
+     k = BICk, direction = "both")
+```
+
+Le variabili aggiunte al modello sono `PROPWET`, `BFI` e `SAAR`. Usiamo ora invece i dati trasformati
+
+```{r stepTrans, echo=FALSE}
+BICk = log(nrow(tukrivers))
+tr_selection <- 
+  step(lm(lqmed~larea,data=tukrivers), 
+     scope = list(lower=lm(lqmed~larea,data=tukrivers), 
+                  upper = lm(lqmed~larea+laltbar+BFI+bfisq+lpropwet+isaar,data=tukrivers)),
+     k = BICk, direction = "both")
+```
+
+Le variabili aggiunte al modello sono `bfisq` e `isaar`. Confrontiamo ora le stime ottenute nei due modelli selezionati dall'algoritmo. La prima domanda da porsi è quale dei due modelli predice meglio i dati osservati: confrontiamo quindi il grafico di dispersione di valori osservati e stimati di `lqmed`
+
+```{r}
+par(mfrow=c(1,2),pch=16)
+plot(fitted(or_selection),tukrivers$lqmed)
+abline(0,1, lwd = 2, col= "orange")
+plot(fitted(tr_selection),tukrivers$lqmed)
+abline(0,1, lwd = 2, col= "orange")
+```
+
+In termini di $\text{RMSE}_{LOOCV}$ il modello basato sulle variabili trasformate ha una perfomance migliore: 
+
+```{r}
+calc_loocv_rmse = function(model) {
+sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+calc_loocv_rmse(or_selection)
+calc_loocv_rmse(tr_selection)
+```
+
+Il modello basato sulle variabili trasformate risulta anche avere un valore di BIC minore. 
+
+```{r}
+BIC(or_selection)
+BIC(tr_selection)
+```
+
+
+Entrambi i modelli danno una predizione abbastanza accurata dei dati osservati. Come si comportano invece i residui dei due modelli?
+
+```{r}
+par(mfrow=c(2,2))
+plot(or_selection)
+```
+
+Guardiamo anche la relazione tra variabili esplicative del modello e residui: 
+
+```{r}
+#  the matrix of predictor variables 
+mpreds <- or_selection$model[,-1]
+par(mfrow=c(2,ceiling(ncol(mpreds)/2)))
+for(j in (1:ncol(mpreds))) plot(mpreds[,j], residuals(or_selection), xlab = names(mpreds)[j])
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(tr_selection)
+```
+
+
+```{r}
+# the matrix of predictor variables 
+mpreds <- tr_selection$model[,-1]
+par(mfrow=c(2,ceiling(ncol(mpreds)/2)))
+for(j in (1:ncol(mpreds))) plot(mpreds[,j], residuals(tr_selection), xlab = names(mpreds)[j])
+```
+
+Per entrambi i modelli rimangono dei problemi di asimmetria dei residui, con residui negativi e grandi in valore assoluto. Per il modello basato sulle variabili trasformate inoltre si nota che nessuna forma funzionale rimane tra le variabili predittive e i residui. In nessuno dei due modelli sembrano esserci forti segnali di eteroschedasticità: questo è dato dal fatto che abbiamo già trasformato la variabile originale (`QMED`).
+
+Facciamo ora una verifica aggiuntiva per verificare se il modello con i predittori scelti tramite BIC presenta problemi di co-linearità 
+
+```{r}
+car::vif(tr_selection)
+## anche il grafico della relazione tra predittori 
+## non è problematico
+# plot(tr_selection$model)
+```
+
+I valori vbassi del Variance Inflation Factor indicano che le variabili non presentano problematicità legate alla co-linearità. 
+
+Infine controlliamo se esistono punti particolarmente influenti: 
+
+```{r}
+par(mfrow=c(1,1))
+plot(tr_selection,4)
+tr_selection$model[cooks.distance(tr_selection) > 0.03,]
+plot(tr_selection$model)
+```
+
+Alcuni punti con un valore di $QMED$ particolarmente piccolo risultano avere una infleunza abbastanza elevata: si potrebbe decidere di eliminare questi punti che sembrano essere anomali ma sarabbe opportuno anche verificare con un esperto di idrologia se queste stazioni hanno caratteristiche particolari. Attenzione: rimouovere questi (pochi) punti dall'analisi implicherebbe che il modello non sarebbe generalizzabile per luoghi le cui caartteristiche sono simili a quelle di queste stazioni. 
+
+Per ora manteniamo tutte le osservazioni nell'analisi.  
+
+Usando il modello di ricerca esaustiva delle variabili esplicative, si seleziona lo stesso modello scelto dalla algoritmo _stepwise_ se il criterio con cui si sceglie il modello è il BIC: 
+
+```{r}
+library(leaps)
+all_mod <-summary(regsubsets(lqmed ~ larea+isaar+lpropwet+laltbar+BFI+bfisq, data = tukrivers))
+all_mod$which[which.min(all_mod$bic),]
+```
+
+
+Segliamo come modello "finale" il modello basato sulle variabili trasformate, inserendo anche la variabile `BFI` nella sua forma originale oltre che la forma al quadrato: 
+
+```{r}
+fit_final <- update(lm(tr_selection), .~.+BFI, data = tukrivers)
+summary(fit_final)
+```
+
+Le variabili inserite nel modello risultano significative e aumentano la capacità del modello di spiegare la variabilità di `lqmed`: si noti la differenza dei valori di $R^2$ e $R_{Adj}^2$ rispetto al modello `lfit0` e la forte significativà del test F: 
+
+```{r}
+anova(lfit0, fit_final)
+```
+
+Controlliamo anche che le variabili (trasformate) escluse dal modello non varino in maniera sistematica con i residui del modello: 
+
+```{r}
+par(mfrow=c(1,2), pch = 16)
+plot(tukrivers$laltbar, residuals(fit_final))
+plot(tukrivers$lpropwet, residuals(fit_final))
+```
+
+Non si nota nessuna forte relazione tra le variabili non inserite nel modello e i residui. 
+
+Il modello finale indica che valori più alti di `larea` risultano in valori più grandi di `lqmed`. Similmente, la variabile `lqmed` è più grande in bacini in cui cade in media più pioggia (e in cui perciò `isaar` ha valori più bassi). L'impatto della permeabilità invece è quadratico: per valori molto alti e bassi di BFI i valori di `qmed` sono relativamente più bassi. 
+La figura mostra la relazione tra i predittori e la variabile esplicativa calcolata mantenendo le altre variabili al loro valore medio: 
+
+```{r}
+par(mfrow=c(1,3), pch=16,col="grey60")
+lout <- 100
+nd <- data.frame(isaar = rep(mean(tukrivers$isaar), lout),
+                 larea = rep(mean(tukrivers$larea), lout),
+                 BFI = seq(min(tukrivers$BFI), max(tukrivers$BFI), length.out = lout),
+                 bfisq = seq(min(tukrivers$BFI), max(tukrivers$BFI), length.out = lout)^2)
+plot(lqmed ~ BFI, data = tukrivers)
+lines(nd$BFI, predict(fit_final, newdata = nd), col = 2)
+nd <- data.frame(isaar = seq(min(tukrivers$isaar), max(tukrivers$isaar), length.out = lout),
+                 BFI = rep(mean(tukrivers$BFI), lout),
+                 bfisq = rep(mean(tukrivers$bfisq), lout), 
+                 larea = rep(mean(tukrivers$larea), lout))
+plot(lqmed ~ isaar, data = tukrivers)
+lines(nd$isaar, predict(fit_final, newdata = nd), col = 2)
+nd <- data.frame(isaar = rep(mean(tukrivers$isaar), lout),
+                 BFI = rep(mean(tukrivers$BFI), lout),
+                 bfisq = rep(mean(tukrivers$bfisq), lout), 
+                 larea = seq(min(tukrivers$larea), max(tukrivers$larea), length.out = lout))
+plot(lqmed ~ larea, data = tukrivers)
+lines(nd$larea, predict(fit_final, newdata = nd), col = 2)
+```
+
+
+Ci potrebbe invece essere qualche problema legato all'indipendenza delle osservazioni: il comportamento dei fiumi è in gran parte caratterizzato da fenomeni geo-morfologici e climatologici che agiscono su larga scale, ed è quindi possibile che due stazioni siano correlate l'una all'altra perché impattate dagli stessi processi esogeni. Inoltre alcune delle stazioni misurano lo stesso fiume in punti diversi: la portata di un fiume è sicuramente correlata con la misurazione fatta in un altro punto. Nel modello lineare multiplo classico non vi è modo di tenere in considerazione questa correlazione tra osservazioni e questo può risultare in stime non corrette della varianza (del modello e dei predittori).  Esistono metodologie che permettono di apportare correzioni che tengano conto della correlazione tra osservazioni, ma queste non vengono discusse in questo caso studio/corso. 
+
+La cosa diventa evidente anche guardando la mappa dei valori stimati: 
+
+```{r}
+par(mfrow=c(1,1), pch = 16)
+pp <- predict(fit_final)
+## creiamo una variabile che dipenda dal valore stiamto di lqmed 
+ppcol <- rgb((pp-min(pp)+0.1)/(max(pp)-min(pp)+0.1), 0.5,0.5)
+plot(tukrivers$Easting, tukrivers$Northing,
+     col = ppcol)
+```
+
+
+Il modello finale che è stato selezionato è un modello applicato ad una trasformazione della variabile originale: non è possibile traslare in maniera diretta l'inferenza fatta per la variabile trasformata alla variabile originale. Tuttavia, dato che è stata usata la trasformazione logaritmica è possibile dire che un modello valido per la mediana della variabile originale è un modello moltiplicativo basato sulle variabili predittive anch'esse trasformate. 

@@ -1,0 +1,180 @@
+---
+title: "Lab 11 - ancoa GLm (model selction)"
+author: "Me Myself and I"
+date: "30/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Coronray Heart disease 
+
+
+```{r}
+SAheart <- read.table("SAheart.csv",sep=",",head=TRUE)
+```
+
+```{r}
+fit1 <-  glm(chd ~ ldl, data = SAheart, family = binomial)
+summary(fit1)
+plot(SAheart$ldl, jitter(SAheart$chd, factor = 0.1), pch = 16)
+lines(sort(SAheart$ldl), 
+      predict(fit1, type = "response")[order(SAheart$ldl)], 
+      lwd = 2, col = "dodgerblue")
+```
+
+Incertezza facilemnte stimabile per il predittore lineare: 
+
+```{r}
+plot(sort(SAheart$ldl), 
+    predict(fit1, type = "link")[order(SAheart$ldl)], 
+    lwd = 2, col = "dodgerblue", type = "l")
+linpred_se <- predict(fit1, type = "link", se.fit = TRUE)$se.fit
+X <- model.matrix(fit1)
+head(sqrt(diag(X %*% vcov(fit1) %*% t(X))))
+head(linpred_se)
+# intervallo al 95%
+lines(sort(SAheart$ldl), 
+     (predict(fit1, type = "link")- qnorm(0.975) * linpred_se)[order(SAheart$ldl)], 
+    lwd = 2, col = "dodgerblue", lty = 2)
+lines(sort(SAheart$ldl), 
+     (predict(fit1, type = "link")+ qnorm(0.975) * linpred_se)[order(SAheart$ldl)], 
+    lwd = 2, col = "dodgerblue", lty = 2)
+
+plot(SAheart$ldl, SAheart$chd)
+    
+lines(sort(SAheart$ldl), 
+    predict(fit1, type = "response")[order(SAheart$ldl)], 
+    lwd = 2, col = "dodgerblue", type = "l")
+# intervallo al 95%
+lines(sort(SAheart$ldl), 
+     binomial()$linkinv((predict(fit1, type = "link")- qnorm(0.975) * linpred_se)[order(SAheart$ldl)]), 
+    lwd = 2, col = "dodgerblue", lty = 2)
+lines(sort(SAheart$ldl), 
+     binomial()$linkinv((predict(fit1, type = "link")+ qnorm(0.975) * linpred_se)[order(SAheart$ldl)]), 
+    lwd = 2, col = "dodgerblue", lty = 2)
+```
+
+
+
+```{r}
+fit_full <- glm(chd ~ ., data = SAheart, family = binomial)
+summary(fit_full)
+anova(fit1, fit_full, test = "LRT")
+```
+
+
+Selezione backward 
+
+```{r}
+step(fit_full, direction = "backward",
+     scope = list(lower = fit1), k = 2)
+```
+
+
+Selezione Forward 
+
+```{r}
+step(fit1, direction = "forward", 
+     scope = list(upper = fit_full), k = 2)
+```
+
+
+
+Selezione stepwise 
+
+```{r}
+# usando BIC
+selected <- step(fit1, direction = "both", 
+     scope = list(upper = fit_full), k = log(nrow(SAheart)))
+```
+
+```{r}
+anova(selected, fit_full, test = "LRT")
+```
+
+Non rifiuto l'ipotesi nulla: scelo il modello più semplice. 
+
+Ma il modello con solo `ldl` bastava? 
+\[H_0: \beta_{age} = \beta_{fh} = \beta_{tobacco} = \beta_{typea} = \]
+
+```{r}
+anova(fit1, selected, test = "LRT")
+```
+
+
+## Dati di tipo Poisson 
+
+```{r}
+data(hcrabs, package  = "GLMsData")
+```
+
+```{r}
+crabs_null <-  glm(Sat ~ 1, data = hcrabs, family = poisson)
+crabs_wt <-  glm(Sat ~ Wt, data = hcrabs, family = poisson)
+crabs_full <-  glm(Sat ~ ., data = hcrabs, family = poisson)
+anova(crabs_null, crabs_wt, test = "LRT")
+anova(crabs_wt, crabs_full, test = "LRT")
+anova(crabs_null, crabs_full, test = "LRT")
+```
+
+```{r}
+step(crabs_null, direction = "forward", 
+     scope = list(upper = crabs_full))
+step(crabs_full, direction = "backward")
+```
+
+```{r}
+crabs_sel <- glm(Sat ~ Wt + Col, data = hcrabs, family = poisson)
+summary(crabs_sel)
+```
+
+
+```{r}
+crabs_interact <- glm(Sat ~ Wt * Col, data = hcrabs, family = poisson)
+summary(crabs_interact)
+anova(crabs_sel, crabs_interact, test = "LRT")
+# 1 - pchisq(10.724, df = 3)
+# qchisq(.95, df = 3) 
+```
+
+
+```{r}
+plot(hcrabs$Wt, hcrabs$Sat, pch = 16)
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "D")
+lines(nd$Wt, predict(crabs_sel, type="response", nd), col = 2)
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "DM")
+lines(nd$Wt, predict(crabs_sel, type="response", nd), col = 4)
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "M")
+lines(nd$Wt, predict(crabs_sel, type="response", nd), col = "purple")
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "LM")
+lines(nd$Wt, predict(crabs_sel, type="response", nd), col = "orange")
+
+```
+
+
+
+
+
+```{r}
+plot(hcrabs$Wt, hcrabs$Sat, pch = 16)
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "D")
+lines(nd$Wt, predict(crabs_interact, type="response", nd), col = 2)
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "DM")
+lines(nd$Wt, predict(crabs_interact, type="response", nd), col = 4)
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "M")
+lines(nd$Wt, predict(crabs_interact, type="response", nd), col = "purple")
+nd <- data.frame(Wt = seq(1200, 5200, by = 50), 
+                 Col = "LM")
+lines(nd$Wt, predict(crabs_interact, type="response", nd), col = "orange")
+
+```

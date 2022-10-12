@@ -1,0 +1,99 @@
+---
+title: "lab 2 - modello lineare in R"
+author: "Me Myself and I"
+date: "27/09/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+```{r}
+data(cars)
+fit <- lm(dist ~ speed, data = cars)
+```
+
+```{r}
+coefficients(fit)
+fit$coefficients
+```
+
+```{r}
+summary(fit)
+```
+
+```{r}
+fit$residuals
+residuals(fit)
+# y - y_hat 
+cars$dist - (fit$coefficients[1] + fit$coefficients[2] * cars$speed)
+cars$dist - fitted(fit) # fit$fitted
+hist(residuals(fit))
+```
+
+```{r}
+cor(residuals(fit), cars$speed)
+plot(cars$speed, residuals(fit), pch = 16)
+```
+
+```{r}
+plot(fit, which = 1)
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+
+La stima della varianza degli errori è data da: 
+
+```{r}
+summary(fit)$sigma
+sqrt(sum(residuals(fit)^2)/fit$df.residual)
+```
+
+Deriviamo gli errori stimati dei paramteri del modello: 
+
+```{r}
+s2_x <- sum((cars$speed-mean(cars$speed))^2)/50
+summary(fit)$sigma /sqrt(50 * s2_x) # std.error (beta1_hat) 
+summary(fit)$sigma *sqrt(1/50 + (mean(cars$speed)^2)/(50 * s2_x)) 
+```
+
+questi numeri corrispondono a quelli che R stampa in `summary`: 
+
+```{r}
+summary(fit)
+```
+
+# Predizione 
+
+```{r}
+nd <- data.frame(speed = c(5, 20, 40))
+predict(fit, newdata = nd)
+sqrt((summary(fit)$sigma^2/50) * (1+(c(nd$speed)-mean(cars$speed))^2/s2_x))
+```
+
+# R-square 
+
+```{r}
+summary(fit)
+```
+
+
+```{r}
+SStot <- sum((cars$dist - mean(cars$dist))^2)
+SSreg <- sum((fit$fitted.values - mean(cars$dist))^2)
+SSres <- sum((cars$dist - fit$fitted.values)^2)
+SStot; SSres; SSreg
+SStot; SSres+ SSreg
+SSreg/SStot
+```
+
+
+

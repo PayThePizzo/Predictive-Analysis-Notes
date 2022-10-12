@@ -1,0 +1,40 @@
+---
+title: "Lab 3 - Regressione Lineare Semplice"
+author: "Inserite il vostro nome"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output: html_document
+---
+
+Si prenda in esame il dataset `bodyfat`: 
+
+```{r}
+urlLocation <- "https://dasl.datadescription.com/download/data/3079"
+bodyfat <- read.table(urlLocation, header=TRUE)
+```
+
+Il dataset (che è stato recuperato dal sito https://dasl.datadescription.com/datafile/bodyfat/) comprende molte variabili: per il momento prendiamo in considerazione sono le variabili `Weight` e `Height`, che contengono i valori di peso (misurato in libbre) e altezza (misurata in pollici)  per 250 uomini di varie età. In particolare vogliamo valutare come l'altezza influenzi il peso. 
+
+```{r}
+bodyfat <- bodyfat[,c("Weight","Height")]
+plot(Weight~Height, data = bodyfat)
+```
+
+* Si dia una stima del modello: valori dei coefficienti e loro significatività. Si interpreti il valore di ognuno dei coefficienti. 
+
+* Qual è il valore del coefficiente $R^2$ - come si può interpretare questo valore? 
+
+* Vi è evidenza della veridicità dell'affermazione: "Due uomini la cui altezza differisca di un pollice hanno in media una differenza di peso di 5 libbre"? 
+
+* Si diano un intervallo di confidenza e di predizione al 90\% per due nuovi soggetti di altezza 70 e 78 pollici. Si dia un commento sull'ampiezza dei due intervalli di confidenza. 
+
+* Si elenchino le assunzioni fatte per poter stimare il modello. Si usino dei grafici utili ad investigare se le assunzioni risultano essere valide per il modello stimato.  
+
+
+
+# Domande aggiuntive
+
+- Qual è l'interpretazione dell'intercetta nel modello? Cosa succede se si stima un modello usando una nuova variabile `HightCentred = Height - mean(Height)`. 
+- Si creino le variabili `HightScale = (Height - mean(Height))/sd(Height)` e `WeightScale = (Weight - mean(Weight))/sd(Weight)`. Come si possono interpretare intercetta a coefficiente angolare per questo modello? Si confronti il valore di $R^2$ e il p-value del test di significatività per $\beta_1$ nel modello stimato usando i dati modificati e i dati originali: cosa si può notare? [Per creare le nuove variabili si può anche usare direttamente la funzione `scale`.]
+- Le variabili sono state misurate rispettivamente in pollici e libbre. Si trasformino i dati in centimetri e chilogrammi: come cambiano le stime dei parametri del modello lineare? Come cambia la loro interpretazione? [Nota: per passare da pollici a cm è necessario moltiplicare i valori originali per 2.54; per passare da libbre a chilogrammi è necessario dividere i valori originali per 2.205]. 
+- Quale potrebbe essere l'intervallo di confidenza del peso di una donna alta 72 pollici? 
+- Si estragga (usando in maniera appropriata la funzione `sample`) un sottocampione del dataset di 50 osservazioni: si confrontino le stime ottenute usando tutto il campione e le stime ottenute usando il sottocampione. 

@@ -1,0 +1,172 @@
+---
+title: "Lab 5 - regressione multipla"
+author: "Me Myself and I"
+date: "18/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Intervalli di confidenza e predizione 
+
+
+
+```{r, class.source = "fold-hide",echo=FALSE}
+#### this is the code used to write the file which is in Moodle
+# read the data
+fl <- "http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
+autompg = read.table(fl, quote = "\"",
+comment.char = "", stringsAsFactors = FALSE)
+# give the dataframe headers
+colnames(autompg) <- c("mpg", "cyl", "disp", "hp", "wt",
+"acc", "year", "origin", "name")
+# remove missing data, which is stored as "?"
+autompg <-subset(autompg, autompg$hp != "?")
+# remove the plymouth reliant, as it causes some issues
+autompg <- subset(autompg, autompg$name != "plymouth reliant")
+# give the dataset row names, based on the engine, year and name
+rownames(autompg) <- paste(autompg$cyl, "cylinder",
+autompg$year, autompg$name)
+# remove the variable for name, as well as origin
+autompg <- subset(autompg,
+select = c("mpg", "cyl", "disp", "hp", "wt", "acc", "year"))
+# change horsepower from character to numeric
+autompg$hp <- as.numeric(autompg$hp)
+```
+
+```{r}
+fit <- lm(mpg ~ wt+year, data = autompg)
+summary(fit)
+```
+
+\[y_i = \beta_0 + \beta_1 wt_i + \beta_2 year_i + \varepsilon_i\]
+
+```{r}
+plot(autompg$year, autompg$wt)
+```
+
+```{r}
+head(fitted(fit))
+nd <- data.frame(wt = c(2500, 5000), year = c(76, 81))
+predict(fit, newdata = nd)
+# informazione su E[Y|X]
+(ci_int <- predict(fit, newdata = nd, interval = "confidence"))
+# informazione su (Y|X)
+(pred_int <- predict(fit, newdata = nd, interval = "prediction"))
+ci_int[,3] - ci_int[,2]
+pred_int[,3] - pred_int[,2]
+```
+
+# Significatività del modello 
+
+Significatività contro il modello nullo:
+\[y:i = \beta_0 + \varepsilon_i\]
+
+\[H_0: \beta_1 = \beta_2 = 0 \quad VS \quad H_1: \beta_1 \ o \  \beta_2 \neq 0\]
+
+```{r}
+fit_null <- lm(mpg ~ 1, data = autompg)
+anova(fit_null, fit)
+```
+
+```{r}
+# SSerror 
+sum((fit$residuals)^2)
+sum((autompg$mpg - fit$fitted.values)^2)
+## SSerror - sotto il modello nullo 
+sum((autompg$mpg - fit_null$fitted.values)^2)
+# numeratore delle statistica test 
+num <- sum((fit$fitted.values -  fit_null$fitted.values)^2) / (length(coef(fit)) - length(coef(fit_null)))
+# fit_null$df.residual - fit$df.residual
+# denominatore 
+den <- sum((fit$residuals)^2)/fit$df.residual
+num/den
+# è grande? 
+# rispetto a una distribuzione F con 2, 387 gradi di libertà? 
+alpha = 0.04 # prob errore di tipo 1 
+qf(1-alpha, df1 = 2, df2 = fit$df.residual)
+# p-value
+1 - pf(num/den, df1 = 2, df2 = fit$df.residual)
+```
+
+
+## Significatività per modelli annidati (nested models) 
+
+```{r}
+fit_all <- lm(mpg~., data = autompg)
+summary(fit_all)
+```
+
+\[H_0: \beta_{cyl} = \beta_{disp}=\beta_{hp} = \beta_{acc} = 0\]
+
+```{r}
+anova(fit, fit_all)
+```
+
+```{r}
+sum(fit$residuals^2)
+sum(fit_all$residuals^2)
+(sum(fit$residuals^2) - sum(fit_all$residuals^2))
+(sum(fit$residuals^2) - sum(fit_all$residuals^2))
+num <- (sum(fit$residuals^2) - sum(fit_all$residuals^2))/(fit$df.residual - fit_all$df.residual)
+den <- sum(fit_all$residuals^2)/fit_all$df.residual
+num; den
+num/den 
+# questo valore è estremo sotto una F con 4 e 383 gradi di libertà? 
+alpha = 0.04
+qf(1-alpha, df1 = 4, df2 = 383) # P(F > f) = 0.96
+1 - pf(num/den, df1 = 4, df2 = 383) # P(F > f) = 0.96
+```
+
+Non rifiutiamo l'ipotesi nulla: usiamo il modello più semplice `fit`.  
+
+```{r}
+nd <- data.frame(t(apply(autompg, 2, quantile, p= .99)))
+p1 <- predict(fit, newdata = nd, interval = "confidence")
+p2 <- predict(fit_all, newdata = nd, interval = "confidence")
+p1[,3]-p1[,2]
+p2[,3]-p2[,2]
+```
+
+Il modello più complesso produce stime più variabili. 
+
+
+# Misure di bontà di adattamento 
+
+```{r}
+fit_alternative <- lm(mpg ~ hp + acc, data = autompg)
+summary(fit_alternative)
+```
+
+```{r}
+summary(fit_alternative)$r.squared
+summary(fit)$r.squared
+# summary(fit_all)$r.squared
+
+summary(fit_alternative)$adj.r.squared
+summary(fit)$adj.r.squared
+summary(fit_all)$adj.r.squared
+```
+
+
+```{r}
+sum(dnorm(autompg$mpg, 
+          fitted(fit), 
+          summary(fit)$sigma, log = TRUE))
+logLik(fit)
+-2*logLik(fit) + 2 * 4
+AIC(fit)
+```
+
+```{r}
+AIC(fit, fit_alternative, fit_all)
+logLik(fit); logLik(fit_alternative)
+BIC(fit, fit_alternative, fit_all)
+AIC(fit, fit_alternative, fit_all, k = log(390))
+```
+
+
+
+

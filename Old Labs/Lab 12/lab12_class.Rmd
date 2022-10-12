@@ -1,0 +1,213 @@
+---
+title: "Lab 12 - classification for binary classifiers"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+# Logistic regression as a classifier
+
+So far we’ve used logistic regression to assess the probability of an observation to belong to the "success" class. This estimation can be extended to the evaluation of new observations and the decision on whether they should be predicted to belong to the "success" or "failure" class: in other words we can use logistic regression to create a *classifier* which should predict if an observation will belong to one of the two classes of whether $Y=1$ or $Y=0$. 
+
+Suppose that we know
+$$
+p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 1 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}]
+$$
+and
+$$
+1 - p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 0 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+Rule: we  classify an observation to the class ($0$ or $1$) with the larger probability. In general, this result is called **the Bayes Classifier**:
+
+$$
+C^B(x_1,\ldots,x_{p - 1}) = \underset{k}{\mathrm{argmax}} \ P[Y = k \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+
+For a binary response, that is,
+$$
+{C}^B( x_1,\ldots,x_{p - 1}) = 
+\begin{cases} 
+1 & p(x_1,\ldots,x_{p - 1}) > 0.5 \\
+0 & p(x_1,\ldots,x_{p - 1}) \leq 0.5 
+\end{cases}
+$$
+\item 
+Simply put, the Bayes classifier (not to be confused with the Naive Bayes Classifier) minimizes the probability of misclassification by classifying each observation to the class with the highest probability. 
+
+Unfortunately, in practice, we won't know the necessary probabilities to directly use the Bayes classifier. Instead we'll have to use estimated probabilities.
+$$
+\hat{C}^B(x_1,\ldots,x_{p - 1}) = \underset{k}{\mathrm{argmax}} \ \widehat{\Pr}[Y = k \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+
+In the case of a binary response since 
+$$\hat{p}(x_1,\ldots,x_{p - 1}) = 1 - \hat{p}({x_1,\ldots,x_{p - 1}})$$ this becomes
+$$
+\hat{C}({x_1,\ldots,x_{p - 1}}) = 
+\begin{cases} 
+1 & \hat{p}({x_1,\ldots,x_{p - 1}}) > 0.5 \\
+0 & \hat{p}({x_1,\ldots,x_{p - 1}}) \leq 0.5 
+\end{cases}
+$$
+To use logistic regression for classification, we first use logistic regression to obtain estimated probabilities, $\hat{p}({x_1,\ldots,x_{p - 1}})$, then use these in conjunction with the above classification rule.
+
+Logistic regression is just one of many ways that these probabilities could be estimated. In a course completely focused on machine learning, you’ll learn many additional ways to do this, as well as methods to directly make classifications without needing to first estimate probabilities. But classification is one of the main applications of binary-type GLMs, so we discuss this important topic within the Classification perspective.
+
+We do this using an applied example of being able to detect a email as spam. We use the database `spambase` which is described [here](https://archive.ics.uci.edu/ml/datasets/spambase)
+
+```{r}
+## data(spam, package = "ElemStatLearn")
+spam <- read.table("spambase.data", header = FALSE,sep=",")
+names(spam) <- c("make", "address", "all", "num3d", "our", "over", "remove", 
+"internet", "order", "mail", "receive", "will", "people", "report", 
+"addresses", "free", "business", "email", "you", "credit", "your", 
+"font", "num000", "money", "hp", "hpl", "george", "num650", "lab", 
+"labs", "telnet", "num857", "data", "num415", "num85", "technology", 
+"num1999", "parts", "pm", "direct", "cs", "meeting", "original", 
+"project", "re", "edu", "table", "conference", "charSemicolon", 
+"charRoundbracket", "charSquarebracket", "charExclamation", "charDollar", 
+"charHash", "capitalAve", "capitalLong", "capitalTotal", "type")
+```
+
+The first 48 columns of the database contain information on the frequency of a specific word in the email (the exact words which correspond to each column is given in the `spambase.names` file), while columns from 49 to 54 count the frequency of one-letter words, and the last three columns give information on the words written with Capital Letter. Lastly we have the information on whether the email was a real email or spam, where mails which were spam are indicated as `1` : 
+
+```{r}
+table(spam$type)
+```
+
+
+We create two subsets of the original dataset: one will be used to train the classifier (the logit model), one will be used to test the classifier. 
+
+```{r}
+set.seed(42)
+spam_idx <- sample(nrow(spam), 2000)
+spam_trn <- spam[spam_idx,]
+spam_tst <- spam[-spam_idx,]
+```
+
+We fit four logistic regressions, each more complex than the previous. 
+
+```{r}
+fit_caps <- glm(type ~ capitalTotal, data <- spam_trn, family = binomial)
+fit_selected <- glm(type ~ edu + money + capitalTotal + charDollar, data = spam_trn, family = binomial)
+fit_additive <- glm(type ~ ., data = spam_trn, family = binomial)
+fit_over <- glm(type ~ capitalTotal*(.), data = spam_trn, family = binomial, maxit = 120)
+```
+
+The warnings indicate that our model might be problematic and we should be highly suspicious of the parameter estimates. However, the model can still be used to create a classifier, and we will evaluate that classifier on its own merits.
+
+## Evaluating classifiers
+
+```{r}
+range(predict(fit_caps, type = "response")) ## probabilità 
+mean(ifelse(predict(fit_caps, type = "response") > 0.5, 1, 0)) ## probabilità 
+range(predict(fit_caps)) ## predittore lineare
+mean(ifelse(predict(fit_caps) > 0, 1, 0)) 
+```
+
+mis-classification 
+
+
+```{r}
+mean(ifelse(predict(fit_caps) > 0, 1, 0) != spam_trn$type) 
+mean(ifelse(predict(fit_selected) > 0, 1, 0) != spam_trn$type) 
+mean(ifelse(predict(fit_additive) > 0, 1, 0) != spam_trn$type) 
+mean(ifelse(predict(fit_over) > 0, 1, 0) != spam_trn$type) 
+```
+
+
+
+```{r}
+cv_class <- function(K=5, dat, model, cutoff = 0.5){
+  assign_group <- rep(seq(1,K), each = floor(nrow(dat)/K))
+  ### this ensures we use all points in the dataset
+  ### this way we might have subgroups of different size 
+  if(length(assign_group) != nrow(dat)) assign_group <- c(assign_group, sample(seq(1,K)))[1:nrow(dat)] 
+  assign_group <- sample(assign_group, size = nrow(dat))
+  error <- 0
+  for(j in 1:K){
+    whichobs <- (assign_group == j)
+    ## fit a model WITHOUT the hold-out data
+    folded_model <- suppressWarnings(glm(model$formula, 
+                                         data = dat[!whichobs,], 
+                                         family = "binomial"))
+    ## evaluate the model on the hold-out data
+    fitted <- suppressWarnings(predict(folded_model,
+                                       dat[whichobs,], 
+                                       type="response"))
+    observed <- dat[whichobs, strsplit(paste(model$formula), "~")[[2]]]
+    error <- error + mean(observed != (fitted>cutoff))/K 
+    ### in cv.glm the actual error is calculated as (y - p(y=1)) 
+    # error <- error + mean((observed - fitted)^2)/K 
+    ### the mis-classification rate will depend on how we decide what is assigned to each category 
+  }
+  error
+}
+```
+
+```{r}
+set.seed(1)
+cv_class(dat = spam_trn, model = fit_caps)
+cv_class(dat = spam_trn, model = fit_selected)
+cv_class(dat = spam_trn, model = fit_additive)
+cv_class(dat = spam_trn, model = fit_over)
+```
+
+
+```{r}
+make_conf_mat <- function(predicted, actual) {
+  table(predicted = predicted, actual = actual)
+}
+```
+
+
+```{r}
+spam_tst_pred <- ifelse(
+  predict(fit_additive, newdata = spam_tst, 
+          type = "response") > 0.5, 1, 0)
+make_conf_mat(predicted = spam_tst_pred, actual = spam_tst$type)
+```
+
+
+```{r}
+get_sens <- function(conf_mat) {
+conf_mat[2, 2] / sum(conf_mat[, 2])
+}
+# Note that this function is good for illustrative purposes, but is easily broken. (Think about what happens if there are no "positives" predicted.)
+```
+
+```{r}
+get_spec <-  function(conf_mat) {
+conf_mat[1, 1] / sum(conf_mat[, 1])
+}
+```
+
+```{r}
+conf_mat_50 <-  make_conf_mat(predicted = spam_tst_pred, actual = spam_tst$type)
+get_sens(conf_mat_50)
+get_spec(conf_mat_50)
+```
+
+
+
+```{r}
+spam_tst_pred_10 <- ifelse(
+  predict(fit_additive, newdata = spam_tst, 
+          type = "response") > 0.1, 1, 0)
+conf_mat_10 <-  make_conf_mat(predicted = spam_tst_pred_10, actual = spam_tst$type)
+conf_mat_10
+get_sens(conf_mat_10)
+get_spec(conf_mat_10)
+```
+
+
+
+```{r}
+spam_tst_pred_90 <- ifelse(
+  predict(fit_additive, newdata = spam_tst, 
+          type = "response") > 0.9, 1, 0)
+conf_mat_90 <-  make_conf_mat(predicted = spam_tst_pred_90, actual = spam_tst$type)
+conf_mat_90
+get_sens(conf_mat_90)
+get_spec(conf_mat_90)
+```

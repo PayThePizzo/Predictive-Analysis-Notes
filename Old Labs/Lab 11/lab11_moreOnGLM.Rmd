@@ -1,0 +1,497 @@
+---
+title: "Lab 10 - more about GLMs"
+date: "23/11/2020"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+# Model selection for GLMs - Binomial 
+
+We load the data about a retrospective sample of males in a heart-disease high-risk region of the Western Cape, South Africa. The `chd` variable, which we will use as a response, indicates whether or not coronary heart disease is present in an individual. Note that this is coded as a numeric 0 / 1 variable. See more information [here](https://rdrr.io/cran/ElemStatLearn/man/SAheart.html)
+
+
+```{r, eval=TRUE}
+SAheart <- read.table("SAheart.csv",sep=",",head=TRUE)
+```
+
+We wish to construct a model that predicts the likelihood of a coronary heart disease given the values for other characteristics. Let's compare how the various variables compare for `chd =0` and `chd = 1` (we exclude from the plotting `famhist` which is also a categorical variable): 
+
+```{r}
+table(SAheart$famhist, SAheart$chd)
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+for(j in 1:4) boxplot(SAheart[,j] ~ SAheart$chd, col = c(2,4), main = names(SAheart)[j])
+```
+
+```{r}
+par(mfrow=c(2,2))
+for(j in 6:9) boxplot(SAheart[,j] ~ SAheart$chd, col = c(2,4), main = names(SAheart)[j])
+```
+
+We can fit a first model in which `ldl` is included as the explanatory variable:
+
+
+```{r}
+par(mfrow=c(1,1))
+chd_mod_ldl <- glm(chd ~ ldl, data = SAheart, family = binomial)
+summary(chd_mod_ldl)
+plot(jitter(chd, factor = 0.1) ~ ldl, data = SAheart, pch = 20, 
+ylab = "Probability of CHD", xlab = "Low Density Lipoprotein Cholesterol")
+grid()
+lines(sort(SAheart$ldl),
+  predict(chd_mod_ldl, data.frame(ldl = sort(SAheart$ldl)), type = "response"), 
+  col = "dodgerblue", lty = 2, lwd = 2)
+```
+
+We see that increasing levels of low density lipoprotein cholesterol are associated to higher risk of coronary disease. We derive the confidence intervals at 95\% confidence level using the function `conf.int`: 
+
+```{r}
+confint.default(chd_mod_ldl,level=0.95, parm = "ldl")
+## based on asymptotic normal distribution
+coef(chd_mod_ldl)[2] + summary(chd_mod_ldl)$coef[2,2] * qnorm(c(0.025,0.975))
+# if confint is used the interval is derived using the profile likelihood 
+# outside the scope of the course 
+# confint(chd_mod_ldl,level=0.95)
+```
+
+
+We could also fit a model in which all variables are instead included as explanatory variables 
+
+```{r}
+chd_mod_additive <- glm(chd ~ ., data = SAheart,  family = binomial)
+summary(chd_mod_additive)
+```
+
+Does adding many parameters give a great reduction in deviance? 
+
+```{r}
+chd_mod_ldl$deviance
+chd_mod_additive$deviance
+```
+
+We can test this using the likelihood ratio test. The null and alternative hypothesis are: 
+\[H_0: \beta_{\texttt{sbp}} = \beta_{\texttt{tobacco}} = \beta_{\texttt{adiposity}} = \beta_{\texttt{famhist}} = \beta_{\texttt{typea}} = \beta_{\texttt{obesity}} = \beta_{\texttt{alcohol}} = \beta_{\texttt{age}} = 0 \]
+
+against 
+
+\[H_1: \text{any } \beta_{\texttt{sbp}} \text{ or } \beta_{\texttt{tobacco}}  \text{ or }  \beta_{\texttt{adiposity}}  \text{ or }  \beta_{\texttt{famhist}}  \text{ or }  \beta_{\texttt{typea}}  \text{ or }  \beta_{\texttt{obesity}}  \text{ or } \beta_{\texttt{alcohol}}  \text{ or } \beta_{\texttt{age}} \neq 0 \]
+
+```{r}
+anova(chd_mod_ldl, chd_mod_additive, test = "LRT")
+## or manually
+# 2*as.numeric(logLik(chd_mod_additive)-logLik(chd_mod_ldl))
+# pchisq(2*as.numeric(logLik(chd_mod_additive)-logLik(chd_mod_ldl)), lower.tail = FALSE, 
+#        df = chd_mod_ldl$df.residual-chd_mod_additive$df.residual)
+```
+
+
+Yes it seems the very complex model is adding significantly to the explanation of the the frequency of coronary heart disease. Can we find a model that is less complex? 
+We can select the model using AIC or BIC applying the backward, forward or step-wise selection procedures using the `step` function: 
+
+```{r}
+# First backward selection 
+chd_mod_selected <- step(chd_mod_additive, trace = 1, k = 2)
+coef(chd_mod_selected)
+```
+
+```{r}
+chd_mod_null <- glm(formula = chd ~ 1, family = binomial, data = SAheart)
+# forward selection 
+step(chd_mod_null, trace = 1, k = 2, direction = "forward", 
+                         scope = list(upper = chd_mod_additive))
+```
+
+We find the same model. What if we used BIC? 
+
+```{r}
+bic_k <- log(nrow(SAheart))
+# forward selection 
+step(chd_mod_null, trace = 1, k = bic_k, direction = "forward", 
+                         scope = list(upper = chd_mod_additive))
+```
+
+
+Still the same model. Does the deviance explained by this model differ from the deviance explained by the "full" model?
+
+```{r}
+anova(chd_mod_selected, chd_mod_additive, test = "LRT")
+```
+
+Not really, we can not reject the null hypothesis 
+
+$$
+H_0: \beta_{\texttt{sbp}} = \beta_{\texttt{adiposity}} = \beta_{\texttt{obesity}} = \beta_{\texttt{alcohol}} = 0
+$$
+
+
+We can visualize the effect of one of the predictor *given fixed values for the other predictors*: 
+
+```{r}
+nd <- data.frame(ldl = sort(SAheart$ldl),
+                 age = median(SAheart$age), famhist= "Absent",
+                 tobacco = median(SAheart$tobacco),  typea = median(SAheart$typea))
+par(mfrow=c(1,1))
+chd_mod_ldl <- glm(chd ~ ldl, data = SAheart, family = binomial)
+summary(chd_mod_ldl)
+plot(jitter(chd, factor = 0.1) ~ ldl, data = SAheart, pch = 20, 
+ylab = "Probability of CHD", xlab = "Low Density Lipoprotein Cholesterol")
+grid()
+lines(nd$ldl, 
+      predict(chd_mod_selected, newdata = nd, type = "response"), 
+      col = "dodgerblue", lty = 2)
+```
+
+We also might want to show the uncertainty about the point prediction, i.e construct confidence intervals for both $\eta$ and $\mu$. 
+
+```{r}
+pred_vals <- predict(chd_mod_selected, newdata = nd, 
+                     type = "link", se.fit = TRUE)
+names(pred_vals)
+head(pred_vals$fit); head(pred_vals$se.fit)
+# the confidence interval for the linear predictor 
+# based on the normal, the approximate distribution of the estimate of beta 
+cint <- cbind(pred_vals$fit + qnorm(.025) * pred_vals$se.fit,
+              pred_vals$fit + qnorm(.975) * pred_vals$se.fit)
+## confidence interval for the predicted expected value
+pint <- cbind(binomial()$linkinv(pred_vals$fit + qnorm(.025) * pred_vals$se.fit),
+              binomial()$linkinv(pred_vals$fit + qnorm(.975) * pred_vals$se.fit))
+```
+
+Let's plot the fitted response curve with its approximate confidence interval: 
+
+```{r}
+par(mfrow=c(1,1))
+chd_mod_ldl <- glm(chd ~ ldl, data = SAheart, family = binomial)
+summary(chd_mod_ldl)
+plot(jitter(chd, factor = 0.1) ~ ldl, data = SAheart, pch = 20, 
+ylab = "Probability of CHD", xlab = "Low Density Lipoprotein Cholesterol")
+grid()
+lines(nd$ldl, binomial()$linkinv(pred_vals$fit), col = "dodgerblue")
+lines(nd$ldl, pint[,1], col = "dodgerblue", lty = 2)
+lines(nd$ldl, pint[,2], col = "dodgerblue", lty = 2)
+```
+
+
+# Model selection for GLMs - Poisson 
+
+We take into consideration the `hcrabs` dataset already discussed in class. We wish to identify the explanatory variable which are best suited to be included as predictors in the GLM. First we read the data and have a look at what the data looks like: 
+
+
+```{r}
+data(hcrabs, package = "GLMsData")
+plot(hcrabs)
+```
+
+`Sat` (the response variable) appears to vary strongly with `width` and `Wt`, and these two variables are strongly related. We also see that several categorical variables are present in the dataset: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(Sat~Col, data =hcrabs)
+plot(Sat~Spine, data =hcrabs)
+```
+
+We start the model selection procedure by specifying the simplest and most complex model possible using the data. We then use the `step` function - this applies a model selection procedure based on AIC (or BIC if the `k` argument is changed)
+
+ 
+```{r}
+model0<-glm(Sat~1, family=poisson(link=log),data=hcrabs)
+modelFull<-glm(Sat~., family=poisson(link=log),data=hcrabs)
+anova(model0, modelFull, test = "LRT") ## at least some variables are significant
+## use AIC
+selAIC <- step(model0, direction = "forward", 
+     scope=list(lower = model0, upper = modelFull))
+## use BIC 
+selBIC <- step(model0, direction = "forward", k = log(nrow(hcrabs)), 
+     scope=list(lower = model0, upper = modelFull))
+```
+
+
+As in the linear model case - using BIC typically results in selecting a model which is smaller (in terms of parameters). 
+
+We focus on the AIC-based model. Let's visualize the fit for the four different color categories: 
+
+```{r}
+plot(Sat~Wt, data = hcrabs, col = as.numeric(hcrabs$Col), pch = 16)
+nd <- data.frame(Wt = seq(min(hcrabs$Wt),max(hcrabs$Wt), length.out=80), Col = "D")
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "response"), col = 1)
+nd$Col <- "DM"
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "response"), col = 2)
+nd$Col <- "LM"
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "response"), col = 3)
+nd$Col <- "M"
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "response"), col = 4)
+```
+
+We could also plot this on the linear predictor scale: 
+
+```{r}
+plot(pmax(log(Sat),0)~Wt, data = hcrabs, col = as.numeric(hcrabs$Col), pch = 16)
+nd <- data.frame(Wt = seq(min(hcrabs$Wt),max(hcrabs$Wt), length.out=80), Col = "D")
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "link"), col = 1)
+nd$Col <- "DM"
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "link"), col = 2)
+nd$Col <- "LM"
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "link"), col = 3)
+nd$Col <- "M"
+lines(nd$Wt, predict.glm(selAIC, newdata = nd,type = "link"), col = 4)
+```
+
+As it was the case for linear model - `step` only check for variables entering the model in an additive fashion: we could now ask whether the two variable included in the model might interact: 
+
+```{r}
+selAIC_prod <- glm(formula = Sat ~ Wt * Col, family = poisson(link = log), data = hcrabs)
+summary(selAIC_prod)
+anova(selAIC, selAIC_prod, test = "LRT")
+```
+
+It appears that it might be worth keeping the interaction between variables - what do the estimates look like? 
+
+```{r}
+plot(Sat~Wt, data = hcrabs, col = as.numeric(hcrabs$Col), pch = 16)
+nd <- data.frame(Wt = seq(min(hcrabs$Wt),max(hcrabs$Wt), length.out=80), Col = "D")
+lines(nd$Wt, predict.glm(selAIC_prod, newdata = nd,type = "response"), col = 1)
+nd$Col <- "DM"
+lines(nd$Wt, predict.glm(selAIC_prod, newdata = nd,type = "response"), col = 2)
+nd$Col <- "LM"
+lines(nd$Wt, predict.glm(selAIC_prod, newdata = nd,type = "response"), col = 3)
+nd$Col <- "M"
+lines(nd$Wt, predict.glm(selAIC_prod, newdata = nd,type = "response"), col = 4)
+```
+
+We notice that for one Crab color we estimate a very different relationship. We should check with some crab-expert if this makes sense. Notice also that there are only 12 crabs in the `LM` color category: the estimation for this group is quite uncertain (and hard to generalize).   
+
+
+# Residuals
+
+We can use the function `residuals` to derive residuals for GLMs: different residuals can be extracted: 
+
+```{r}
+head(residuals(model0, type="deviance"))
+# poisson()$dev.resid
+head(residuals(model0, type="pearson"))
+head((hcrabs$Sat - model0$fitted.values)/sqrt(model0$fitted.values))
+head(residuals(model0, type="response"))
+head((hcrabs$Sat - model0$fitted.values))
+```
+
+```{r}
+plot(hcrabs$Wt, residuals(model0, type="deviance"), pch = 16)
+```
+
+```{r}
+plot(hcrabs$Wt, residuals(selAIC, type="deviance"), pch = 16)
+```
+
+# Exploring theory by simulation 
+
+
+We have claimed that we can rely on the approximate distribution of the $\hat{\beta}$ estimates to perform inference because the estimates are derived by maximizing the likelihood and by virtue of the maximum likelihood estimation theory we have (approximately):  
+
+\[\hat{\beta} \sim N(\beta, (X^TVX)^{-1}) \]
+
+Let's verify whether this theoretical results always hold. We do this by generating random samples from distributions which belong to the exponential family in which the expected value is allowed to change as a function of some explanatory variable. 
+
+We can first start with a Poisson distribution and we use a fixed explanatory variable and given true regression parameters ($\beta_0$, $\beta_1$): 
+
+```{r}
+n <- 60
+x_vals <- sort(runif(n, -4.5, 4.5))
+beta_vals <- c(3,0.05)
+Xmat <- cbind(rep(1, n), x_vals)
+set.seed(76)
+y_sim <- rpois(n, poisson()$linkinv(Xmat %*% beta_vals))
+plot(Xmat[,2], y_sim)
+```
+
+We see that the simulated data exhibit a strong relationship between the simulated counts and the predictor. We use the simulated data to estimate the regression coefficients: 
+
+```{r}
+fit_sim <- glm(y_sim ~ x_vals, family = poisson)
+fit_sim$coefficients
+## compared to 
+beta_vals
+```   
+
+The estimated values of the parameters appear to be similar - we can compare the fitted linear predictor and fitted expected value:
+
+```{r}
+par(mfrow=c(1,2))
+plot(x_vals, Xmat %*% beta_vals, type="l", main = "Linear predictor")
+lines(x_vals, Xmat %*% fit_sim$coefficients, col = 4)
+plot(x_vals, exp(Xmat %*% beta_vals), type="l",  main = "Response")
+lines(x_vals, exp(Xmat %*% fit_sim$coefficients), col = 4)
+```
+
+The estimates are quite similar. We do this 50 times: 
+
+```{r}
+sim_fit_coef <- function(n, X, pars){
+  y_sim <- rpois(n, exp(X %*% pars))
+  glm(y_sim ~ x_vals, family = poisson)$coefficients
+}
+NSIM <- 50; set.seed(5454)
+rep_sim <- t(replicate(NSIM, sim_fit_coef(n=n, X = Xmat, pars = beta_vals)))
+par(mfrow=c(1,2))
+plot(x_vals, Xmat %*% beta_vals, type="n", ylab ="linear predictor scale")
+for(j in 1:NSIM) lines(x_vals, Xmat %*% rep_sim[j,], col = "grey90")
+lines(x_vals, Xmat %*% beta_vals, col = 2)
+plot(x_vals, exp(Xmat %*% beta_vals), type="n", ylab ="original scale")
+for(j in 1:NSIM) lines(x_vals, exp(Xmat %*% rep_sim[j,]), col = "grey90")
+lines(x_vals, exp(Xmat %*% beta_vals), col = 2)
+```
+
+The estimates obtained from the simulated data are in line with the original estimates: are the estimates unbiased? 
+
+```{r}
+colMeans(rep_sim)
+beta_vals
+```
+
+Yes they are basically unbiased. We check again using more simulations 
+
+```{r}
+NSIM <- 1000; set.seed(4321)
+rep_sim <- t(replicate(NSIM, sim_fit_coef(n=n, X = Xmat, pars = beta_vals)))
+colMeans(rep_sim)
+beta_vals
+```
+
+The variance-covariance matrix of the estimates is: 
+
+\[(X^T V X)^{-1}\]
+
+where is a diagonal matrix with diagonal elements $V_{ii}$ which for the Poisson distribution with the log-link are found to be: 
+
+\[V_{ii} = \exp\{\beta_0 + \beta_{i,1}  x_{i,1} + \ldots + \beta_p  x_{i,p}\}\]
+
+When $\beta_j$ are known the variance-covariance matrix for the model under study therefore is:
+
+```{r}
+V <- diag(as.vector(exp(Xmat %*%beta_vals)))
+(var_betas <- solve(t(Xmat) %*% V %*%Xmat))
+```
+
+What about the estimates derived in the simulation study?
+
+```{r}
+var(rep_sim)
+```
+
+The values are quite similar - the simulation indicates a similar value of the variance-covariance matrix between estimates as the one derived from the theory. 
+The last check on the simulation-based estimates is to verify that they behave like a normal distribution (with mean the true values of $\beta$ and the variance derived above): 
+
+```{r}
+par(mfrow=c(1,2))
+hist(rep_sim[,1], freq = FALSE, col = NA, main = "Intercept")
+lines(seq(2,4,by=0.0025),
+      dnorm(seq(2,4,by=0.0025), beta_vals[1], sqrt(var_betas[1,1])), 
+      col="orange", lwd = 2)
+hist(rep_sim[,2], freq = FALSE, col = NA, main = "Slope")
+lines(seq(0,1,by=0.00025),
+      dnorm(seq(0,1,by=0.00025), beta_vals[2], sqrt(var_betas[2,2])), 
+      col="orange", lwd = 2)
+```
+
+The histograms look normal and comparable to the theoretically derived distribution. 
+
+Notice that to simulate the fake data we could have used the `simulate` object within the poisson family: 
+
+```{r}
+set.seed(456)
+poisson()$simulate(object = fit_sim, nsim = 1)
+```
+
+Exercises: try to increase and decrease the sample size and assess whether this has an impact on the quality of the approximation for the estimators; try to use a different link function to generate and estimate the data. 
+
+
+## Veryfying theory for the binomial distribution 
+
+We now check how well the theory holds for the binomial case, using a slight modification to the usual set-up. Now we specify the true coefficients and we evaluate the function only for positive pre-specified values of the explanatory variable:
+
+```{r}
+n <- 60
+x_vals <- seq(0, 4, length.out = n)
+true_coefs <- c(-1.5,2)
+Xmat <- cbind(rep(1, n), x_vals)
+range(Xmat %*% true_coefs)
+range(exp(Xmat %*% true_coefs)/(1+exp(Xmat %*% true_coefs)))
+```
+
+We notice that the probabilities of success implied by the true coefficients span a very wide range. Let's simulate some fake data and obtain the estimated coefficient values. For the moment we assume that the total number of trials over which we are counting the successes is 200: 
+
+```{r}
+sim_fit_coef <- function(n, X, size, pars){
+  y_sim <- rbinom(n, size = size, exp(X %*% pars)/(1+exp(X %*% pars)))
+  y_fail <- size - y_sim
+  glm(cbind(y_sim, y_fail) ~ x_vals, family = binomial)$coefficients
+}
+sim_fit_coef(n=n, X = Xmat, size = 200, pars = true_coefs)
+NSIM <- 500; set.seed(5454)
+rep_sim <- t(replicate(NSIM, 
+          sim_fit_coef(n=n, X = Xmat, size = 200, pars = true_coefs)))
+colMeans(rep_sim)
+true_coefs
+```
+
+We obtain unbiased estimates. The theoretically-derived variance covariance matrix for the estimators can be shown to be: 
+
+```{r}
+V <- diag(as.vector(exp(Xmat %*% true_coefs)/((1+exp(Xmat %*% true_coefs))^2))*200)
+(true_vcov <- solve(t(Xmat) %*% V %*% Xmat))
+```
+
+which matches the simulation-derived one: 
+
+```{r}
+var(rep_sim)
+```
+
+We now observe the match between the theoretically derived and simulation-based distribution of the coefficients: 
+
+```{r}
+par(mfrow=c(1,2))
+hist(rep_sim[,1], freq = FALSE, col = NA)
+lines(seq(-2,-1,by=0.0025),
+      dnorm(seq(-2,-1,by=0.0025), true_coefs[1], sqrt(true_vcov[1,1])), 
+      col="orange", lwd = 2)
+hist(rep_sim[,2], freq = FALSE, col = NA)
+lines(seq(1.8,2.2,by=0.00025),
+      dnorm(seq(1.8,2.2,by=0.00025),  true_coefs[2], sqrt(true_vcov[2,2])), 
+      col="orange", lwd = 2)
+```
+
+The distributions match quite well. What happens if the number of trials from which we count the successes had been small, say for example 5: 
+
+```{r}
+NSIM <- 500; set.seed(5454)
+rep_sim <- t(replicate(NSIM, 
+          sim_fit_coef(n=n, X = Xmat, size = 5, pars = true_coefs)))
+colMeans(rep_sim)
+true_coefs
+```
+
+
+```{r}
+V <- diag(as.vector(exp(Xmat %*% true_coefs)/((1+exp(Xmat %*% true_coefs))^2))*5)
+(true_vcov <- solve(t(Xmat) %*% V %*% Xmat))
+```
+
+```{r}
+par(mfrow=c(1,2))
+hist(rep_sim[,1], freq = FALSE, col = NA)
+lines(seq(-5,2,by=0.0025),
+      dnorm(seq(-5,2,by=0.0025), true_coefs[1], sqrt(true_vcov[1,1])), 
+      col="orange", lwd = 2)
+hist(rep_sim[,2], freq = FALSE, col = NA)
+lines(seq(0,4,by=0.00025),
+      dnorm(seq(0,4,by=0.00025),  true_coefs[2], sqrt(true_vcov[2,2])), 
+      col="orange", lwd = 2)
+```
+
+We see that the histograms show some asymmetries and the theoretical approximation is not as good as the one obtained when the total number of trials was 200. Remember that the binomial distribution well approximates the normal distribution when the number of trials is large. In general the asymptotic results are derived for "well-behaved" cases: the inference results rely on approximations. 
+

@@ -1,0 +1,297 @@
+---
+title: "Lab 8 - things that can go wrong"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Body fat
+
+Consider the body fat data we have already seen in lab04. We read the data in and transform th weight and height from pound and inches to kilograms and cms. 
+
+
+```{r}
+# urlLocation <- "https://dasl.datadescription.com/download/data/3079"
+# bodyfat <- read.table(urlLocation, header=TRUE)
+bodyfat <- read.csv("bodyfat.csv",header = TRUE)
+bodyfat$Height <- bodyfat$Height * 2.54
+bodyfat$Weight <- bodyfat$Weight / 2.205
+```
+
+A description of the data is provided [here](http://jse.amstat.org/datasets/fat.txt): 
+
+* Density: Percent body fat using Brozek's equation, 457/Density - 414.2 
+* Pct.BF: Percent body fat using Siri's equation, 495/Density - 450
+* Age: Age (yrs)
+* Weight: Weight (lbs)
+* Height: Height (inches)
+* Neck: Neck circumference (cm)
+* Chest  Chest circumference (cm)
+* Abdomen/Waist: Abdomen circumference (cm) "at the umbilicus and level with the iliac crest"
+* Hip: Hip circumference (cm)
+* Thigh: Thigh circumference (cm)
+* Knee: Knee circumference (cm)
+* Ankle: Ankle circumference (cm)
+* Bicep: Extended biceps circumference (cm)
+* Forearm: Forearm circumference (cm)
+* Wrist: Wrist circumference (cm) "distal to the styloid processes"
+
+
+We wish to construct a model to predict the bodyfat percentage from the other variables in the dataset. 
+Let's start with a model with all variables: 
+
+```{r}
+## remove density 
+fit_all <- lm(Pct.BF~., data = bodyfat[,-1])
+summary(fit_all)
+```
+
+
+`Waist` and `Abdomen` are perfectly co-linear,w e can not have both of them in the model: 
+
+```{r}
+summary(lm(Pct.BF~Abdomen, data = bodyfat[,-1]))
+summary(lm(Pct.BF~Waist, data = bodyfat[,-1]))
+cor(bodyfat$Waist, bodyfat$Abdomen)
+```
+
+```{r}
+## remove density and abdomen
+fit_all <- lm(Pct.BF~., data = bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))])
+summary(fit_all)
+```
+
+The overall model is fairly significant but only a handful of the individual variables are significant. This is at odd with the important relationship seen between the individual variables and `Pct.BF` and the direction of the estimated relationship is also sometimes different for the individual models and the model with all variables included: 
+
+```{r}
+coef(lm(Pct.BF~Chest, data = bodyfat))
+coef(fit_all)["Chest"]
+```
+
+Let's look at some of the individual relaionships between $X_j$ and $Y$
+
+```{r}
+par(mfrow= c(3,4))
+for(j in 2:13) plot(bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))][,c(j,1)])
+```
+
+These appear to be quite strong so it is strange that we get non-significant effects of the individual coefficients. What is happening? The variables are also strongly correlated between each others: 
+
+```{r}
+plot(bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))])
+signif(cor(bodyfat),4)
+```
+
+The different variables are ''stealing'' predictive power one from the other: we have multi-collinearity issues. 
+
+This could have happened already with smaller models, in which we only took into account `Weight` or `Hip`, let's have a look: 
+
+```{r}
+summary(lm(Pct.BF~Weight, data = bodyfat))$coef
+summary(lm(Pct.BF~Hip, data = bodyfat))$coef
+summary(lm(Pct.BF~Weight+Hip, data = bodyfat))$coef
+cor(bodyfat$Weight, bodyfat$Hip)
+```
+
+Including correlated variables typically erases the significance of one of the variables: this happens because when including correlated variable the variability of the standard errors connected to the estimated $\beta$s get _inflated_.  
+
+Notice that this also has an impact on how variable the prediction would be: 
+
+```{r}
+predict(lm(Pct.BF~Hip, data = bodyfat),newdata = data.frame(Hip = 110, Weight = 90), se.fit = TRUE)$se.fit
+predict(lm(Pct.BF~Weight, data = bodyfat),newdata = data.frame(Hip = 110, Weight = 90), se.fit = TRUE)$se.fit
+predict(lm(Pct.BF~Hip+Weight, data = bodyfat),newdata = data.frame(Hip = 110, Weight = 90), se.fit = TRUE)$se.fit
+```
+
+
+We also can see that some of the eigenvalues of the cross product of the design matrix are fairly small:
+
+```{r}
+X <- model.matrix(fit_all)
+eigen(crossprod(X))$values
+```
+
+
+When including correlated variables as predictors we _inflate_ variances. We can then use the Variance Inflation Factor to assess whether we have issues with multi-collinearity in our model. We use the `vif` function from the `car` package: 
+
+```{r}
+car::vif(fit_all)
+mean(car::vif(fit_all))
+```
+
+When we have VIF values larger than 10 we tend to say that we have issues with multi-collinearity: we have several very high vif values for this model.
+
+This indicates how much the variances of the estimated $\beta_j$ become inflated: 
+
+```{r}
+diag(solve(t(X) %*% X))[2]*(sum((bodyfat$Age-mean(bodyfat$Age))^2))
+diag(solve(t(X) %*% X))[3]*(sum((bodyfat$Weight-mean(bodyfat$Weight))^2))
+rm(X)
+```
+
+Essentially we are looking at whether some of the explanatory variables could be expressed as linear combinations of the other predictors: 
+
+```{r}
+1/(1-summary(lm(Age~ Weight+Height+Neck+Chest+Waist+Hip+Thigh+Knee+Ankle+Bicep+Forearm+Wrist, data =bodyfat))$r.squared)
+1/(1-summary(lm(Weight~ Age+Height+Neck+Chest+Waist+Hip+Thigh+Knee+Ankle+Bicep+Forearm+Wrist, data =bodyfat))$r.squared)
+```
+
+
+For this model it is clear we have some variables which are almost perfect linear combination of other variables: we reduce the number of predictors in the model. 
+
+```{r}
+sort(car::vif(fit_all))
+fit_sub1 <- lm(Pct.BF ~ Age + Forearm+Wrist+Bicep+Height+Neck+Knee+Thigh, data = bodyfat)
+anova(fit_sub1, fit_all) # The simpler model gives a worse goodness of fit
+car::vif(fit_sub1); mean(car::vif(fit_sub1)) # but we still have multi-collinearity
+X <- model.matrix(fit_sub1)
+eigen(crossprod(X))$values ## still problematic
+```
+
+```{r}
+sort(car::vif(fit_sub1))
+fit_sub2 <- lm(Pct.BF ~ Age + Forearm, data = bodyfat)
+summary(fit_sub2)
+anova(fit_sub2, fit_sub1)
+car::vif(fit_sub2); mean(car::vif(fit_sub2))
+```
+
+The `fit_sub2` model appears to be less affected by multi-collinearity, but it has nevertheless a higher value of $\hat{\sigma}$ and a worst value of $R^2$. 
+
+It is not easy to balance the need to fit well the data and avoid issues connected to multi-collinearity. 
+
+## A better look at the bodyfat data 
+
+We now focus on only predictors variables in the dataset: `Weight`, `Forearm`, `Hip`, `Age` and `Ankle`: 
+
+```{r}
+plot(bodyfat[,c("Weight","Hip","Forearm","Age","Ankle","Pct.BF")])
+```
+
+We can immediately see that some individual points have a behavior which is different from the rest of the sample: the most striking case in two individuals with excessively large ankles: 
+
+```{r}
+bodyfat[bodyfat$Ankle > 30,]
+```
+
+Let's see what the impact of these two observations is on a simple and multiple linear regression model: 
+
+```{r}
+plot(bodyfat[,c("Ankle","Pct.BF")])
+points(bodyfat[bodyfat$Ankle > 30,c("Ankle","Pct.BF")], col = 2, pch = 16)
+abline(coef(lm(Pct.BF~Ankle, data = bodyfat)), col = 2)
+abline(coef(lm(Pct.BF~Ankle, data = bodyfat[bodyfat$Ankle < 30,])))
+```
+
+The two points can derail the estimation quite a bit. They have indeed a very high leverage: 
+
+```{r}
+plot(bodyfat$Ankle, hatvalues(lm(Pct.BF~Ankle, data = bodyfat)))
+```
+
+Their presence is visible in the Residuals VS Leverage plots: the points have a high leverage and one of them also has a pretty substantial standardized residual: 
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm(Pct.BF~Ankle, data = bodyfat))
+```
+
+Let's focus now a bit on the quantities connected to the detection and management of influential points in R. 
+
+```{r}
+fit_ankle <- lm(Pct.BF~Ankle, data = bodyfat)
+X <- model.matrix(fit_ankle)
+```
+
+The leverages correspond to the diagonal elements of the hat matrix $H = X (X^{\top} X)^{-1}X^{\top}$: 
+
+```{r}
+head(hatvalues(fit_ankle))
+head(diag(X %*% solve(crossprod(X)) %*% t(X)))
+```
+
+While this measure is "simple" to visualize for simple linear regression models, it become harder to know when an observation has a high leverage when multiple predictors are included in the model: 
+
+```{r}
+fit_mul <- lm(Pct.BF~Ankle+Weight+Age+Forearm+Hip, data = bodyfat)
+par(mfrow=c(1,2))
+plot(bodyfat$Age, hatvalues(fit_mul))
+plot(bodyfat$Ankle, hatvalues(fit_mul))
+```
+
+The two excessively large values of `Ankle` are still connected to very high leverages, but other points also appear to have some sizable leverage. Notice also how the minimum leverage is recorded close to the mean values of $X_j$. 
+
+We also can assess the impact of taking any point out of the estimation has and assess whether the standardized and studentized are excessively high for any observation: 
+
+
+```{r}
+head(rstandard(fit_mul))
+head(residuals(fit_mul)/(summary(fit_mul)$sigma*sqrt(1-hatvalues(fit_mul))))
+
+head(rstudent(fit_mul))
+head(residuals(fit_mul)/(lm.influence(fit_mul)$sigma * sqrt(1-hatvalues(fit_mul))))
+head(rstandard(fit_mul)*sqrt((fit_mul$df.residual-1)/((fit_mul$df.residual)-rstandard(fit_mul)^2)))
+```
+
+```{r}
+tail(sort(abs(rstandard(fit_mul))))
+tail(sort(abs(rstudent(fit_mul))))
+```
+
+Notice that the standardized residuals are the residuals chosen by R in the model checking plots: 
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit_mul)
+```
+
+This is because it become then easier to assess whether some point have absolute value much larger than  $\approx$ 2, which would indicate very large deviations from a t-distribution (remember though that we'd expect 5% of a sample from a t distribution to be outside the (-2, 2) range). 
+
+We see that there is one point with very high leverage and a pretty high standardized residual: this is one of the points related to individuals with abnormally large ankles. Only one of them as an unusually high residual since the other point does not break the pattern of the (X,Y) relationship as much. 
+
+
+We can also use the Cook's distance to identify highly influential points: 
+
+```{r}
+plot(cooks.distance(fit_mul))
+```
+
+A similar plot can also be obtained with
+
+```{r}
+plot(fit_mul, 4)
+```
+
+The Cook's distance is derived as
+
+```{r}
+head((resid(fit_mul)^2)*(1/fit_mul$rank)*(hatvalues(fit_mul)/((1-hatvalues(fit_mul))^2))*(1/summary(fit_mul)$sigma^2))
+head(cooks.distance(fit_mul))
+```
+
+
+In this dataset it is likely that the abnormal ankle measurements are related to a typo and that we could assume that the real ankle measurement for the two individuals should be 10 cm less: 
+
+```{r}
+bodyfat$Ankle[bodyfat$Ankle > 30]
+bodyfat$Ankle[bodyfat$Ankle > 30] <- bodyfat$Ankle[bodyfat$Ankle > 30] - 10
+```
+
+```{r}
+fit_mul_corr <- lm(Pct.BF ~ Ankle + Weight + Age + Forearm + Hip, data = bodyfat)
+par(mfrow=c(2,2))
+plot(fit_mul_corr)
+```
+
+We notice a point which still has a fairly high leverage point, with a moderate standardized residual. Having a look at the Cooks' distances: 
+
+```{r}
+plot(fit_mul_corr, which = 4) 
+```
+
+We see a few slightly higher values but nothing which dwarfs the cook's distance of other observations.  
+
+
+(Notice that the original plot between Density and Pct.BF shows that some of the Pct.BF calculations might not be correct for some subjects - maybe we should drop these individuals from the analysis or retrieve the correct value). 
+

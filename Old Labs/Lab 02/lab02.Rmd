@@ -1,0 +1,183 @@
+---
+title: "Lab 2 - Linear regression in R"
+author: "Ilaria Prosdocimi"
+date: "Semestre 1 - AA 2021/22"
+output:
+  html_document:
+    fig_caption: yes
+    theme: flatly #sandstone #spacelab #flatly
+    highlight: pygments
+    code_folding: show
+    toc: TRUE
+    toc_depth: 2
+    number_sections: TRUE
+    toc_float:
+      smooth_scroll: FALSE
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+getwd()
+```
+
+# Estimating linear models in R 
+
+The main function to estimate linear models in R is the function `lm` - (see `help(lm)` for some more details). 
+
+We can estimate a linear model using the command
+
+```{r}
+fit <- lm(dist~speed, data = cars)
+```
+
+A print of an `lm` object gives some basic information about the fitting
+
+```{r}
+fit ## in R this corresponds to print(fit)
+```
+
+These are the least square estimates for the linear model coefficients. We can also obtain just the parameter values with
+
+```{r}
+coef(fit)
+```
+
+We can obtain the estimated values for each $y_i$ under the model (i.e. $\hat{y}_i = \hat{\beta}_0 + \hat{\beta}_1 x_i$) with the `fitted` function: 
+
+```{r}
+head(coef(fit)[1]+coef(fit)[2]*cars$speed)
+head(fitted(fit))
+```
+
+Much more information on the model fit is given by the `summary` of the model 
+
+```{r}
+summary(fit)
+```
+
+Much of the information on this summary relies on making some additional assumptions on the error distribution than in the least square formulation of linear models: we'll discuss this more in depth in the next classes. 
+
+
+Nevertheless, we can already notice that we get an estimate of $\sigma$: 
+
+\[s_e^2 = \frac{1}{n}\sum_{i=1}^{n} (y_i - \hat{y}_i)\]
+
+```{r}
+summary(fit)$sigma
+```
+
+which is derived from 
+
+```{r}
+sqrt(sum((cars$dist - fitted(fit))^2)/(length(cars$speed)-2))
+```
+
+We also see that the $R^2$ value is provided: this is derived from: 
+
+```{r}
+summary(fit)$r.squared
+## SSreg/SStot
+sum((fitted(fit) - mean(cars$dist))^2)/sum((cars$dist - mean(cars$dist))^2)
+# 1- SSres/SStot 
+1 - sum((cars$dist - fitted(fit))^2)/sum((cars$dist - mean(cars$dist))^2)
+```
+
+Finally we can construct the model residuals with `residuals`: 
+
+```{r}
+head(residuals(fit))
+head((cars$dist - fitted(fit)))
+```
+
+Some properties of the residuals (these are enforced by the estimating equations): 
+
+```{r}
+# mean of residuals is null 
+mean(residuals(fit))
+# no correlation with X - 
+# this does not mean that there is not relationship left between X and the residuals 
+cor(residuals(fit), cars$speed)
+```
+
+
+
+# Prediction and unceratainty 
+
+Once we have a fitted model we can use it to make prediction about the values of Y for different values of the covariate X. In R we can use the function `fitted` to derive the predicted value for the sample used to fit the model, while `predict` can be used to derive the estimated value of Y for different value of X (although by default it outputs the predicted values at the observed xs). 
+
+```{r fittedValues,class.source = "fold-show"}
+head(fitted(fit))
+head(predict(fit))
+predict(fit, newdata = data.frame(speed = c(5,10,15)))
+```
+
+When applying `predict` to an object of class `lm` we can specify whether we wish to compute some form of uncertainty intervals for the predicted value. We can show that the estimated standard deviation of the $E[m(x)]$ is: 
+\[\hat{SE}[\hat{m}(x)] = s_e\sqrt{\frac{1}{n}+\frac{(x-\bar{x})^2}{\sum_{i = 1}^n(x_i-\overline{x})^2}} \]
+where $s_e$ is the estimated value of $\sigma$, the standard deviation of the regression errors. 
+Its value can be derived as: 
+
+```{r, class.source = "fold-show"}
+secars <- sqrt(sum((cars$dist-fit$fitted.values)^2)/(48))
+secars
+```
+
+The standard error of the prediction is a function of $x$ - the value of the explanatory variable at which we are evaluating $m(x)$ - the other quantities in the formula are fixed for the sample: 
+```{r}
+se_mx <- function(x, se, xvec){
+  n <- length(xvec)
+  se*sqrt(1/n+(x-mean(xvec))^2/(sum((xvec-mean(xvec))^2)))
+}
+se_mx(c(15,25,50), se = secars, xvec = cars$speed)
+```
+
+The variability is much higher when we extrapolate outside of the range of observed X values. 
+
+In R: 
+```{r}
+predict(lm(formula = dist ~ speed, data = cars), 
+        newdata = data.frame(speed = c(15,25,50)),
+        se.fit = TRUE)
+```
+
+# Verifying the model assumptions
+
+To obtain the least square estimates of the linear regression coefficients no strong assumptions are made: we only assume that the relationship between X and Y can be approximated well enough by a linear function. In order to also make inference on the linear model parameters and on the estimated regression function some additional assumptions are made, namely
+
+* Linearity (again): $y_i = \beta_0 + \beta_1 x_i + \epsilon_i$
+* Independence and equal variances: each $\epsilon_i$ is independent of other $\epsilon_j$ and Var($\epsilon_i$)=$\sigma^2$ for each $i$
+
+We do not observe the regression errors but we observe the model *residuals*, i.e. the difference between the observed values and the estimates (under the model): $r_i = (y_i-\hat{y}_i)$. In R the $r_i$ values can be obtained using the function `residuals`: 
+
+```{r residuals, class.source = "fold-show"}
+head(residuals(fit))
+head(cars$dist-fitted(fit))
+## another option is 
+head(fit$residuals)
+# by hand
+head(cars$dist - fitted(fit))
+```
+
+Is the variance constant or does it change with the estimated mean or the explanatory variable? We check the variability of the residuals in the plots below: 
+
+```{r homeSched, fig.asp=0.6}
+par(mfrow=c(1,2), pch=16,bty="l")
+plot(cars$speed, residuals(fit))
+plot(fitted(fit), residuals(fit))
+```
+
+Not perfectly constant. 
+
+R gives useful residuals plots automatically when using the `plot` function on an object of class `lm`: 
+
+```{r residChecks}
+par(mfrow=c(2,2))
+plot(fit)
+```
+
+Notice that the Linear Regression models has been shown to be fairly robust to small deviations from the assumptions. If the residuals show great departures from the assumptions all inference might be hindered: be aware of this when using linear regression to make decisions. 

@@ -1,0 +1,169 @@
+---
+title: "Lab 07 - categorical variables"
+author: "Ilaria Prosdocimi"
+date: "29/10/2020"
+output: 
+  html_document: 
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## The data 
+
+We focus on the dataset `Prestige`, made available in the `carData` package: 
+
+```{r readData, echo=FALSE}
+data(Prestige, package = "carData")
+plot(Prestige)
+head(Prestige)
+```
+
+Il primo modello: 
+
+```{r}
+fit1 <- lm(prestige ~ income + education, data = Prestige)
+summary(fit1)
+```
+
+Validità del modello?
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit1)
+```
+
+Indicazioni di non-linearità riamste tra le X incluse nel modello e i residui? 
+
+```{r}
+par(mfrow = c(1,2))
+plot(Prestige$income, residuals(fit1))
+plot(Prestige$education, residuals(fit1))
+```
+
+
+Indicazioni di relazione tra le X **non** incluse nel modello e i residui? 
+
+```{r}
+par(mfrow = c(2,2), pch = 16)
+plot(Prestige$women, residuals(fit1))
+plot(Prestige$census, residuals(fit1))
+plot(Prestige$type, residuals(fit1))
+```
+
+Ci concentriamo su `type` e `cencus `: 
+
+```{r}
+fit_wthcensus <- lm(prestige ~ income+education+census, data = Prestige)
+fit_wthtype <- lm(prestige ~ income+education+type, data = Prestige)
+summary(fit_wthcensus)
+summary(fit_wthtype)
+```
+
+
+```{r}
+# anova(fit1, fit_wthtype)
+AIC(fit1, fit_wthtype)
+Prestige[is.na(Prestige$type),]
+```
+
+Attenzione: ci sono dati mancanti!
+
+
+```{r}
+sfit1 <- lm(prestige ~ income+education, 
+            data = Prestige[!is.na(Prestige$type),])
+sfit_wthcensus <- lm(prestige ~ income+education+census, 
+                     data = Prestige[!is.na(Prestige$type),])
+fit_wthtype <- lm(prestige ~ income+education+type, data = Prestige)
+summary(sfit1)
+summary(sfit_wthcensus)
+summary(fit_wthtype)
+```
+
+Possiamo ora fare verifica di ipotesi formale: 
+
+```{r}
+anova(sfit1, sfit_wthcensus)
+anova(sfit1, fit_wthtype)
+```
+
+```{r}
+plot(census~type, data = Prestige)
+```
+
+Il modello a cui siamo arrivati è: 
+
+Prestige = $\beta_0$ + $\beta_1$ Income + $\beta_2$ Education + $\beta_3$ (Type = prof)+ $\beta_4$ (Type = wc) + $\varepsilon$ 
+
+```{r}
+sPrestige <- Prestige[!is.na(Prestige$type),]
+plot(prestige~education, 
+     data = sPrestige,
+     col = 1 + ifelse(sPrestige$type == "prof", 1, 0) +
+       ifelse(sPrestige$type == "wc", 3, 0))
+# type = "bc"
+abline(a = coef(fit_wthtype)[1] + (coef(fit_wthtype)[2] * mean(sPrestige$income)), b = coef(fit_wthtype)[3], col = 1)
+# type = "prof"
+abline(a = coef(fit_wthtype)[1] + 
+         (coef(fit_wthtype)[2] * mean(sPrestige$income)) +
+         coef(fit_wthtype)[4], 
+       b = coef(fit_wthtype)[3], col = 2)
+# type = "wc"
+abline(a = coef(fit_wthtype)[1] + 
+         (coef(fit_wthtype)[2] * mean(sPrestige$income)) +
+         coef(fit_wthtype)[5], 
+       b = coef(fit_wthtype)[3], col = 4)
+```
+
+
+
+```{r}
+plot(prestige~income, 
+     data = sPrestige,
+     col = 1 + ifelse(sPrestige$type == "prof", 1, 0) +
+       ifelse(sPrestige$type == "wc", 3, 0))
+# type = "bc"
+abline(a = coef(fit_wthtype)[1] + (coef(fit_wthtype)[3] * mean(sPrestige$education)), b = coef(fit_wthtype)[2], col = 1)
+# type = "prof"
+abline(a = coef(fit_wthtype)[1] + 
+         (coef(fit_wthtype)[3] * mean(sPrestige$education)) +
+         coef(fit_wthtype)[4], 
+       b = coef(fit_wthtype)[2], col = 2)
+# type = "wc"
+abline(a = coef(fit_wthtype)[1] + 
+         (coef(fit_wthtype)[3] * mean(sPrestige$education)) +
+         coef(fit_wthtype)[5], 
+       b = coef(fit_wthtype)[2], col = 4)
+```
+
+proviamo a fare interagire le variabili continue con la variabile categoriale: 
+
+```{r}
+fit_intall <- lm(prestige ~ education+income+type+
+                   type:education+ type:income, data = sPrestige)
+fit_inted <- lm(prestige ~ education+income+type+
+                   type:education, data = sPrestige)
+fit_intinc <- lm(prestige ~ education+income+type+
+                   type:income, data = sPrestige)
+summary(fit_intall)$adj.r.square; summary(fit_inted)$adj.r.square; summary(fit_intinc)$adj.r.square
+AIC(fit_intall, fit_inted, fit_intinc)
+BIC(fit_intall, fit_inted, fit_intinc)
+anova(fit_inted, fit_intall) # modello annidato. H_0: beta8 = beta9 = 0
+anova(fit_intinc, fit_intall)# modello annidato. H_0: beta6 = beta7 = 0
+```
+
+Utilizzaremo come modello finale `fit_intinc`. 
+
+```{r}
+par(mfrow= c(2,2))
+plot(fit_intinc)
+```
+
+```{r}
+sPrestige$newtype <- factor(sPrestige$type, levels = c("wc", "bc","prof"))
+summary(lm(prestige~income+education + newtype, data = sPrestige))
+```
+

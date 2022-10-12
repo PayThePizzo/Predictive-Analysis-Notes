@@ -1,0 +1,272 @@
+---
+title: "Lab 6 - Model selection"
+author: "Ilaria Prosdocimi"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output: html_document
+---
+  
+We will analyze the dataset `prostate`: 
+  
+```{r}
+urlLocation <- "https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.data"
+prostate <- read.table(urlLocation, header=TRUE)[,1:9]
+## explanation of the data 
+## https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.info.txt
+## save the data locally as 
+## write.csv(x = prostate, file = "prostate.csv", row.names = FALSE, quote = FALSE)
+## so you can re-read as 
+## prostate <- read.csv("prostate.csv", header = TRUE)
+```
+
+The variables in the dataset are
+
+* lcavol: log cancer volume
+* lweight: log prostate weight
+* age: age of patient
+* lbph: log of the amount of benign prostatic hyperplasia
+* svi: seminal vesicle invasion (binary variable)
+* lcp: log of capsular penetration
+* gleason: Gleason score
+* pgg45: percent of Gleason scores 4 or 5
+* lpsa: log PSA score
+
+
+We aim to select a model that to explain how `lpsa` is affected by other variables: this might be useful both for prediction purposes (i.e. predict the `lpsa` for a new patient) and for inference purposes (i.e. understanding which factors influence the `lpsa` values).  
+
+The relationship of `lpsa` against all the other variables in the dataset can be seen in the plot below: 
+
+```{r plotMatrix}
+plot(prostate)
+```
+
+
+```{r}
+fit_minimum <- lm(lpsa ~ 1, data = prostate)
+fit_maximum <- lm(lpsa ~ ., data = prostate)
+```
+
+```{r}
+AIC(fit_minimum)
+AIC(fit_maximum)
+```
+
+```{r}
+for(j in 1:8){
+  print(c(names(prostate)[j],AIC(lm(prostate$lpsa~prostate[,j]))))
+}
+fit_for1 <- lm(lpsa ~ lcavol, data = prostate)
+## end of step 1
+```
+
+
+```{r}
+AIC(fit_for1)
+for(j in 2:8){
+  print(c(names(prostate)[j],
+          AIC(lm(prostate$lpsa~prostate$lcavol + prostate[,j]))))
+}
+fit_for2 <- lm(lpsa ~ lcavol+lweight, data = prostate)
+## end of step 2
+```
+
+
+```{r}
+AIC(fit_for2)
+for(j in 3:8){
+  print(c(names(prostate)[j],
+          AIC(lm(prostate$lpsa~prostate$lcavol +
+                               prostate$lweight + 
+                               prostate[,j]))))
+}
+fit_for3 <- lm(lpsa ~ lcavol+lweight+svi, data = prostate)
+## end of step 3
+```
+
+
+
+```{r}
+AIC(fit_for3)
+for(j in c(3,4,6,7,8)){
+  print(c(names(prostate)[j],
+          AIC(lm(prostate$lpsa~prostate$lcavol +
+                               prostate$lweight +
+                               prostate$svi + 
+                               prostate[,j]))))
+}
+fit_for4 <- lm(lpsa ~ lcavol+lweight+svi+lbph, data = prostate)
+## end of step 4
+```
+
+
+
+```{r}
+AIC(fit_for4)
+for(j in c(3,6,7,8)){
+  print(c(names(prostate)[j],
+          AIC(lm(prostate$lpsa~prostate$lcavol +
+                               prostate$lweight +
+                               prostate$svi +
+                               prostate$lbph +
+                               prostate[,j]))))
+}
+fit_for5 <- lm(lpsa ~ lcavol+lweight+svi+lbph+age, data = prostate)
+## end of step 5
+```
+
+
+
+```{r}
+AIC(fit_for5)
+for(j in c(6,7,8)){
+  print(c(names(prostate)[j],
+          AIC(lm(prostate$lpsa~prostate$lcavol +
+                               prostate$lweight +
+                               prostate$svi +
+                               prostate$lbph +
+                               prostate$age +
+                               prostate[,j]))))
+}
+## end of step 6
+```
+
+
+```{r}
+step(object = fit_minimum, 
+     scope = list(upper = fit_maximum, 
+                  lower = fit_minimum), 
+     direction = "forward", 
+     # usiamo AIC 
+     k = 2)
+```
+
+
+
+```{r}
+aic_bsel <- 
+  step(object = fit_maximum, 
+     scope = list(upper = fit_maximum, 
+                  lower = fit_minimum), 
+     direction = "backward", 
+     # usiamo AIC 
+     k = 2)
+```
+
+Cosa succede se usiamo il BIC come criterio di scelta? 
+Il BIC si differenzia dall'AIC per l'uso di log(n) invece che 2 per penalizzare la complessità del modello. 
+
+
+
+```{r}
+step(object = fit_minimum, 
+     scope = list(upper = fit_maximum, 
+                  lower = fit_minimum), 
+     direction = "forward", 
+     # usiamo BIC 
+     k = log(nrow(prostate)))
+```
+
+
+
+```{r}
+bic_bsel <- 
+  step(object = fit_maximum, 
+     scope = list(upper = fit_maximum, 
+                  lower = fit_minimum), 
+     direction = "backward", 
+     # usiamo BIC 
+     k = log(nrow(prostate)), 
+     trace = 0)
+```
+
+
+
+
+```{r}
+step(object = lm(lpsa ~ lcavol, data = prostate), 
+     scope = list(upper = fit_maximum, 
+                  lower = fit_minimum), 
+     direction = "both", 
+     # usiamo BIC 
+     k = log(nrow(prostate)))
+```
+
+
+## Exhaustive search 
+
+
+```{r}
+# install.packages("leaps")
+library(leaps)
+```
+
+```{r}
+rg_1 <- regsubsets(lpsa~., data = prostate)
+summary(rg_1)
+summary(rg_1)$rsq
+summary(rg_1)$adjr2
+plot(seq(1, 8), summary(rg_1)$adjr2, type = "l")
+summary(rg_1)$which
+```
+
+
+## Validazione incrociata (leave one out cross validation) 
+
+
+```{r}
+loo_cv_vals <- NULL  # e_[i]
+for(i in 1:nrow(prostate)){
+  refit <- lm(formula = lpsa ~ lcavol + lweight + svi, 
+              data = prostate[-i,])
+  loo_cv_vals <- c(loo_cv_vals, 
+                   (prostate[i,"lpsa"] - 
+                     predict(refit, newdata = prostate[i,])))
+}
+length(loo_cv_vals)
+sum(loo_cv_vals^2)/nrow(prostate)
+
+## now for the model selected by AIC
+loo_cv_vals <- NULL  # e_[i]
+for(i in 1:nrow(prostate)){
+  refit <- lm(formula = lpsa ~ lcavol + lweight + age + lbph + svi, 
+              data = prostate[-i,])
+  loo_cv_vals <- c(loo_cv_vals, 
+                   (prostate[i,"lpsa"] - 
+                     predict(refit, newdata = prostate[i,])))
+}
+length(loo_cv_vals)
+sum(loo_cv_vals^2)/nrow(prostate)
+```
+
+
+```{r}
+X <- model.matrix(bic_bsel)
+Hmat <- X %*% solve(t(X) %*% X) %*% t(X)
+yhat <- Hmat %*% prostate$lpsa
+sum((residuals(bic_bsel)/(1-diag(Hmat)))^2)/nrow(prostate)
+```
+
+```{r}
+calc_loo_rmse <- function(model){
+  sqrt(mean((residuals(model)/(1-hatvalues(model)))^2))
+}
+calc_loo_rmse(bic_bsel)
+```
+
+# Verificare le assunzioni del modello 
+
+Omoschdasticità 
+
+```{r}
+plot(fitted(bic_bsel), resid(bic_bsel), pch = 16)
+```
+
+Va bene se... non c'è relazione evidente e la varianza è costante. Sembra OK. 
+
+Normalità 
+
+
+```{r}
+qqnorm(resid(bic_bsel)); qqline(resid(bic_bsel))
+car::qqPlot(bic_bsel)
+```
+

@@ -1,0 +1,347 @@
+---
+title: "Lab 12 - classification for binary classifiers"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+# Logistic regression as a classifier
+
+So far we’ve used logistic regression to assess the probability of an observation to belong to the "success" class. This estimation can be extended to the evaluation of new observations and the decision on whether they should be predicted to belong to the "success" or "failure" class: in other words we can use logistic regression to create a *classifier* which should predict if an observation will belong to one of the two classes of whether $Y=1$ or $Y=0$. 
+
+Suppose that we know
+$$
+p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 1 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}]
+$$
+and
+$$
+1 - p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 0 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+Rule: we  classify an observation to the class ($0$ or $1$) with the larger probability. In general, this result is called **the Bayes Classifier**:
+
+$$
+C^B(x_1,\ldots,x_{p - 1}) = \underset{k}{\mathrm{argmax}} \ P[Y = k \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+
+For a binary response, that is,
+$$
+{C}^B( x_1,\ldots,x_{p - 1}) = 
+\begin{cases} 
+1 & p(x_1,\ldots,x_{p - 1}) > 0.5 \\
+0 & p(x_1,\ldots,x_{p - 1}) \leq 0.5 
+\end{cases}
+$$
+\item 
+Simply put, the Bayes classifier (not to be confused with the Naive Bayes Classifier) minimizes the probability of misclassification by classifying each observation to the class with the highest probability. 
+
+Unfortunately, in practice, we won't know the necessary probabilities to directly use the Bayes classifier. Instead we'll have to use estimated probabilities.
+$$
+\hat{C}^B(x_1,\ldots,x_{p - 1}) = \underset{k}{\mathrm{argmax}} \ \widehat{\Pr}[Y = k \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+
+In the case of a binary response since 
+$$\hat{p}(x_1,\ldots,x_{p - 1}) = 1 - \hat{p}({x_1,\ldots,x_{p - 1}})$$ this becomes
+$$
+\hat{C}({x_1,\ldots,x_{p - 1}}) = 
+\begin{cases} 
+1 & \hat{p}({x_1,\ldots,x_{p - 1}}) > 0.5 \\
+0 & \hat{p}({x_1,\ldots,x_{p - 1}}) \leq 0.5 
+\end{cases}
+$$
+To use logistic regression for classification, we first use logistic regression to obtain estimated probabilities, $\hat{p}({x_1,\ldots,x_{p - 1}})$, then use these in conjunction with the above classification rule.
+
+Logistic regression is just one of many ways that these probabilities could be estimated. In a course completely focused on machine learning, you’ll learn many additional ways to do this, as well as methods to directly make classifications without needing to first estimate probabilities. But classification is one of the main applications of binary-type GLMs, so we discuss this important topic within the Classification perspective.
+
+We do this using an applied example of being able to detect a email as spam. We use the database `spambase` which is described [here](https://archive.ics.uci.edu/ml/datasets/spambase)
+
+```{r}
+## data(spam, package = "ElemStatLearn")
+spam <- read.table("spambase.data", header = FALSE,sep=",")
+names(spam) <- c("make", "address", "all", "num3d", "our", "over", "remove", 
+"internet", "order", "mail", "receive", "will", "people", "report", 
+"addresses", "free", "business", "email", "you", "credit", "your", 
+"font", "num000", "money", "hp", "hpl", "george", "num650", "lab", 
+"labs", "telnet", "num857", "data", "num415", "num85", "technology", 
+"num1999", "parts", "pm", "direct", "cs", "meeting", "original", 
+"project", "re", "edu", "table", "conference", "charSemicolon", 
+"charRoundbracket", "charSquarebracket", "charExclamation", "charDollar", 
+"charHash", "capitalAve", "capitalLong", "capitalTotal", "type")
+```
+
+The first 48 columns of the database contain information on the frequency of a specific word in the email (the exact words which correspond to each column is given in the `spambase.names` file), while columns from 49 to 54 count the frequency of one-letter words, and the last three columns give information on the words written with Capital Letter. Lastly we have the information on whether the email was a real email or spam, where mails which were spam are indicated as `1` : 
+
+```{r}
+table(spam$type)
+```
+
+
+We create two subsets of the original dataset: one will be used to train the classifier (the logit model), one will be used to test the classifier. 
+
+```{r}
+set.seed(42)
+spam_idx <- sample(nrow(spam), 2000)
+spam_trn <- spam[spam_idx,]
+spam_tst <- spam[-spam_idx,]
+```
+
+We fit four logistic regressions, each more complex than the previous. 
+
+```{r}
+fit_caps <- glm(type ~ capitalTotal, data <- spam_trn, family = binomial)
+fit_selected <- glm(type ~ edu + money + capitalTotal + charDollar, data = spam_trn, family = binomial)
+fit_additive <- glm(type ~ ., data = spam_trn, family = binomial)
+fit_over <- glm(type ~ capitalTotal*(.), data = spam_trn, family = binomial, maxit = 120)
+```
+
+The warnings indicate that our model might be problematic and we should be highly suspicious of the parameter estimates. However, the model can still be used to create a classifier, and we will evaluate that classifier on its own merits.
+
+## Evaluating classifiers
+
+The metric we'll be most interested in for evaluating the overall performance of a classifier is the **misclassification rate**. Sometimes, instead accuracy is reported, which is instead the proportion of correction classifications, so both metrics serve the same purpose. 
+
+$$
+\text{Misclass}(\hat{C}, \text{Data}) = \frac{1}{n}\sum_{i = 1}^{n}I(y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}))
+$$
+
+$$
+I(y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}})) = 
+\begin{cases} 
+0 & y_i = \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}) \\
+1 & y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}) \\
+\end{cases}
+$$
+
+When using this metric on the training data, it will have the same issues as RSS did for ordinary linear regression, that is, it will only go down when using more and more complex models.
+
+```{r}
+mean(ifelse(predict(fit_caps) > 0, 1, 0) != spam_trn$type)
+mean(ifelse(predict(fit_selected) > 0, 1, 0) != spam_trn$type)
+mean(ifelse(predict(fit_additive) > 0, 1, 0) != spam_trn$type)
+mean(ifelse(predict(fit_over) > 0, 1, 0) != spam_trn$type)
+```
+
+
+Because of this, training data isn't useful for evaluating, as it would suggest that we should always use the largest possible model, when in reality, that model is likely overfitting. Recall, a model that is too complex will overfit. A model that is too simple will underfit. (We're looking for something in the middle.) To overcome this, we'll use cross-validation  but this time we'll cross-validate the misclassification rate.
+
+We can use the `cv.glm` function from the `boot` library, but today let's write our own cross-validation function. Notice that we saw that for linear models we have a nice result which makes the computation of Leave-One-Out cross validation RMSE feasable since we do not need to actually fit the model $n$ times. So instead, we'll use 5-fold cross-validation. (5 and 10 fold are the most common in practice.) Instead of leaving a single observation out repeatedly, we'll leave out a fifth of the data.
+
+Essentially we'll repeat the following process 5 times:
+
+* Randomly set aside a fifth of the data (each observation will only be held-out once)
+* Train model on remaining data
+* Evaluate misclassification rate on held-out data
+
+The 5-fold cross-validated misclassification rate will be the average of these misclassification rates. By only needing to refit the model 5 times, instead of $n$ times, we will save a lot of computation time.
+
+```{r}
+cv_class <- function(K=5, dat, model, cutoff = 0.5){
+  assign_group <- rep(seq(1,K), each = floor(nrow(dat)/K))
+  ### this ensures we use all points in the dataset
+  ### this way we might have subgroups of different size 
+  if(length(assign_group) != nrow(dat)) assign_group <- c(assign_group, sample(seq(1,K)))[1:nrow(dat)] 
+  assign_group <- sample(assign_group, size = nrow(dat))
+  error <- 0
+  for(j in 1:K){
+    whichobs <- (assign_group == j)
+    ## fit a model WITHOUT the hold-out data
+    folded_model <- suppressWarnings(glm(model$formula, data = dat[!whichobs,], family = "binomial"))
+    ## evaluate the model on the hold-out data
+    fitted <- suppressWarnings(predict(folded_model,dat[whichobs,], type="response"))
+    observed <- dat[whichobs, strsplit(paste(model$formula), "~")[[2]]]
+    error <- error + mean(observed != (fitted>cutoff))/K 
+    ### in cv.glm the actual error is calculated as (y - p(y=1)) 
+    # error <- error + mean((observed - fitted)^2)/K 
+    ### the mis-classification rate will depend on how we decide what is assigned to each category 
+  }
+  error
+}
+set.seed(1)
+cv_class(K=5, dat = spam_trn, model = fit_caps)
+cv_class(K=5, dat = spam_trn, model = fit_selected)
+cv_class(K=5, dat = spam_trn, model = fit_additive)
+cv_class(K=5, dat =  spam_trn, model = fit_over)
+# set.seed(1)
+# boot::cv.glm(spam_trn, fit_caps, K = 5)$delta[1]
+# boot::cv.glm(spam_trn, fit_selected, K = 5)$delta[1]
+# boot::cv.glm(spam_trn, fit_additive, K = 5)$delta[1]
+# boot::cv.glm(spam_trn, fit_over, K = 5)$delta[1]
+## to do cross validation on the actual mis-classification rate
+# mycost = function(y, yhat) mean((y != (yhat>0.5)))
+# boot::cv.glm(spam_trn, fit_caps, K = 5, cost = mycost)$delta[1]
+# boot::cv.glm(spam_trn, fit_selected, K = 5, cost = mycost)$delta[1]
+# boot::cv.glm(spam_trn, fit_additive, K = 5, cost = mycost)$delta[1]
+# boot::cv.glm(spam_trn, fit_over, K = 5, cost = mycost)$delta[1]
+```
+
+Based on these results, `fit_caps` and `fit_selected` are underfitting relative to `fit_additive`. Similarly, `fit_over` is overfitting relative to `fit_additive`. Thus, based on these results, we prefer the classifier created based on the logistic regression fit and stored in `fit_additive`.
+
+Going forward, to evaluate and report on the efficacy of this classifier, we'll use the test dataset. We're going to take the position that the test data set should **never** be used in training, which is why we used cross-validation within the training dataset to select a model. Even though cross-validation uses hold-out sets to generate metrics, at some point all of the data is used for training.
+
+To quickly summarize how well this classifier works, we'll create a confusion matrix.
+
+It further breaks down the classification errors into false positives and false negatives.
+
+```{r}
+make_conf_mat <- function(predicted, actual) {
+  table(predicted = predicted, actual = actual)
+}
+```
+
+
+Let's explicitly store the predicted values of our classifier on the test dataset.
+
+```{r}
+spam_tst_pred <- ifelse(
+  predict(fit_additive, spam_tst) > 0, 
+                1, 0)
+spam_tst_pred <- ifelse(
+  predict(fit_additive, spam_tst, type = "response") > 0.5, 
+                1, 0)
+```
+
+The previous two lines of code produce the same output, that is the same predictions, since
+
+$$
+\beta_0 + \beta_1x_1 + \ldots + \beta_{p - 1}x_{p - 1} = 0 \iff p({x_1,\ldots,x_{p - 1}}) = 0.5
+$$
+
+We create a confusion matrix:
+
+```{r}
+conf_mat_50 <- make_conf_mat(predicted = spam_tst_pred,
+     actual = spam_tst$type)
+conf_mat_50     
+```
+
+We define as *Prevalence* the rate at which the situation of interest (in our case the email being spam) occurs. We have
+
+$$
+\text{Prev} = \frac{\text{P}}{\text{Total Obs}}= \frac{\text{TP + FN}}{\text{Total Obs}}
+$$
+
+```{r}
+table(spam_tst$type) / nrow(spam_tst)
+```
+
+First, note that for a classifier to be a reasonable, it needs to outperform the obvious classifier of simply classifying all observations to the majority class (non-spam).
+In this case, classifying everything as non-spam for a test misclassification rate of `r `round(as.numeric((table(spam_tst$type) / nrow(spam_tst))[2]),3)`
+
+Next, we can see that using the classifier create from `fit_additive`, only a total of $111 + 82 = 193$ from the total of 2601 email in the test set are misclassified. Overall, the accuracy in the test set it
+
+```{r}
+mean(spam_tst_pred == spam_tst$type)
+```
+
+In other words, the test misclassification is
+
+```{r}
+mean(spam_tst_pred != spam_tst$type)
+```
+
+This seems like a decent classifier...
+
+However, are all errors created equal? In this case, absolutely not. 82 non-spam emails marked as spam (false positives) are a problem. On the other hand, 111 spam email that would make it to an inbox (false negatives) are easily dealt with. 
+
+Beside misclassification rate (or accuracy), we'll define two additional metrics: sensitivity and specificity. (Many!) other metrics that can be considered. 
+
+## Sensitivity and Specificity 
+
+**Sensitivity**
+
+Sensitivity is essentially the true positive rate. So when sensitivity is high, the number of false negatives is low:
+
+$$
+\text{Sens} = \text{True Positive Rate} = \frac{\text{TP}}{\text{P}} = \frac{\text{TP}}{\text{TP + FN}}
+$$
+
+```{r}
+get_sens <- function(conf_mat) {
+conf_mat[2, 2] / sum(conf_mat[, 2])
+}
+# Note that this function is good for illustrative purposes, but is easily broken. (Think about what happens if there are no "positives" predicted.)
+```
+
+**Specificity**
+
+Specificity is essentially the true negative rate. So when specificity is high, the number of false positives is low:
+
+$$
+\text{Spec} = \text{True Negative Rate} = \frac{\text{TN}}{\text{N}} = \frac{\text{TN}}{\text{TN + FP}}
+$$
+
+```{r}
+get_spec <-  function(conf_mat) {
+conf_mat[1, 1] / sum(conf_mat[, 1])
+}
+```
+
+We calculate both based on the confusion matrix we had created for our classifier. 
+
+```{r}
+get_sens(conf_mat_50) # true positive rate
+get_spec(conf_mat_50) # true negative rate
+```
+
+
+We had created this classifier using a probability of $0.5$ as a "cutoff". We can modify this cutoff and improve sensitivity or specificity. The price to pay? The overall accuracy (misclassification rate):
+
+$$
+\hat{C}({x_1,\ldots,x_{p - 1}}) = 
+\begin{cases} 
+1 & \hat{p}({x_1,\ldots,x_{p - 1}}) > c \\
+0 & \hat{p}({x_1,\ldots,x_{p - 1}}) \leq c 
+\end{cases}
+$$
+
+Additionally, if we change the cutoff to improve sensitivity, we'll decrease specificity, and vice versa. First let's see what happens when we lower the cutoff from $0.5$ to $0.1$ to create a new classifier, and thus new predictions.
+
+```{r}
+spam_tst_pred_10 = ifelse(predict(fit_additive, spam_tst, type = "response") > 0.1, 1, 0)
+```
+
+This is essentially *decreasing* the threshold for an email to be labeled as spam: *more* emails will be labeled as spam (as seen in the confusion matrix)
+
+```{r}
+conf_mat_10<-make_conf_mat(predicted = spam_tst_pred_10,
+     actual = spam_tst$type)
+conf_mat_10
+```
+
+Unfortunately, while this does greatly reduce false negatives, false positives have increased spectacularly. We see this reflected in the sensitivity and specificity.
+
+
+```{r}
+get_sens(conf_mat_10) # true positive rate
+get_spec(conf_mat_10) # true negative rate
+#  we had 
+c(get_sens(conf_mat_50), get_spec(conf_mat_50))
+```
+
+This classifier, using $0.1$ instead of $0.5$ has a higher sensitivity, but a much lower specificity. Clearly, we should have moved the cutoff in the other direction. Let's try $0.9$. 
+
+```{r}
+spam_tst_pred_90 <- ifelse(predict(fit_additive, 
+   spam_tst, type = "response") > 0.9, 
+1, 0)
+```
+
+This is essentially *increasing* the threshold for an email to be labeled as spam, so far *fewer* emails will be labeled as spam. Again, we see that in the confusion matrix.
+
+```{r}
+conf_mat_90 <- make_conf_mat(predicted = spam_tst_pred_90, 
+         actual = spam_tst$type)
+conf_mat_90
+```
+
+This is the result we're looking for. We have far fewer false positives. While sensitivity is greatly reduced, specificity has gone up.
+
+```{r}
+get_sens(conf_mat_90) # true positive rate
+get_spec(conf_mat_90) # true negative rate
+#  we had 
+c(get_sens(conf_mat_50), get_spec(conf_mat_50))
+c(get_sens(conf_mat_10), get_spec(conf_mat_10))
+```
+
+While this is far fewer false positives, is it acceptable though? Probably it is still not acceptable. Also, don't forget, this would actually be a terrible spam detector today since this is based on data from a very different era of the internet, for a very specific set of people. Spam has changed a lot since 90s! (Ironically, machine learning is probably partially to blame.)
