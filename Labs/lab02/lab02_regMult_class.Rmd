@@ -34,6 +34,32 @@ autompg$hp <- as.numeric(autompg$hp)
 
 Desideriamo per ora stimare come le miles per gallon `mpg` varino in funzione del peso `wt`  e dell'anno di produzione `year`. 
 
+## L'unita' di misura ed i limiti
+
+Un punto focale da affrontare sono le unita' di misura ed limiti delle x ed y.
+
+Quando si aggiungono dati spuri a fine di interpolazione o estrapolazione, bisogna
+capire che il modello si potrebbe comportare in modo bizzaro. Cio' e' una normale
+conseguenza del fatto che certi dati sono inosservabili (es: macchina di un anno
+precedente alla fabbricazione della prima auto, o in un anno ancora lontano) e quindi fuorvianti.
+
+D'altra parte, inserire dati reali mai visti prima, ci permette di capire la flessibilita'
+del nostro modello, per capire se ci si trova in una situazione di overfitting.
+Bisogna percio' regolare i limiti delle possibili osservazioni.
+
+Allo stesso tempo bisogna capire che l'interpretazione del modello e' strettamente legato
+alle unita' di misura del nostro dataset e che queste sono una fondamentale base
+per la stima dei parametri della regressione. 
+
+Dal momento che Beta1 rappresenta la traduzione di quanto varia la y di un oggetto se si aggiunge 1 quantita' della unita' di misura di x (o delle x). 
+
+Ad esempio per passare da x=1 ad x=2, secondo l'unita' di misura specificata, 
+il cambio potrebbe essere piu' o meno grande. Nel caso in cui andassimo a modificare 
+l'unita' di misura di x, e' opportuno rivedere il calcolo di Beta1, per evitare che la 
+traduzione della variazione si sproporzionata!
+
+Per sintetizzare, bisogna confrontare i coefficienti in base alla variabilita' e 
+con valori sensati.
 
 ```{r dataplot}
 par(mfrow=c(1,2), bty="l",pch=16)
@@ -49,50 +75,112 @@ In R usiamo la funzione `lm`:
 
 
 ```{r}
+#This time we have 2 predictors!
 fit <- lm(mpg ~ wt + year,  data = autompg)
+
+#Here we find the basic info for fit
 class(fit)
+#Coefficients for the line
 coef(fit)
+#First estimated values of model
 head(fitted(fit))
-head(residuals(fit))
-# proprietà dei residui 
+#First residuals 
+head(residuals(fit)) 
+
+# Property of residuals, their sum and their exp val, equal 0 [Theoretical]
 sum(residuals(fit))
 cor(residuals(fit), autompg$wt)
 cor(residuals(fit), autompg$year)
+
+#It is not 0 since there could be an evident relation between
+# residuals and predictors
 ```
 
 
 ```{r}
 summary(fit)
+
 ```
 
+
+## Matrix approach to regression
+
+\[\hat{\beta} = (X^{T} X)^{-1}X^{T}y\]
+
+X e' la matrice di disegno:
+* Prima colonna, valori di `intercept`
+* Seconda colonna, valor di `wt`
+* Terza colonna, valori di `year`
+
+
 ```{r}
+# Rows number
 n <- nrow(autompg)
+# Creates the design matrix
 X <- cbind(rep(1, n), autompg$wt, autompg$year)
+# beta_hat 
 beta_hat <- solve(t(X) %*% X) %*% t(X) %*% autompg$mpg
+
+#beta_hat from slides is the same approach R uses as you can see
 beta_hat
 coef(fit)
+```
+
+Given the normality of errors, we proceed to our next conclusion, given the
+assumptions made in the slides:
+
+\[\hat{\beta} \thicksim \mathcal{N}{_{p}}(\beta, \sigma^{2} (X^{T} X)^{-1})\]
+
+So we need to estimate $\sigma^{2}$ and solve the product.
+
+Since we have the residuals and they represent an empirical version of the errors, we
+can compute the variance of errors, through the variance of the residuals 
+
+\[s_{e} = \sqrt{\frac{\sum_{i=1}^{n}(y_{i}- \hat{y_{i}})^{2}}{n-p}}\]
+
+```{r}
+#Se
+# These are, as always, the values which minimize the least square sum
 (est_sigma <- sqrt(sum(residuals(fit)^2)/(n-length(beta_hat)) ))
 summary(fit)$sigma
 ```
 
+This process also minimizes the sum of the residuals
+
 ```{r}
+#Resid
 resid <- (autompg$mpg - X %*% beta_hat)
+
 head(residuals(fit))
 head(resid)
+
+# Per qualunque valore di (beta0, beta1, beta2) MSE > MSE(beta_hat)
 sum(resid^2)
-# per qualunque valore di (beta0, beta1, beta2) MSE > MSE(\hat{\beta})
+# Se proviamo questo, sara' piu' alto del MSE
 sum(((autompg$mpg - X %*% c(-16, 0.06, 0.67)))^2)
 ```
 
-Incertezza nella stima di $\hat{\beta}$: 
+## Incertezza nella stima di $\hat{\beta}$: 
+
 
 ```{r}
+# main diagonal, represents the variance for each beta_{j}
 (est_sigma <- sqrt(sum(residuals(fit)^2)/(n-length(beta_hat)) ))
+
+#variance-covariance matrix
 est_sigma^2 * (solve(t(X) %*% X))
 vcov(fit)
+
+#SE given by sqrt of the diagonal of the vcov matrix 
 sqrt(diag(est_sigma^2 * (solve(t(X) %*% X))))
+
+#Check Std. Error
 summary(fit)$coef
 ```
+
+Il t-value nel summary e' il t-value di un test, in cui l'ipotesi nulla sia 
+$H_{0}: \beta_{j}=0$. Questo perche' se non possiamo rifiutare l'ipotesi che la variabile sia uguale a 0, la variabile non spiega molto che l'effetto sulla variabile del predittore sia trascurabile e percio' e' possibile rimuovere quella $\beta_{j}$.
+Se il t-value e' vicino a 0, allora e' trascurabile e rimovibile
 
 ```{r}
 # (est - valore_0)/se

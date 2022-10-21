@@ -8,32 +8,49 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-pengs <- read.csv("C:/Users/ilari/Dropbox/Teaching/PredictiveDaAn/_ay2223/labs/data/penguins.csv")
-pengs <- na.omit(pengs)
+setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01")
+```
+
+```{r}
+pengs <- read.csv("penguins.csv")
+pengs <- na.omit(pengs) ## same dataset without missing values
 ```
 
 
 ```{r}
-plot(flipper_length_mm ~ body_mass_g, data = pengs, pch = 16)
+
 x <- pengs$body_mass_g
 y <- pengs$flipper_length_mm
 n <- length(x)
+
 s2x <- sum((x-mean(x))^2)/n
 s2y <- sum((y-mean(y))^2)/n
+
 covxy <- cov(x,y) 
 rxy <- cor(x,y)
+
 mx <- mean(x); my <- mean(y)
+
 (beta1 <- rxy * sqrt(s2y/s2x))
 (beta0 <- my - beta1 *mx)
+
+#plot (target ~ predictor, data = df)
+plot(flipper_length_mm ~ body_mass_g, data = pengs,pch = 16)
+#Aggiunge retta bo+b1x
 abline(beta0, beta1, col = 2, lwd = 1.4)
+
 yhat <- beta0 +  beta1 * x # valori stimati 
 sum((y-yhat)^2) ## empirical MSE 
 sum((y-(137+0.016*x))^2) 
+
 ```
 
 In realtà si userà sempre la funzione `lm`
 
 ```{r}
+
+#lm(target ~ predittori, data = dataset)
+
 fit <- lm(flipper_length_mm ~ body_mass_g, data = pengs)
 fit
 class(fit)

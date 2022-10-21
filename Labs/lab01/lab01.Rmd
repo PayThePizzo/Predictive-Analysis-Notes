@@ -22,7 +22,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r}qr()
 getwd()
 ```
 
