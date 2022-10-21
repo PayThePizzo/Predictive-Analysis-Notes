@@ -1,12 +1,11 @@
-# Formulas
-Formulas handbook in R and Latex, for the empirical version
+# SLR
+Simple empirical formuals of the SLR Model
 
-
-### Notation
-
-## SLR - Empirical
+## SLR Model and assumptions
 Model: $Y_{i} = \beta_{0} + \beta_{1}X_{i} + \varepsilon_{i}$
 
+
+## Data Loading
 ```r
 # Define the data
 x <- dataset$predictor
@@ -14,6 +13,7 @@ y <- dataset$target
 n <- lenght(x)
 ```
 
+## Least Squares Estimates - 1
 We can obtain the optimal result through the following:
 
 ```r
@@ -35,6 +35,10 @@ yhat <- beta0 +  beta1 * x
 mse_hat <- sum((y-yhat)^2)
 ```
 
+## lm Class
+The [lm class](https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/lm) follows
+exactly the same approach we used above but it automates it. 
+
 ```r
 # Define model
 fit <- lm(formula = y ~ x, data = dataset)
@@ -49,13 +53,6 @@ residuals(fit)
 ## SLR Gaussian
 
 
-## MLR 
-
-```r
-
-
-lm(formula = y ~ x1 + x2, data = dataset)
-```
 
 #### Credits
 [PayThePizzo](https://github.com/PayThePizzo/)
