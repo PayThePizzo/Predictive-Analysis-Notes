@@ -1,6 +1,7 @@
 # Basic Notation
 
-
+* n, number of observations
+* p, number of predictors
 
 $\beta$-Parameters: 
 

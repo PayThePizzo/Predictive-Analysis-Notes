@@ -88,7 +88,7 @@ y_hat <- X %*% solve(t(X) %*% X) %*% t(X) %*% y
 
 res_val <- y - y_hat
 ```
-The estimate for $\sigma^{2}$ is $s_{e} = \frac{\sum_{i=1}^{n}(y_{i}-\hat{y_{i}})^2}{n-p} =\frac{e^{T}e}{n-p}$. Which is unbiased
+The estimate for $\sigma^{2}$ is $s_{e} = \frac{ \sum_{i=1}^{n} (y_{i}-\hat{y_{i}})^2}{n-p} =\frac{e^{T}e}{n-p}$. Which is unbiased.
 ```r
 s2e <- (t(e) %*% e)/(n-p)
 
@@ -114,12 +114,20 @@ summary(fit)$sigma
 
 ## Confidence Intervals
 
+
+
 ### Parameter
 
 ### Multivariate Parameters
 
+---
 
-#### Credits
-[PayThePizzo](https://github.com/PayThePizzo/)
+#### Slide Sections 
+* 1 - 216
 
-[Repository where I play with probability and statistics in R](https://github.com/PayThePizzo/Probability-Statistics)
+#### Credits and Warning
+* [PayThePizzo](https://github.com/PayThePizzo/) for maintining this handbook/summary of the course.
+* The material of the course [PREDICTIVE ANALYTICS](https://www.unive.it/data/course/339919) is provided by Professor [Ilaria Prosdocimi](https://www.unive.it/data/persone/19166744) and is only intended for personal use.
+* Material in these slides was heavily influenced by [David Dalpiaz Applied Statistics with R!](https://book.stat420.org/)
+
+I take no credit from any of the material that is included and I highly recommend purchasing the textbooks cited.
