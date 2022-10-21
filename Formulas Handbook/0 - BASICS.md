@@ -1,6 +1,11 @@
 # Basic Notation
-
+* Y
+* y
+  * $y_{i}$
+* X
 * n, number of observations
+* x, predictor
+  * $x_{i}$, predictor
 * p, number of predictors
 
 $\beta$-Parameters: 
