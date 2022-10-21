@@ -50,8 +50,22 @@ residuals(fit)
 
 ```
 
+---
+
 ## SLR Gaussian
 
+
+---
+
+## Single Parameter Tests
+
+---
+
+## Confidence Intervals
+
+### Parameter
+
+### Multivariate Parameters
 
 
 #### Credits
