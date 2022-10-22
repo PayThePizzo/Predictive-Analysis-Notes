@@ -72,17 +72,18 @@ Which returns, for each model:
 
 Manually, **p-value** is calculated as $Pr(F > F_{obs})$, where an extreme value would only be found the right tail of the distribution
 ```r
-df_null <- p-1
-df_alt <- n-p
-
 # Since we only care about the right side of the distribution, we put lower.tail = FALSE
-pf(f_obs, df1 = df_null, df2 = df_alt, lower.tail = FALSE)
+pf(f_obs, df1 = DoF_reg, df2 = DoF_err, lower.tail = FALSE)
+
 # Or
-1-pf(f_obs, df1 = df_null, df2 = df_alt)
+1-pf(f_obs, df1 = DoF_reg, df2 = DoF_err)
 ```
 We see that the value of the F statistic is large, and the p-value `Pr(>F)` is extremely low, so we
 reject the null hypothesis at any reasonable $\alpha$ and say that the regression is significant.
 
+More formally, rejecting $H_{0}$ implies that at least one beta parameter in the model we are testing
+explains the variance of Y such that the model $\hat{y_{A,i}}$'s values are significantly different from 
+the null model.
 
 ### R shortcut
 ```r

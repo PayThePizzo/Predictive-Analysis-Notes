@@ -7,6 +7,7 @@
 * x, predictor
   * $x_{i}$, predictor
 * p, number of predictors
+* p-1, number of beta-parameters
 
 $\beta$-Parameters: 
 
