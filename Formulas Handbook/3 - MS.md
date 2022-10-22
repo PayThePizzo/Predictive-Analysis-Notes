@@ -3,12 +3,11 @@ Model selection is the process of analyzing what predictors should be included i
 in order to balance its complexity and adaptability. In ML this is called feature selection.
 
 In statistics we want to have $n > p$ as the number of feature should be ideally small, while
-we hope the observations to be $n \rightarrow \infty$ (which is not always the case in ML).
+we hope the observations to be $n \rightarrow \infty$ 
 
 ## Significance of Regression
-We ask ourselves whether a model with p predictors is better than just taking the expected value $\bar{y}$, since the
-latter is merely the simplest possible model. We want to be able to distinguish what predictors are useful and how well
-the model in question fits the data. 
+We ask ourselves whether a model with p predictors is better than just taking the expected value $\bar{y}$, since the latter is merely the simplest possible model. 
+We want to be able to distinguish what predictors are useful and how well the model in question fits the data. 
 
 However $R^{2}$ does not supply a clear answer for any of our questions, so we need to find another approach with metrics 
 that:
@@ -47,7 +46,7 @@ DoF_err <- length(resid(H_alt)) - length(coef(H_alt))
 DoF_tot <- length(resid(H_null)) - length(coef(H_null))
 ```
 
-### 2 - Calculate F-statistic and p-value
+### 2 - Calculate F-Statistic and p-value
 We calculate the F-statistic:
 
 $$F = \frac {\sum_{i=1}^{n}(\hat{Y_{A,i}}-\bar{Y})^{2}/(p-1)}{\sum_{i=1}^{n}(Y_{i}-\hat{Y_{A,i}})^2/(n-p)} \thicksim F_{p-1, n-p}$$
@@ -110,5 +109,43 @@ Where:
 * `F-statistics` on `df1` and `df2` DF
 * `p-value` 
 
-
 However, we still have no clue to assess which predictor is useful and which is not!
+
+## Nested Models
+Imagine starting from a model that includes all the features and going through the removal of
+the ones which are less helpful to achieve a simpler but effective model at each step. This is the core idea here.
+
+If you revise the two models we just saw, you can tell they are the same model! The null model is hidden inside the $H_{A}$ thanks to the constraints on the beta-parameters. In fact, by imposing constraints on every beta-parameter from $\beta_{1} to \beta_{p-1}$ we obtain a model containing a subset of predictors.
+
+If we consider a general linear additive linear model with p-1 beta-parameters:
+
+$$Yi = \beta_{0} + \beta_{1}x_{i1} + ... + \beta_{(q)}x_{i(q)} + \beta_{(q+1)}x_{i(q+1)} + ... + \beta_{(p-1)}x_{i(p-1)} + \varepsilon_{i}$$
+
+We can proceed by comparing different subsets of predictors to achieve the best model for our goals, which is the same process as we did before. Now the two options are:
+* $H_{0} : \beta{q} = \beta{q+1} = ... = \beta{p-1} = 0$
+  * Where the model is $\hat{y_{0,i}}$ and represents the null model
+  * It has q beta-parameters where **q < p** and q-1 predictors
+  * None of the predictors (from q+1 to p-1) show significant linear relationship with Y
+* $H_{A} : At least one of \beta{j}\neq 0$, with $j = q,...,p-1$
+  * At least of the predictors (from q+1 to p-1) shows a significant linear relationship with Y
+
+Let's denote
+* $SS_{RES}(H_{0})$, the Sum of squared residuals under $H_{0}$
+* $SS_{RES}(H_{A})$, the Sum of Squared residuals under $H_{A}$ 
+
+As a simpler model implies **less uncertainty**, we might choose it when the difference between the estimates
+of $H_{0}$ and $H_{A}$ is small:
+
+$$ SS_{RES}(H_{0})- SS_{RES}(H_{A}) = \sum_{i=1}^{n}(\hat{y_{A,i}} - \hat{y_{0,i}})^{2}$$
+
+We will use a scaled version as a good statistics:
+
+$$\frac{SS_{RES}(H_{0}) - SS_{RES}(H_{A})}{SS_{RES}(H_{A})} $$
+
+### 1 - ANOVA
+
+![ANOVANM](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/ANOVANS.png?raw=TRUE)
+
+### F-Statistic
+
+$$F = \frac{(SS_{RES}(H_{0}) - SS_{RES}(H_{A}))/(p-q)}{SS_{RES}(H_{A})/(n-p)} = \frac {\sum_{i=1}^{n}(\hat{y_{A,i}}-\hat{y_{0,i}})^{2}/(p-q)}{\sum_{i=1}^{n}(y_{i}-\hat{y_{A,i}})^2/(n-p)} \thicksim F_{p-q, n-p}$$
