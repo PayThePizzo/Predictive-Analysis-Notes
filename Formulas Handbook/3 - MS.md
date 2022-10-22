@@ -1,4 +1,4 @@
-# Model Selection
+# Model Selection and Nested Models
 Model selection is the process of analyzing what predictors should be included in a model
 in order to balance its complexity and adaptability. In ML this is called feature selection.
 
@@ -29,7 +29,7 @@ H_null<- lm(target ~ 1, data = dataset)
 H_alt <- lm(target ~ x1 + x2, data = dataset)
 ``` 
 
-### 1 - ANOVA
+### 1) ANOVA
 We decompose the $SS_{TOT}$ into an **AN**alysis **O**f **VA**riance table
 
 ![ANOVA](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/ANOVA.png?raw=TRUE)
@@ -46,28 +46,20 @@ DoF_err <- length(resid(H_alt)) - length(coef(H_alt))
 DoF_tot <- length(resid(H_null)) - length(coef(H_null))
 ```
 
-### 2 - Calculate F-Statistic and p-value
+### 2) F-Statistic and p-value
 We calculate the F-statistic:
 
-$$F = \frac {\sum_{i=1}^{n}(\hat{Y_{A,i}}-\bar{Y})^{2}/(p-1)}{\sum_{i=1}^{n}(Y_{i}-\hat{Y_{A,i}})^2/(n-p)} \thicksim F_{p-1, n-p}$$
+$$F = \frac{SS_{REG}/(p-1)}{SS_{RES}/(n-p)} = \frac {\sum_{i=1}^{n}(\hat{Y_{A,i}}-\bar{Y})^{2}/(p-1)}{\sum_{i=1}^{n}(Y_{i}-\hat{Y_{A,i}})^2/(n-p)} \thicksim F_{p-1, n-p}$$
+
+In R
+```r
+F <- (SS_reg/DoF_reg)/(SS_res/DoF_res)
+```
 
 We notice $F \in \mathbb{R^{+}}$
 * If F is **LARGE**, we can reject $H_{0}$ as the estimated y $\hat{y_{A,i}}$ are very different from $\bar{y}$ 
   * The regression explains a large portion of the variance
 * If F is small, we cannot reject it!
-
-In R this is already include in the ANOVA table, along with the p-value.
-```r
-# This basically does the job for us
-anova(H_null, H_alt)
-```
-Which returns, for each model:
-* `Res.Df`
-* `RSS`, Sum of Squares
-* `Df`, Degrees of freedom (because of the parameters)
-* `Sum of sq`
-* `F`, F statistic value
-* `Pr(>F)`, p-value
 
 Manually, **p-value** is calculated as $Pr(F > F_{obs})$, where an extreme value would only be found the right tail of the distribution
 ```r
@@ -97,7 +89,6 @@ Which returns, for each model:
 * `F`, F statistic value
 * `Pr(>F)`, p-value
 
-
 As a shortcut, the `summary()` function reports the `F-statistic`, the degrees of freedom (df1, df2) and the `p-value`
 ```r
 fit <- H_alt
@@ -111,11 +102,18 @@ Where:
 
 However, we still have no clue to assess which predictor is useful and which is not!
 
+---
+
 ## Nested Models
 Imagine starting from a model that includes all the features and going through the removal of
-the ones which are less helpful to achieve a simpler but effective model at each step. This is the core idea here.
+the ones which are less helpful to achieve a simpler but effective model at each step. This is the core idea here: the significance of regression is a special case of the nested models concept.
 
 If you revise the two models we just saw, you can tell they are the same model! The null model is hidden inside the $H_{A}$ thanks to the constraints on the beta-parameters. In fact, by imposing constraints on every beta-parameter from $\beta_{1} to \beta_{p-1}$ we obtain a model containing a subset of predictors.
+
+```r
+# Prints the predictors
+names(dataset)
+```
 
 If we consider a general linear additive linear model with p-1 beta-parameters:
 
@@ -129,6 +127,12 @@ We can proceed by comparing different subsets of predictors to achieve the best 
 * $H_{A} : At least one of \beta{j}\neq 0$, with $j = q,...,p-1$
   * At least of the predictors (from q+1 to p-1) shows a significant linear relationship with Y
 
+```r
+# Firstly we specify the two model and save them in two different variables
+H_null<- lm(target ~ x1 + x2, data = dataset)
+H_alt <- lm(target ~ x1 + x2 + x3 + x4, data = dataset)
+``` 
+
 Let's denote
 * $SS_{RES}(H_{0})$, the Sum of squared residuals under $H_{0}$
 * $SS_{RES}(H_{A})$, the Sum of Squared residuals under $H_{A}$ 
@@ -138,14 +142,62 @@ of $H_{0}$ and $H_{A}$ is small:
 
 $$ SS_{RES}(H_{0})- SS_{RES}(H_{A}) = \sum_{i=1}^{n}(\hat{y_{A,i}} - \hat{y_{0,i}})^{2}$$
 
-We will use a scaled version as a good statistics:
+We will use a scaled version as a good statistic:
 
 $$\frac{SS_{RES}(H_{0}) - SS_{RES}(H_{A})}{SS_{RES}(H_{A})} $$
 
-### 1 - ANOVA
+```r
+
+```
+
+### 1) ANOVA
 
 ![ANOVANM](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/ANOVANS.png?raw=TRUE)
 
-### F-Statistic
+The degrees of freedom is the difference in the number of beta-parameters estimated in the two models
+
+```r
+# Sum of Squares
+SS_diff <- sum((fitted(H_alt) - fitted(H_null))^2)
+SS_null <- sum(resid(H_null)^2)
+SS_full <- sum(resid(H_alt)^2)
+
+#Degrees of Freedom
+DoF_diff <- length(coef(H_alt)) - length(coef(H_null))
+DoF_null <- length(resid(H_null)) - length(coef(H_null))
+DoF_full <- length(resid(H_alt)) - length(coef(H_alt))
+```
+
+### 2) F-Statistic and p-value
 
 $$F = \frac{(SS_{RES}(H_{0}) - SS_{RES}(H_{A}))/(p-q)}{SS_{RES}(H_{A})/(n-p)} = \frac {\sum_{i=1}^{n}(\hat{y_{A,i}}-\hat{y_{0,i}})^{2}/(p-q)}{\sum_{i=1}^{n}(y_{i}-\hat{y_{A,i}})^2/(n-p)} \thicksim F_{p-q, n-p}$$
+
+```r
+F <- (SS_diff/DoF_diff)/(sum(resid(H_alt)^2)/H_alt$df.resid)
+```
+
+We see that the value of the F statistic is large, and the p-value `Pr(>F)` is pretty small, so we can
+reject the null hypothesis at any reasonable $\alpha$ and say that one of the predictor `x3` or`x4` is significant when the predictors `x1` and `x2` are already in the model.
+
+Manually, **p-value** is calculated as
+```r
+# Since we only care about the right side of the distribution, we put lower.tail = FALSE
+pf(f_obs, df1 = DoF_reg, df2 = DoF_err, lower.tail = FALSE)
+
+# Or
+1-pf(f_obs, df1 = DoF_reg, df2 = DoF_err)
+```
+
+### R shortcut
+
+```r
+anova(H_null, H_alt)
+```
+
+```r
+fit <- H_alt
+summary(fit)
+```
+
+### Quality Criterion
+
