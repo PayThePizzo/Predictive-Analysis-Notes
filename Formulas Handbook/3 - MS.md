@@ -33,7 +33,7 @@ H_alt <- lm(target ~ x1 + x2, data = dataset)
 ### 1 - ANOVA
 We decompose the $SS_{TOT}$ into an **AN**alysis **O**f **VA**riance table
 
-![ANOVA](?raw=TRUE)
+![ANOVA](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/ANOVA.png?raw=TRUE)
 
 ```r
 anova(H_null, H_alt)
@@ -56,5 +56,8 @@ The **p-value** is calculated as $Pr(F > F_{obs})$, where an extreme value would
 ```r
 # Since we only care about the right side of the distribution, we put lower.tail = FALSE
 pf(f_obs, lower.tail = FALSE)
+# Or
+1-pf(f_obs)
+
 ```
 
