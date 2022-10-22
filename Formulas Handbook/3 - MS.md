@@ -195,7 +195,46 @@ fit <- H_alt
 summary(fit)
 ```
 
-However, this **only works to compare nested models**, while we want to have a competition between differnt kinds of models.
+---
 
-### Quality Criterion
+## Quality Criterion
 
+However, this **only works to compare nested models**, while we want to have a competition between differnt kinds of models. 
+
+### F-statistic
+We are unable to compare, with F-statistic, two different models such as:
+* `target ~ pred1 + pred2`
+* `target ~ pred3`
+
+### $R^{2}$
+We might use $R^{2}$ which indicates how much of the variance one model estimates.
+The fact that this statistic always increases as the number of predictors increase can result in overfitting. In fact, when we add more predictors it increases regardless of the fact they are not significant!
+
+
+```r
+summary(H_alt)$r.squared
+summary(H_null)$r.squared
+
+n <- nrow(dataset)
+
+# If we create a matrix of n normal rand. var., with mean=0 and var=1
+# It has no predictive value whatsoever
+useless_covariates <- matrix(rnorm(n*(n-1)), ncol = n-1)
+
+# But I still get 1 for r-squared
+summary(lm(dataset$target ̃ useless_covariates))$r.squared # =1
+```
+
+#### To Sum Up
+Criteria for assessing quality of fit such as $R^{2}$ and RMSE have a fatal flaw: it is impossible to add a predictor to a model and make $R^{2}$ or RMSE worse.
+
+This suggests that we need a quality criteria that takes into account the size of the model, since our preference is for small models that still fit well.
+
+Sacrifice a small amount of ”goodness-of-fit” to obtain a smaller model.
+
+We will look at three criteria that do this explicitly: AIC, BIC, and Adjusted
+
+We will also look at one, Cross-Validated RMSE, which implicitly considers the 
+size of the model.
+
+We will look at frameworks that also prevents overfitting.
