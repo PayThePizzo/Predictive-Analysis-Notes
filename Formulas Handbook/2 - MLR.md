@@ -33,7 +33,7 @@ Since the model is additive, we could find ourselves to face an arbitrary model 
 * Total of p $\beta$-parameters
 * A single $\sigma^{2}$ for the variance of the errors
 
-$$Y_{i} = \beta_{0} + \beta_{1}x_{i1} + \beta_{2}x_{i2} + ... + \beta_{(p-1)}x_{i(p-1)} + \varepsilon_{i}$$
+$$Y_{i} = $$
 
 * With i=1,2, ...,n
 * Where $\varepsilon_{i} \thicksim \mathcal{N}(0, \sigma^{2})$
@@ -99,8 +99,6 @@ sqrt(sum((y-y_hat)^2)/(n-p))
 #or we can access it directly through
 summary(fit)$sigma
 ```
-
-
 
 ---
 
