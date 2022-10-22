@@ -53,6 +53,7 @@ $$F = \frac{SS_{REG}/(p-1)}{SS_{RES}/(n-p)} = \frac {\sum_{i=1}^{n}(\hat{Y_{A,i}
 
 In R
 ```r
+# TODO: to check
 F <- (SS_reg/DoF_reg)/(SS_res/DoF_res)
 ```
 
@@ -124,7 +125,7 @@ We can proceed by comparing different subsets of predictors to achieve the best 
   * Where the model is $\hat{y_{0,i}}$ and represents the null model
   * It has q beta-parameters where **q < p** and q-1 predictors
   * None of the predictors (from q+1 to p-1) show significant linear relationship with Y
-* $H_{A} : At least one of \beta{j}\neq 0$, with $j = q,...,p-1$
+* $H_{A} :$ At least one of $\beta{j}\neq 0$, with $j = q,...,p-1$
   * At least of the predictors (from q+1 to p-1) shows a significant linear relationship with Y
 
 ```r
@@ -146,9 +147,7 @@ We will use a scaled version as a good statistic:
 
 $$\frac{SS_{RES}(H_{0}) - SS_{RES}(H_{A})}{SS_{RES}(H_{A})} $$
 
-```r
-
-```
+And now we repeat the same procedure.
 
 ### 1) ANOVA
 
@@ -176,28 +175,27 @@ $$F = \frac{(SS_{RES}(H_{0}) - SS_{RES}(H_{A}))/(p-q)}{SS_{RES}(H_{A})/(n-p)} = 
 F <- (SS_diff/DoF_diff)/(sum(resid(H_alt)^2)/H_alt$df.resid)
 ```
 
-We see that the value of the F statistic is large, and the p-value `Pr(>F)` is pretty small, so we can
-reject the null hypothesis at any reasonable $\alpha$ and say that one of the predictor `x3` or`x4` is significant when the predictors `x1` and `x2` are already in the model.
-
 Manually, **p-value** is calculated as
 ```r
 # Since we only care about the right side of the distribution, we put lower.tail = FALSE
-pf(f_obs, df1 = DoF_reg, df2 = DoF_err, lower.tail = FALSE)
-
-# Or
-1-pf(f_obs, df1 = DoF_reg, df2 = DoF_err)
+# TODO
 ```
 
-### R shortcut
+We see that the value of the F statistic is large, and the p-value `Pr(>F)` is pretty small, so we can
+reject the null hypothesis at any reasonable $\alpha$ and say that one of the predictor `x3` or`x4` is significant when the predictors `x1` and `x2` are already in the model.
 
+
+### R shortcut
+As before, we can have quick insights through:
 ```r
 anova(H_null, H_alt)
 ```
-
 ```r
 fit <- H_alt
 summary(fit)
 ```
+
+However, this **only works to compare nested models**, while we want to have a competition between differnt kinds of models.
 
 ### Quality Criterion
 
