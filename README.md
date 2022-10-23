@@ -2,6 +2,9 @@
 
 Notes and labs from the homonymous course at Ca' Foscari University Computer Science (Data Science) Bachelor of Science.
 
+#### Resources
+* [David Dalpiaz - Applied Statistics with R!](https://book.stat420.org/)
+
 #### Credits
 Maintained by PayThePizzo
 

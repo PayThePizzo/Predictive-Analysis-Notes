@@ -1,0 +1,48 @@
+---
+title: "Lab 03 - Multiple Linear Regression, model assessment"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+    code_folding: show
+---
+
+
+# The data 
+
+Usiamo i dati di automobili visti nel lab precedente: leggiamo direttamente i dati usando il file in Moodle: 
+
+```{r}
+autompg <- read.csv(file = "autompg.csv")
+```
+
+Abbiamo 7 variabili: una variabile risposta (`mpg`) e 6 predittori: 
+
+```{r dataplot}
+## use rgb to define proportion of reg-green-blue in a color
+## extra 4th argument is alpha - the transparency of the points 
+par(col= rgb(0.4,0.4,0.9,0.8),pch=16)
+plot(autompg)
+```
+
+Presi individualemnte alcuni predittori sembrano essere più o meno correlati con la variabile risposta:
+
+```{r}
+signif(cor(autompg),3)
+```
+
+Dovremo individuare un sottoinsieme di predittori utili a costruire un modello predittivo per `mpg` (vediamo inoltre che i predittori sono anche correlati tra loro). 
+
+# Specificazione del modello 
+
+Specifichiamo un modello con due predittori `hp` e `year`: 
+
+\[
+Y_i = \beta_0 + \beta_{hp} \text{hp}_{i} + \beta_{year} \text{year}_{i} + \epsilon_i, \qquad i = 1, 2, \ldots, n
+\]
+con $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
+
+
+```{r, class.source = "fold-show"}
+fit1 <- lm(mpg~hp+year, data = autompg)
+```
