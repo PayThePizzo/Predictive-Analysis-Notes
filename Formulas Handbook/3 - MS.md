@@ -196,6 +196,16 @@ fit <- H_alt
 summary(fit)
 ```
 
+---
+
+## To sum up
+We found ways to compare two nested models through ANalysis Of VAriance. The goodness of fit here is strictly related to the Sum of Squares of the residuals ($SS_{RES}$), for which a test is built
+through the F distribution.
+
+---
+
+## Conclusions
+
 However, this **only works to compare nested models**, while we want to have a competition between different kinds of models. 
 
 We are unable to compare, through the F-statistic, two different models such as:
