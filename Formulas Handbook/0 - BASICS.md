@@ -52,3 +52,5 @@ To favor a high-level of interpretability:
 
 ---
 
+## Validation Based Selection 
+* $\hat{y_{[i]}}$, the value of $\hat{y_{i}}$ obtained when we remove it from the sample.
