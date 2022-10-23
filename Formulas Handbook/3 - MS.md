@@ -122,11 +122,12 @@ $$Yi = \beta_{0} + \beta_{1}x_{i1} + ... + \beta_{(q)}x_{i(q)} + \beta_{(q+1)}x_
 
 We can proceed by comparing different subsets of predictors to achieve the best model for our goals, which is the same process as we did before. Now the two options are:
 * $H_{0} : \beta{q} = \beta{q+1} = ... = \beta{p-1} = 0$
-  * Where the model is $\hat{y_{0,i}}$ and represents the null model
-  * It has q beta-parameters where **q < p** and q-1 predictors
   * None of the predictors (from q+1 to p-1) show significant linear relationship with Y
+  * Where the model is $\hat{y_{0,i}}$ and represents the **null model**
+  * It has q beta-parameters where **q < p** and q-1 predictors
 * $H_{A} :$ At least one of $\beta{j}\neq 0$, with $j = q,...,p-1$
   * At least of the predictors (from q+1 to p-1) shows a significant linear relationship with Y
+  * Where the model is $\hat{y_{A,i}}$ and represents the **full model**
 
 ```r
 # Firstly we specify the two model and save them in two different variables
@@ -195,21 +196,14 @@ fit <- H_alt
 summary(fit)
 ```
 
----
+However, this **only works to compare nested models**, while we want to have a competition between different kinds of models. 
 
-## Quality Criterion
-
-However, this **only works to compare nested models**, while we want to have a competition between differnt kinds of models. 
-
-### F-statistic
-We are unable to compare, with F-statistic, two different models such as:
+We are unable to compare, through the F-statistic, two different models such as:
 * `target ~ pred1 + pred2`
 * `target ~ pred3`
 
-### $R^{2}$
 We might use $R^{2}$ which indicates how much of the variance one model estimates.
 The fact that this statistic always increases as the number of predictors increase can result in overfitting. In fact, when we add more predictors it increases regardless of the fact they are not significant!
-
 
 ```r
 summary(H_alt)$r.squared
@@ -221,20 +215,9 @@ n <- nrow(dataset)
 # It has no predictive value whatsoever
 useless_covariates <- matrix(rnorm(n*(n-1)), ncol = n-1)
 
-# But I still get 1 for r-squared
+# But we still get 1 for r-squared
 summary(lm(dataset$target ̃ useless_covariates))$r.squared # =1
 ```
 
-#### To Sum Up
-Criteria for assessing quality of fit such as $R^{2}$ and RMSE have a fatal flaw: it is impossible to add a predictor to a model and make $R^{2}$ or RMSE worse.
-
-This suggests that we need a quality criteria that takes into account the size of the model, since our preference is for small models that still fit well.
-
-Sacrifice a small amount of ”goodness-of-fit” to obtain a smaller model.
-
-We will look at three criteria that do this explicitly: AIC, BIC, and Adjusted
-
-We will also look at one, Cross-Validated RMSE, which implicitly considers the 
-size of the model.
-
-We will look at frameworks that also prevents overfitting.
+Moreover, these measures do not represent well the goodness of fit, nor the adaptability of the model. In fact, they do not say anything about the validity of the assumptions so if the assumption of data normality is not valid, the models built here are useless! This is something
+we want to be able to test when facing comparisons of different models.

@@ -1,0 +1,1 @@
+# Categorical Predictors and Interactions
