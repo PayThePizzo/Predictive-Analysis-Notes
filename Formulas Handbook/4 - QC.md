@@ -42,6 +42,8 @@ For linear regression, the Max Likelihood reduces to a function of the $SS_{RES}
 
 Because the MLE of $\sigma$ is $\hat{\sigma} = (\sum_{i=1}^{n}(y - \hat{y_{i}})^{2})/n$
 
+However, they are general and can be applied to models that are out of the scope of linear models!
+
 ## Akaikes' Information Criterion
 $$AIC(\mathcal{M}) = n * \log MSS_{RES}(\mathcal{M}) + 2p(\mathcal{M})$$
 
@@ -71,7 +73,32 @@ AIC(mod1, k = log(nrow(dataset)))
 AIC(mod2, k = log(nrow(dataset)))
 ```
 
+> ICs: small value indicates a low test error
+
+---
+
 ## Adjusted $R^{2}$
+In the MLR models and some other cases we can use this version or r-squared. The presence
+of unnecessary variables influences negatively this measure!
+
+$$Adjusted \; R^{2} = 1 - \frac{SS_{RES}/(n-p-1)}{SS_{TOT}/(n-1)} $$
+
+> We want to find a model that **maximizes the $Adjusted \; R^{2}$**
+
+This is equals to $minimize(SS_{RES}/(n-p-1))$
+* $SS_{RES}$ always decreases as the number of parameter (complexity) increases
+* $SS_{RES}/(n-p-1)$ may increase or decrease due to the presence of p
+
+> $R^{2}$: high value indicates a model with a small test error
+
+```r
+# Adjusted R Squared
+summary(mod1)$adj.r.squared
+summary(mod2)$adj.r.squared
+```
+
+---
+
 
 ## Cross-Validated RMSE
 Using Cross-Validation means
