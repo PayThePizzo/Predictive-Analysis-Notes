@@ -44,7 +44,11 @@ Because the MLE of $\sigma$ is $\hat{\sigma} = (\sum_{i=1}^{n}(y - \hat{y_{i}})^
 
 However, they are general and can be applied to models that are out of the scope of linear models!
 
+For the linear regression models:
+
 ## Akaikes' Information Criterion
+Best used when n is large, and we want to use the model for prediction.
+
 $$AIC(\mathcal{M}) = n * \log MSS_{RES}(\mathcal{M}) + 2p(\mathcal{M})$$
 
 ```r
@@ -58,7 +62,7 @@ c(AIC(mod1), AIC(mod2))
 ```
 
 ## Bayesian Information Criterion
-It replaces the $2$ with $log(n)$ so it penalizes more complex models
+It replaces the $2$ with $log(n)$ so it penalizes more complex models. Best used to find parsimonious, highly-interpretable models.
 
 $$BIC(\mathcal{M}) = n * \log MSS_{RES}(\mathcal{M}) + \log (n)p(\mathcal{M})$$
 
@@ -74,6 +78,8 @@ AIC(mod2, k = log(nrow(dataset)))
 ```
 
 > ICs: small value indicates a low test error
+
+However, the IC evaluation does not formally supply with any indication whether a model is better than another one! We can just use it to "sort" models.
 
 ---
 
@@ -96,11 +102,3 @@ This is equals to $minimize(SS_{RES}/(n-p-1))$
 summary(mod1)$adj.r.squared
 summary(mod2)$adj.r.squared
 ```
-
----
-
-
-## Cross-Validated RMSE
-Using Cross-Validation means
-
-## Frameworks
