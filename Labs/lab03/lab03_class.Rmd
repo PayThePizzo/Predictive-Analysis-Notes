@@ -40,9 +40,168 @@ Specifichiamo un modello con due predittori `hp` e `year`:
 \[
 Y_i = \beta_0 + \beta_{hp} \text{hp}_{i} + \beta_{year} \text{year}_{i} + \epsilon_i, \qquad i = 1, 2, \ldots, n
 \]
-con $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
+con $\varesilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
 
 
 ```{r, class.source = "fold-show"}
 fit1 <- lm(mpg~hp+year, data = autompg)
+fit_null <- lm(mpg~1, data = autompg)
 ```
+
+```{r}
+summary(fit1)
+```
+
+$$H_0: \beta_{hp} =  \beta_{year} = 0$$
+
+```{r}
+anova(fit_null, fit1)
+```
+
+```{r}
+sum(residuals(fit_null)^2)
+sum(residuals(fit1)^2)
+sum(residuals(fit_null)^2) - sum(residuals(fit1)^2)
+sum((fitted(fit_null)-fitted(fit1))^2)
+
+
+num <- (sum(residuals(fit_null)^2) - sum(residuals(fit1)^2))/(fit_null$df.residual - fit1$df.residual)
+den <- sum(residuals(fit1)^2)/fit1$df.residual
+(fobs <- num/den)
+# pvalue 
+pf(fobs, df1 = (fit_null$df.residual - fit1$df.residual), 
+   df2 = fit1$df.residual, 
+   lower.tail = FALSE)
+1-pf(fobs, df1 = (fit_null$df.residual - fit1$df.residual), 
+   df2 = fit1$df.residual)
+# conforntare fobs con fcrit - specificando il livello di significatività 
+qf(.98, df1 = (fit_null$df.residual - fit1$df.residual), 
+   df2 = fit1$df.residual)
+curve(df(x,df1 = (fit_null$df.residual - fit1$df.residual), 
+   df2 = fit1$df.residual), from = 0, to = 10)
+```
+
+```{r}
+summary(fit1)$fstatistic
+```
+
+```{r}
+fit_base <- lm(mpg~wt+year, data = autompg)
+fit_all <- lm(mpg~., data = autompg)
+summary(fit_all)
+```
+
+```{r}
+sum(residuals(fit_base)^2)
+sum(residuals(fit_all)^2)
+```
+
+
+```{r}
+nd <- data.frame(apply(autompg, 2, quantile, c(0.1, 0.5, 0.9)))
+(ci_all <- predict(fit_all , newdata = nd, interval = "conf"))
+(ci_base <- predict(fit_base , newdata = nd, interval = "conf"))
+ci_all[,3]- ci_all[,2]
+ci_base[,3]- ci_base[,2]
+```
+
+```{r}
+anova(fit_base, fit_all)
+
+num <- (sum(residuals(fit_base)^2) - sum(residuals(fit_all)^2))/(fit_base$df.residual - fit_all$df.residual)
+den <- sum(residuals(fit_all)^2)/fit_all$df.residual
+fobs <- num/den
+# pvalue
+pf(fobs, lower.tail = FALSE, df1 = (fit_base$df.residual - fit_all$df.residual),
+   df2 = fit_all$df.residual)
+# reject H0 if fobs > fcri
+qf(.98, , df1 = (fit_base$df.residual - fit_all$df.residual),
+   df2 = fit_all$df.residual)
+curve(df(x, df1 = (fit_base$df.residual - fit_all$df.residual),
+   df2 = fit_all$df.residual), from = 0, to = 10)
+points(fobs, 0 , col = 2, pch = 4)
+```
+
+# bontà di adattemnto: confornto tra modelli non annidati 
+
+
+```{r}
+summary(fit_base)$r.square
+summary(fit_base)$adj.r.square
+1-sum(residuals(fit_base)^2)/(sum((autompg$mpg - mean(autompg$mpg))^2))
+1-(sum(residuals(fit_base)^2)/fit_base$df.residual)/(sum((autompg$mpg - mean(autompg$mpg))^2)/fit_null$df.residual)
+
+summary(fit1)$adj.r.square
+summary(fit_base)$adj.r.square
+summary(fit_all)$adj.r.square
+```
+
+
+# Criteri di informazione 
+
+Aic 
+
+
+```{r}
+logLik(fit_base)
+logLik(fit_all)
+sum(dnorm(autompg$mpg, mean = fitted(fit_base), 
+           sd = summary(fit_base)$sigma, log = TRUE))
+-2*logLik(fit_base)+2*(length(coef(fit_base))+1)
+-2*logLik(fit_all)+2*(length(coef(fit_all))+1)
+AIC(fit_base)
+AIC(fit_all)
+```
+
+
+Bic 
+
+```{r}
+-2*logLik(fit_base)+log(nrow(autompg))*(length(coef(fit_base))+1)
+-2*logLik(fit_all)+log(nrow(autompg))*(length(coef(fit_all))+1)
+BIC(fit_base)
+BIC(fit_all)
+AIC(fit_base, k = log(nrow(autompg)))
+```
+
+
+# verificare la teoria tramite simulazione 
+
+```{r}
+X <- model.matrix(fit_base) 
+colnames(X) <- c("Int", "x1","x2")
+sigma_true <- 3.4
+beta_true <- c(-14, -0.006, .74)
+n <- nrow(X)
+# set.seed(8686)
+y_alternative <- X %*% beta_true+  rnorm(n, 0, sigma_true)
+autodf_alterntive <- data.frame(y = y_alternative, X[,-1])
+lm(y~x1+x2, data = autodf_alterntive)
+```
+
+```{r}
+generate_and_estimate <- function(X, truebeta, truesigma){
+  n <- nrow(X)
+  y_alternative <- X %*% truebeta+  rnorm(n, 0, truesigma)
+  autodf_alterntive <- data.frame(y = y_alternative, X[,-1])
+  estimate <- coef(lm(y~x1+x2, data = autodf_alterntive))
+  estimate
+}
+generate_and_estimate(X = X, truebeta = beta_true, truesigma = sigma_true)
+out <- replicate(n = 500, generate_and_estimate(X = X, truebeta = beta_true, truesigma = sigma_true))
+hist(out[1,])
+hist(out[2,])
+hist(out[3,]); abline(v = beta_true[3], col = 2)
+mean(out[3,])
+```
+
+```{r}
+cov(t(out))
+```
+
+```{r}
+sigma_true^2 * solve(t(X) %*%X)
+```
+
+
+
