@@ -42,9 +42,14 @@ Y_i = \beta_0 + \beta_{hp} \text{hp}_{i} + \beta_{year} \text{year}_{i} + \epsil
 \]
 con $\varesilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
 
+# Significatvita' del modello
+
+La prima domanda a cui vogliamo dare risposta e' se questo modello e' significativo, ovvero che e' significativo contro il modello nullo. Formalmente dovremo dire che possiamo rifiutare, ad un livello di significativita' del 5%, che i coefficienti del modello siano pari a 0.
 
 ```{r, class.source = "fold-show"}
+# Full model or alternative model
 fit1 <- lm(mpg~hp+year, data = autompg)
+# Null model
 fit_null <- lm(mpg~1, data = autompg)
 ```
 
@@ -53,43 +58,113 @@ summary(fit1)
 ```
 
 $$H_0: \beta_{hp} =  \beta_{year} = 0$$
+Quello che calcoliamo e'la statistica F, ovvero data $H_{0}$, quanto sarebbe possibile aver trovato una $SS_{RES}$ pari a quella fornita da $H_{1}$.
+
+Alternativamente possiamo trovarla con un ANOVA del modello piu' semplice contro quello piu' complesso.
 
 ```{r}
 anova(fit_null, fit1)
 ```
+Da dove viene questo risultato?
+Noi valutiamo la misura di bonta' d'adattamento dei modelli, la $SS_{RES}$, la porzione di variabilita' spiegata dal modello.
+
+Nel modello nullo, la stima e' costante (si usa uno scalare per stimare y), questo porta ad una minore variabilita' spiegata dal modello nullo contro una grande variabilita' non spiegata affatto. Da qui notiamo che la `RSS` della riga 1, ovvero del modello nullo, e' molto piu' grande di quella della riga 2.
+
+In poche parole, e' evidente che il modello nullo sia meno efficiente nella spiegazione della variabilita', anche perche' la F-statistic e' molto grande ed il p-value e' estremamente piccolo!
+
+Il calcolo sottostante e' il seguente:
+
+\[ F = \frac{(SS_{RES}(H_{0}) - SS_{RES}(H_{A}))/(p-q)}{SS_{RES}(H_{A})/(n-p)} = \frac {\sum_{i=1}^{n}(\hat{y_{A,i}}-\hat{y_{0,i}})^{2}/(p-q)}{\sum_{i=1}^{n}(y_{i}-\hat{y_{A,i}})^2/(n-p)} \thicksim F_{p-q, n-p} \]
+
+Dove i gradi di liberta' pesano sia il nominatore che il denominatore, ed il denominatore ha funzione di standardizzazione.
 
 ```{r}
-sum(residuals(fit_null)^2)
-sum(residuals(fit1)^2)
-sum(residuals(fit_null)^2) - sum(residuals(fit1)^2)
-sum((fitted(fit_null)-fitted(fit1))^2)
+# Manually this is what R does when computing the F statistics
 
+# 1. Computes the RSS
+RSS_h0 <- sum(residuals(fit_null)^2)
+RSS_h1 <- sum(residuals(fit1)^2)
 
-num <- (sum(residuals(fit_null)^2) - sum(residuals(fit1)^2))/(fit_null$df.residual - fit1$df.residual)
-den <- sum(residuals(fit1)^2)/fit1$df.residual
-(fobs <- num/den)
+c(RSS_h0, RSS_h1)
+
+# RSS_h0 - RSS_h1
+RSS_diff <- sum(residuals(fit_null)^2) - sum(residuals(fit1)^2)
+# Which is equal to the difference of the estimated values
+# of the two models
+est_diff <- sum((fitted(fit_null)-fitted(fit1))^2)
+
+c(RSS_diff, est_diff)
+```
+
+Se non ci fosse molta differenza tra i due modelli, queste somme sarebbero molto piccole e H1 non sarebbe molto significativo.
+
+```{r}
+# F statistic
+
+# It explains how much more complex the model is with respect to H0
+df_res_diff <- fit_null$df.residual - fit1$df.residual
+# Above the fraction we find
+num <- RSS_diff/df_res_diff
+# Below the fraction we find
+den <- RSS_h1/fit1$df.residual
+
+# F statistic
+fobs <- num/den
+
+c(anova(fit_null, fit1)$F[2], fobs)
+```
+Calcoliamo ora il p-value, che e' il valore
+
+```{r}
 # pvalue 
-pf(fobs, df1 = (fit_null$df.residual - fit1$df.residual), 
+pf(fobs, df1 = df_res_diff, 
    df2 = fit1$df.residual, 
    lower.tail = FALSE)
+
+# It is so small that we get 0 
 1-pf(fobs, df1 = (fit_null$df.residual - fit1$df.residual), 
    df2 = fit1$df.residual)
-# conforntare fobs con fcrit - specificando il livello di significatività 
-qf(.98, df1 = (fit_null$df.residual - fit1$df.residual), 
+```
+
+L'alternativa e' di confrontare fobs con fcrit specificando il livello di significativita'
+
+```{r}
+# 2%, so what is the quantile that leave 98% of the probability to the left
+q<- qf(.98, df1 = df_res_diff, 
    df2 = fit1$df.residual)
+q
+
 curve(df(x,df1 = (fit_null$df.residual - fit1$df.residual), 
    df2 = fit1$df.residual), from = 0, to = 10)
+
+abline(v=q, col= "red", lwd = 3, lty =2)
 ```
+Abbiamo una fortissima evidenza che i nostri due parametri beta siano diversi da 0. Infatti:
 
 ```{r}
 summary(fit1)$fstatistic
 ```
 
+# Nested Models
+
+Come possiamo confrontare due modelli che sono annidati?
+
 ```{r}
 fit_base <- lm(mpg~wt+year, data = autompg)
+
+# lm(target ~ ., data = ..) includes all features
 fit_all <- lm(mpg~., data = autompg)
+
 summary(fit_all)
 ```
+
+Il p-value e' molto significativo
+
+Questa diminuzione della stima di $\sigma^{2}$, ovvero $SS_{RES}$, e' diversa dal punto di vista statistico oppure stiamo stimando una porzione simile di variabilita'? Bisogna ricordare che il modello piu' complesso implica maggiore difficolta' con la predizione.
+
+Inoltre, il modello potrebbe essere sovraparametrizzato dal momento che molte variabili incluse nel secondo modello, non sono molto significative. Ad esempio `hp` che prima sembrava essere una variabile
+interessante, ricopre ora un ruolo apparentemente marginale.
+
 
 ```{r}
 sum(residuals(fit_base)^2)
