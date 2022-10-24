@@ -109,20 +109,20 @@ num <- RSS_diff/df_res_diff
 den <- RSS_h1/fit1$df.residual
 
 # F statistic
-fobs <- num/den
+fobs1 <- num/den
 
-c(anova(fit_null, fit1)$F[2], fobs)
+c(anova(fit_null, fit1)$F[2], fobs1)
 ```
 Calcoliamo ora il p-value, che e' il valore
 
 ```{r}
 # pvalue 
-pf(fobs, df1 = df_res_diff, 
+pf(fobs1, df1 = df_res_diff, 
    df2 = fit1$df.residual, 
    lower.tail = FALSE)
 
 # It is so small that we get 0 
-1-pf(fobs, df1 = (fit_null$df.residual - fit1$df.residual), 
+1-pf(fobs1, df1 = (fit_null$df.residual - fit1$df.residual), 
    df2 = fit1$df.residual)
 ```
 
@@ -136,8 +136,9 @@ q
 
 curve(df(x,df1 = (fit_null$df.residual - fit1$df.residual), 
    df2 = fit1$df.residual), from = 0, to = 10)
-
 abline(v=q, col= "red", lwd = 3, lty =2)
+#Too big to appear
+points(fobs1, 0 , col = 2, pch = 4)
 ```
 Abbiamo una fortissima evidenza che i nostri due parametri beta siano diversi da 0. Infatti:
 
@@ -162,43 +163,85 @@ Il p-value e' molto significativo
 
 Questa diminuzione della stima di $\sigma^{2}$, ovvero $SS_{RES}$, e' diversa dal punto di vista statistico oppure stiamo stimando una porzione simile di variabilita'? Bisogna ricordare che il modello piu' complesso implica maggiore difficolta' con la predizione.
 
+```{r}
+# The SS Res diminishes
+# 26 points more, but is it worth the complexity?
+c(sum(residuals(fit_base)^2), sum(residuals(fit_all)^2))
+
+```
+
 Inoltre, il modello potrebbe essere sovraparametrizzato dal momento che molte variabili incluse nel secondo modello, non sono molto significative. Ad esempio `hp` che prima sembrava essere una variabile
 interessante, ricopre ora un ruolo apparentemente marginale.
 
+Dunque, ne vale la pena?
+
+## Confidence Intervals
+
+Creiamo un dataframe ad hoc per degli intervalli di confidenza e ne guardiamo l'ampiezza.
 
 ```{r}
-sum(residuals(fit_base)^2)
-sum(residuals(fit_all)^2)
-```
-
-
-```{r}
+# Create new dataframe, where for each of the predictors of mpg
+# we take some data that is at extreme quantiles and at the median
+# We apply a vectorized function
 nd <- data.frame(apply(autompg, 2, quantile, c(0.1, 0.5, 0.9)))
+
+# Confidence intervals for the two models
 (ci_all <- predict(fit_all , newdata = nd, interval = "conf"))
 (ci_base <- predict(fit_base , newdata = nd, interval = "conf"))
+
 ci_all[,3]- ci_all[,2]
+
 ci_base[,3]- ci_base[,2]
 ```
 
+Si nota che gli intervalli di `ci_base` sono piu' stretti, R-squared e' piu' piccolo e che ha meno variabilita'nell'intervallo di stima che teniamo. 
+
+Questo e' dovuto al fatto che nel modello sovraparametrizzato seguiamo delle caratteristiche peculiari dei dati che non necessariamente sono generalizzabili. Nel momento di valutazione di valutazione dell'errore di predizione, questo e' ben piu' grande!
+
+Anche se qui e' effettivamente molto semplice scovare questi dettagli, non e' sempre cosi'.
+
+## ANOVA
+
+Andiamo quindi a confrontare se il miglioramento nell $R^{2}$ dei $SS_{RES}$ e' significativo.
+
 ```{r}
 anova(fit_base, fit_all)
+```
+We can see that the F is not that big, nor the p-value is small.
 
+```{r}
+# By hand F-statistic verification
 num <- (sum(residuals(fit_base)^2) - sum(residuals(fit_all)^2))/(fit_base$df.residual - fit_all$df.residual)
 den <- sum(residuals(fit_all)^2)/fit_all$df.residual
 fobs <- num/den
-# pvalue
-pf(fobs, lower.tail = FALSE, df1 = (fit_base$df.residual - fit_all$df.residual),
+
+# p-value
+p_val <- pf(fobs, lower.tail = FALSE, df1 = (fit_base$df.residual - fit_all$df.residual),
    df2 = fit_all$df.residual)
+
+c(fobs, p_val)
+c(anova(fit_base, fit_all)$F[2], anova(fit_base, fit_all)$Pr[2])
+```
+
+
+```{r}
 # reject H0 if fobs > fcri
-qf(.98, , df1 = (fit_base$df.residual - fit_all$df.residual),
+k <- qf(.98 , df1 = (fit_base$df.residual - fit_all$df.residual),
    df2 = fit_all$df.residual)
+k
+
 curve(df(x, df1 = (fit_base$df.residual - fit_all$df.residual),
    df2 = fit_all$df.residual), from = 0, to = 10)
+abline(v=k, col= "red", lwd = 3, lty =2)
 points(fobs, 0 , col = 2, pch = 4)
 ```
 
-# bontà di adattemnto: confornto tra modelli non annidati 
+La statistica test non e' nella coda della distribuzione, quindi vi e' poca evidenza contro l'ipotesi nulla. Ci conviene mantenere il modello piu' parsimonioso e senza parametri che forniscano rumore.
 
+
+# Bontà di adattemnto: confornto tra modelli non annidati 
+
+Ora, dato che abbiamo modelli non annidati dobbiamo usare altre misure.
 
 ```{r}
 summary(fit_base)$r.square
