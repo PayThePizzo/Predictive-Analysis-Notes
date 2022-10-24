@@ -40,7 +40,7 @@ Specifichiamo un modello con due predittori `hp` e `year`:
 \[
 Y_i = \beta_0 + \beta_{hp} \text{hp}_{i} + \beta_{year} \text{year}_{i} + \epsilon_i, \qquad i = 1, 2, \ldots, n
 \]
-con $\varesilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
+con $\varepsilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
 
 # Significatvita' del modello
 
@@ -146,6 +146,8 @@ Abbiamo una fortissima evidenza che i nostri due parametri beta siano diversi da
 summary(fit1)$fstatistic
 ```
 
+---
+
 # Nested Models
 
 Come possiamo confrontare due modelli che sono annidati?
@@ -238,52 +240,84 @@ points(fobs, 0 , col = 2, pch = 4)
 
 La statistica test non e' nella coda della distribuzione, quindi vi e' poca evidenza contro l'ipotesi nulla. Ci conviene mantenere il modello piu' parsimonioso e senza parametri che forniscano rumore.
 
+---
 
 # Bontà di adattemnto: confornto tra modelli non annidati 
 
-Ora, dato che abbiamo modelli non annidati dobbiamo usare altre misure.
+Ora, dato che abbiamo modelli non annidati dobbiamo usare altre misure:
+
+1. $Adjusted R^{2}$
+2. ICs
+    + AIC
+    + BIC
+
+## Adjusted R-squared
+
+$$Adjusted \; R^{2} = 1 - \frac{SS_{RES}/(n-p-1)}{SS_{TOT}/(n-1)} $$
 
 ```{r}
-summary(fit_base)$r.square
-summary(fit_base)$adj.r.square
-1-sum(residuals(fit_base)^2)/(sum((autompg$mpg - mean(autompg$mpg))^2))
-1-(sum(residuals(fit_base)^2)/fit_base$df.residual)/(sum((autompg$mpg - mean(autompg$mpg))^2)/fit_null$df.residual)
+# From model: r-square vs adj-r-square
+c("R-square", summary(fit_base)$r.square)
+c("Adjusted-r-squared", summary(fit_base)$adj.r.square)
 
-summary(fit1)$adj.r.square
-summary(fit_base)$adj.r.square
-summary(fit_all)$adj.r.square
+# By hand
+c(1-sum(residuals(fit_base)^2)/(sum((autompg$mpg - mean(autompg$mpg))^2)), 1-(sum(residuals(fit_base)^2)/fit_base$df.residual)/(sum((autompg$mpg - mean(autompg$mpg))^2)/fit_null$df.residual))
+
+# Adjusted R Square for Fit
+c( "Adjusted R Square for fit1", summary(fit1)$adj.r.square)
+c( "Adjusted R Square for fit_base", summary(fit_base)$adj.r.square)
+c( "Adjusted R Square for fit_all", summary(fit_all)$adj.r.square)
 ```
 
 
-# Criteri di informazione 
+## Criteri di informazione 
 
-Aic 
+### AIC
 
+$$AIC(\mathcal{M}) = n * \log MSS_{RES}(\mathcal{M}) + 2p(\mathcal{M})$$
 
 ```{r}
+# Log Likelihood
 logLik(fit_base)
 logLik(fit_all)
+
+# By hand the logLik
 sum(dnorm(autompg$mpg, mean = fitted(fit_base), 
            sd = summary(fit_base)$sigma, log = TRUE))
--2*logLik(fit_base)+2*(length(coef(fit_base))+1)
--2*logLik(fit_all)+2*(length(coef(fit_all))+1)
-AIC(fit_base)
-AIC(fit_all)
+
+# AIC
+c(AIC(fit_base), AIC(fit_all))
+
+# By Hand
+c(-2*logLik(fit_base)+2*(length(coef(fit_base))+1), -2*logLik(fit_all)+2*(length(coef(fit_all))+1))
+
 ```
+Come vediamo, la differenza tra le logLik e' molto piccola ed aggiungere i 4 parametri in piu' non vale la candela.
 
+Di default `AIC()` conta sigma come un parametro stimato, solo che l'ordine degli AIC non cambia!
 
-Bic 
+### BIC
+IC in cui la penalizzazione dei modelli complessi e' piu' ferrea.
+
+$$BIC(\mathcal{M}) = n * \log MSS_{RES}(\mathcal{M}) + \log (n)p(\mathcal{M})$$
 
 ```{r}
--2*logLik(fit_base)+log(nrow(autompg))*(length(coef(fit_base))+1)
--2*logLik(fit_all)+log(nrow(autompg))*(length(coef(fit_all))+1)
-BIC(fit_base)
-BIC(fit_all)
+# BIC
+c(BIC(fit_base), BIC(fit_all))
+
+# By hand
+c(-2*logLik(fit_base)+log(nrow(autompg))*(length(coef(fit_base))+1), -2*logLik(fit_all)+log(nrow(autompg))*(length(coef(fit_all))+1))
+
+# Which is the same as the AIC with log(n)
 AIC(fit_base, k = log(nrow(autompg)))
 ```
+Ed ancora, i pochi punti in piu' non sono sufficienti ad aumentare.
 
+---
 
-# verificare la teoria tramite simulazione 
+# Verificare la teoria tramite simulazione 
+#TODO
+Come interpretare l'effetto che hanno i singoli $\beta_{j}$...
 
 ```{r}
 X <- model.matrix(fit_base) 
