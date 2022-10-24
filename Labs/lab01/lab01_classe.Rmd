@@ -29,17 +29,20 @@ s2y <- sum((y-mean(y))^2)/n
 covxy <- cov(x,y) 
 rxy <- cor(x,y)
 
-mx <- mean(x); my <- mean(y)
+mx <- mean(x)
+<- mean(y)
 
-(beta1 <- rxy * sqrt(s2y/s2x))
-(beta0 <- my - beta1 *mx)
+beta1 <- rxy * sqrt(s2y/s2x)
+beta0 <- my - beta1 *mx
 
 #plot (target ~ predictor, data = df)
 plot(flipper_length_mm ~ body_mass_g, data = pengs,pch = 16)
+
 #Aggiunge retta bo+b1x
 abline(beta0, beta1, col = 2, lwd = 1.4)
 
 yhat <- beta0 +  beta1 * x # valori stimati 
+
 sum((y-yhat)^2) ## empirical MSE 
 sum((y-(137+0.016*x))^2) 
 

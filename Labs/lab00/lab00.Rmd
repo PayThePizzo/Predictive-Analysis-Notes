@@ -77,8 +77,7 @@ median(mrents$rent)
 hist(mrents$rent, xlab = "Rent")
 abline(v=mean(mrents$rent), col = 2, lwd =2)
 abline(v=median(mrents$rent), col = 4, lwd =2)
-legend("topright", bty = "n", col = c(2,4),lwd = 2,
-       legend = c("mean","median"))
+legend("topright", bty = "n", col = c(2,4),lwd = 2, legend = c("mean","median"))
 ```
 
 Per visualizzare invece le caratteristiche di variabili categoriali possiamo usare dei barplot: 

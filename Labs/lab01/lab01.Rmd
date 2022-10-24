@@ -5,15 +5,18 @@ date: "Semestre 1 - AA 2022/23"
 output:
   html_document:
     fig_caption: yes
-    theme: flatly #sandstone #spacelab #flatly
+    theme: flatly
     highlight: pygments
     code_folding: show
-    toc: TRUE
+    toc: yes
     toc_depth: 2
-    number_sections: TRUE
+    number_sections: yes
     toc_float:
-      smooth_scroll: FALSE
-editor_options: 
+      smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+editor_options:
   chunk_output_type: console
 ---
 
@@ -22,87 +25,202 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}qr()
+
+Setting working directory if needed
+```{r}
+# Set working directory
+setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01")
+# Get working directory
 getwd()
 ```
 
-In questo lab useremo il file che contiene informazioni sui pinguini delle isole Palmers: 
+# Dataset Loading
+
+In this lab we will use a file containing information regarding the Palmers Islands' penguins
 
 ```{r}
 pengs <- read.csv("../data/penguins.csv")
 summary(pengs)
-## eliminiamo le righe con valori mancanti (non è sempre una buona idea) 
+```
+
+By applying `summary()` to the dataset, R returns:
+
+1. For numeric columns
+    + Min, Mean, Max
+    + 1st, Median, 3rd quartiles
+    + NA's, the number of missing values (rows with no data or non-numeric data)
+2. For categorical columns
+    + Length
+    + Class
+    + Mode
+
+## Dataset Cleaning
+
+Here we perform some operations to catpure a subset of the dataset where the 
+information is complete. In this case we remove all missing values, even though
+it not always the best option!
+
+```{r}
 pengs <- na.omit(pengs)
+
+# Check the number of rows after cleaning 
 nrow(pengs)
 ```
 
-Il primo modello in esame prevede di stimare come la lunghezza della pinna di un pinguino (`flipper_length_mm`) varia in funzione della massa `body_mass_g`. 
+# SLR - Manual mode
+
+For our model: $Y = \beta_{0} + \beta_{1}X + \varepsilon$, we consider as our target `flipper_length_mm` which varies in function of `body_mass_g` of a penguin. 
 
 ```{r}
 plot(pengs[,c("flipper_length_mm","body_mass_g")])
 ```
 
-Possiamo usare gli stimatori plug-in ed ottenre: 
+Through the plug-in principle we can substitute the coefficients with their estimates: 
 
 \[\hat{\beta}_1 = \frac{c_{XY}}{s^2_{X}} =  r_{XY} \frac{s_{Y}}{s_{X}},\quad \mbox{and} \quad \hat{\beta}_0 = \overline{y}-\hat{\beta}_1 \overline{x}  \]
 
 ```{r byHandCalc}
-rxy <- cor(pengs$flipper_length_mm, pengs$body_mass_g)
-sx <- sd(pengs$body_mass_g); sy <- sd(pengs$flipper_length_mm)
-mx <- mean(pengs$body_mass_g)
-my <- mean(pengs$flipper_length_mm)
-beta1_hat <- rxy*sy/sx
-beta0_hat <- my - beta1_hat * mx
+x <- pengs$body_mass_g
+y <- pengs$flipper_length_mm
+n <- length(x)
+
+s2x <- sum((x-mean(x))^2)/n
+s2y <- sum((y-mean(y))^2)/n
+
+covxy <- cov(x,y) 
+rxy <- cor(x,y)
+
+mx <- mean(x)
+my<- mean(y)
+
+# Angular coefficient
+# Dictates how the y changes in proportion to x
+beta1_hat <- rxy * sqrt(s2y/s2x)
+# Intercept
+# Forces the regression to pass by the sample mean of x and y.
+beta0_hat <- my - beta1_hat *mx
+
+# The coefficients
 c(beta0_hat, beta1_hat)
 ```
 
-Oppure, più realisticamente possiamo usare le funzioni già presenti in R. 
+We can visualize our results through a plot now
 
-# Modelli lineari in R 
+```{r}
+# Plot 2D for (xi,yi)
+# plot(target ~ predictor, data = df)
+plot(flipper_length_mm ~ body_mass_g, data = pengs,pch = 16)
+# Adds line y=bo+b1x
+abline(beta0_hat, beta1_hat, col = 2, lwd = 1.4)
+```
 
-La principale funzione da usare per stimare modelli lineari in R è `lm` - (si veda `help(lm)`). 
+Because of the assumptions made, we are sure the yhat is the function that minimizes the MSE and that no other combination of coefficients can lower that value.
 
-I primo argomento di `lm` è `formula`: con questo argomento si specifica a sinistra di una tilde quale è la variabile risposta e a destra della tilde quale sia il predittore del modello (o i predittori): 
+```{r}
+# Estimated values
+yhat <- beta0_hat +  beta1_hat * x  
+
+# Empirical MSE 
+(sum((y-yhat)^2))
+
+(sum((y-(137+0.016*x))^2) )
+```
+
+Alternatively we can use the linear models defined in R.
+
+# SLR in R 
+
+The main function to estimate linear models in R is `lm()`
+
+The first variable of `lm` is `formula = target ~ predictor1 + predictor2` where we could have one of more predictors. 
+It is important to specify the dataset each time through `data = dataset`
 
 ```{r}
 fit <- lm(flipper_length_mm~body_mass_g, data = pengs)
 ```
 
-Possiamo a questo punto *stampare* `fit` per avere informazioni di base: 
+We can *print* `fit` to find some basic insights: 
 
 ```{r}
 fit ## in R this corresponds to print(fit)
 ```
 
-La stampa mostra i valori dei coefficienti di un modello lineare semplice: questi sono i valori stimati tramite least square. Possiamo ottenere i valori dei parametri anche con 
+This prints the code of the model built and its coefficients (estimated through the least squares method).
+
+We can access them through:
 
 ```{r}
 coef(fit)
 ```
 
-Vi sono infatti una serie di funzioni che possiamo applicare all'oggetto `fit` che ha classe `lm`: 
+## lm class
+
+To `lm` objects we can apply different functions: 
 
 ```{r}
 class(fit)
 ```
 
-Tra le funzioni più utili ci sono per esempio `fitted`, che deriva i valori stimati per le $y_i$ (quindi valuta la funzione $\beta_0 + \beta_1 x_i$ prendendo le stime dei minimi quadrati per $\beta_0$ e $\beta_1$): 
-
+One the most important function is `fitted`,which derives the estimated values for $y_i$ (namely evaluating the function $\beta_0 + \beta_1 x_i$ and taking the least squared estimates for $\beta_0$ and $\beta_1$): 
 
 ```{r}
-head(coef(fit)[1]+coef(fit)[2]*pengs$body_mass_g)
-head(fitted(fit))
+# From lm
+(head(fitted(fit),10))
+# Our estimates
+(head(yhat,10))
 ```
 
-Vedremo poi che una funzione molto utile è `summary`
+
+We want to get the residuals of the model through
+```{r}
+# From lm
+(head(residuals(fit),10))
+
+# Our residuals
+(head(y - yhat,10))
+```
+
+And the standard error $s_{e}$, which allows to get info about the variances of the beta-parameters
+
+```{r}
+# For lm
+(se <- sqrt (sum((residuals(fit))^2) / (n-2)))
+
+# Our se
+(se <- sqrt (sum((yhat - y)^2) / (n-2)))
+```
+
+## summary function
+
+A very useful function is `summary` which simplifies all things we just showed.
 
 ```{r}
 summary(fit)
 ```
 
-che stampa molte informazioni: vedremo nel corso le varie parti dell'output. 
+Which prints out:
 
-Notiamo che è presente il valore stimato di $\sigma^2$, la varianza della variabile casuale che descrive l'errore del modello ($\varepsilon$): 
+1. Call, the model
+2. Residuals, the errors of the model which should homoskedastic, have sample variance equal to 0 and constant variance
+    + If the distribution was symmetric (which we hope it is), the mean and the median should coincide
+    + Moreover, the 1st and 3rd quartile should be specular
+3. Coefficients, the beta parameters' values
+    + also available through `summary(fit)$coefficients`
+4. Residual Standard Error, the estimated variance of the errors $s_{e}$
+5. Multiple R-Squared
+6. Adjusted R-Squared
+7. F-statistic
+8. P-value
+
+We can even get the residual degrees of freedom for the model
+
+```{r}
+fit$df.residual
+```
+
+# SLR - Uncertainty
+
+We can see that the estimated value of $\sigma^2$ is present, which is the variance of random variable describing the error of the model, $\varepsilon$: 
 
 \[s_e^2 = \frac{1}{n}\sum_{i=1}^{n-2} (y_i - \hat{y}_i)\]
 
@@ -111,7 +229,7 @@ summary(fit)$sigma
 sqrt(sum((pengs$flipper_length_mm  - fitted(fit))^2)/(nrow(pengs)-2))
 ```
 
-La stima di $\sigma$ viene usata per stimare l'incertezza della stima dei coefficienti del modello: 
+$\hat{\sigma}$ is used to estimate the uncertainty of the model's coefficient estimates:
 
 $$Var[\widehat{\beta}_0]= sigma_e^2\left[\frac{1}{n} + \frac{\overline{x}^2}{n s^2_X}\right]$$
 $$Var[\widehat{\beta}_1] = \frac{ sigma_e^2}{n s^2_X}$$
