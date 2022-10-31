@@ -316,29 +316,52 @@ Ed ancora, i pochi punti in piu' non sono sufficienti ad aumentare.
 ---
 
 # Verificare la teoria tramite simulazione 
-#TODO
-Come interpretare l'effetto che hanno i singoli $\beta_{j}$...
+Come interpretare l'effetto che hanno i singoli $\beta_{j}$ sulla nostra stima,
+sulla variabilita'? Perche' avere varabilita' in eccesso non e' sempre una buona
+idea?Cosa vuol dire che una stima del modello non e' significativa? Come verificarlo?
+
+Cerchiamo di rispondere a queste domande, verificando la teoria:
+1. E'vero che la distribuzione campionaria delle stime di beta, $\hat{\beta}$ si comporta cosi'?
+2. La differenza tra una variabile significativa ed una non significativa nel modello, ovvero quando una spiega qualcosa ma l' altra no.
 
 ```{r}
+# We fix the Xs and their distribution 
+# We simulate them so that they have similar distribution to fit_base
+
+# The X matrix is the design matrix, extracted from fit_base
+# We then fix the coefficients and the distribution
 X <- model.matrix(fit_base) 
+# Intercept, x1, x2 are just casual fixed var
 colnames(X) <- c("Int", "x1","x2")
 sigma_true <- 3.4
 beta_true <- c(-14, -0.006, .74)
 n <- nrow(X)
+
 # set.seed(8686)
-y_alternative <- X %*% beta_true+  rnorm(n, 0, sigma_true)
+
+# If we had a different sample of cars, we could have this kind of relation
+y_alternative <- X %*% beta_true +  rnorm(n, 0, sigma_true)
+# If we observed a different sample and a different dataframe
 autodf_alterntive <- data.frame(y = y_alternative, X[,-1])
+# Which would result in a model like this
 lm(y~x1+x2, data = autodf_alterntive)
 ```
 
+Generando e stimando piu' volte, campioni con basi simili, possiamo avere una media di come si comporta il modello e quindi i coefficienti calcolati. Infatti, se in piu' "mondi alternativi" la nostra stima vanta sempre della stessa non-distorsione, e dello stesso comportamento descritto (varianza omoschedastica ...), sara'una buona stima
+
+Ora vediamo di scrivere una funzione che automatizzi questo processo.
+
 ```{r}
+# The matrix model, the true values of beta, and true value of SD
 generate_and_estimate <- function(X, truebeta, truesigma){
-  n <- nrow(X)
+  n <- nrow(X)   
   y_alternative <- X %*% truebeta+  rnorm(n, 0, truesigma)
   autodf_alterntive <- data.frame(y = y_alternative, X[,-1])
   estimate <- coef(lm(y~x1+x2, data = autodf_alterntive))
   estimate
 }
+
+# Replicate it 500 times
 generate_and_estimate(X = X, truebeta = beta_true, truesigma = sigma_true)
 out <- replicate(n = 500, generate_and_estimate(X = X, truebeta = beta_true, truesigma = sigma_true))
 hist(out[1,])
@@ -347,11 +370,15 @@ hist(out[3,]); abline(v = beta_true[3], col = 2)
 mean(out[3,])
 ```
 
+
+
 ```{r}
+# This matrix is derived from the 500 alternative samples
 cov(t(out))
 ```
 
 ```{r}
+# The true vcov matrix is
 sigma_true^2 * solve(t(X) %*%X)
 ```
 
