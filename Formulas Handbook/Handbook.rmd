@@ -11,11 +11,9 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Environment Set Up
-
-```{r}
+```{r, include=FALSE}
 # wd setting
-setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01")
+setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01/")
 ```
 
 ---
@@ -24,10 +22,13 @@ setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01")
 
 Model: $Y_{i} = \beta_{0} + \beta_{1}X_{i} + \varepsilon_{i}$
 
-```{r}
+```{r, include=FALSE}
 # df loading
-dataset <- read.csv("penguins.csv")
+dataset <- read.csv("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01/penguins.csv")
 dataset <- na.omit(dataset) ## same dataset without missing values
+```
+
+```{r}
 colnames(dataset)
 ```
 
@@ -85,9 +86,9 @@ summary(fit)
 The `Residuals` prints the sample positional statistics of the residuals for the model.
 
 Usually, for normality purposes, we want:
-+ The mean to be equal to 0, $\mathbb{E}[\varepsilon_{i}] = 0$
-+ The mean and the median to coincide
-+ The 1Q and 3Q to be equally distant from the mean (specular)
+* The mean to be equal to 0, $\mathbb{E}[\varepsilon_{i}] = 0$
+* The mean and the median to coincide
+* The 1Q and 3Q to be equally distant from the mean (specular)
 
 ## Coefficients 
 
@@ -105,20 +106,48 @@ $\beta_{1}$, the angular coefficient, dictates the direction of the slope for th
 
 ### Std. error
 
-### t-value
+### t-value e p-value
 
-### p-value 
+`t value` represents the test statistics: $t_{obs} = \frac{\hat{\beta_{j}}-\beta^{*}}{SE[\hat{\beta_{j}}]} \thicksim t_{n-k}$
+* $n = length(x)$
+* $k$ is the number of parameters estimated 
+* where $\beta^{*} = 0$
 
+`Pr(>|t|)` is the p-value of the test:
+* $H_{0}: \beta_{j} = \beta^{*}$
+* $H_{1}: \beta_{j} \neq \beta^{*}$
+* where $\beta^{*} = 0$
 
+By default they null hypothesis is that the influence of the $\b_{j}$ is 0. In this
+case the test looks like this
+
+$t_{obs} = \frac{\hat{\beta_{1}}-0}{SE[\hat{\beta_{1}}]} \thicksim t_{333-2}$
 
 ```{r}
-head(summary(fit))
+sigma2_hat <- (1/n)*mse_hat
+s2e <- (n/(n-2))*sigma2_hat
+se_beta1 <- sqrt(s2e)/sqrt(n*s2x)
 
-head(fitted(fit))
-
-head(residuals(fit))
+# By hand
+(t_obs <- ((beta1-0)/se_beta1))
+# Automatically
+((fit$coefficients[2]-0)/summary(fit)$coefficients[2,2])
 ```
 
+
+If we want to change the $\beta^{*}=1$, the test changes too:
+
+```{r}
+# Beta star = 1
+sigma2_hat <- (1/n)*mse_hat
+s2e <- (n/(n-2))*sigma2_hat
+se_beta1 <- sqrt(s2e)/sqrt(n*s2x)
+
+# By hand 
+(t_obs <- ((beta1-1)/se_beta1))
+# Automatically
+((fit$coefficients[2]-1)/summary(fit)$coefficients[2,2])
+```
 
 ---
 
