@@ -1,0 +1,125 @@
+---
+title: "Handbook for Predictive Analysis"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+    code_folding: show
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Environment Set Up
+
+```{r}
+# wd setting
+setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01")
+```
+
+---
+
+# SLR
+
+Model: $Y_{i} = \beta_{0} + \beta_{1}X_{i} + \varepsilon_{i}$
+
+```{r}
+# df loading
+dataset <- read.csv("penguins.csv")
+dataset <- na.omit(dataset) ## same dataset without missing values
+colnames(dataset)
+```
+
+```{r}
+# Define the data
+# predictor
+x <- dataset$body_mass_g
+# target
+y <- dataset$flipper_length_mm
+n <- length(x)
+```
+
+## Manual Mode
+
+Sample values
+```{r}
+# Sample Variance
+s2x <- sum((x-mean(x))^2)/n
+s2y <- sum((y-mean(y))^2)/n
+# Covariance
+covxy <- cov(x,y) 
+rxy <- cor(x,y)
+# Sample Mean
+mx <- mean(x)
+my <- mean(y)
+
+# Parameters 
+(beta1 <- rxy * sqrt(s2y/s2x))
+(beta0 <- my - beta1 *mx)
+
+# Estimated Values
+yhat <- beta0 +  beta1 * x 
+
+# Empirical MSE
+(mse_hat <- sum((y-yhat)^2))
+```
+
+## Automatically
+
+```{r}
+# Define model
+fit <- lm(formula = y ~ x, data = dataset)
+
+# Coefficients 
+coef(fit)
+```
+
+As you can see, there is no difference when respecting the assumptions.
+
+```{r}
+summary(fit)
+```
+
+## Residuals
+The `Residuals` prints the sample positional statistics of the residuals for the model.
+
+Usually, for normality purposes, we want:
++ The mean to be equal to 0, $\mathbb{E}[\varepsilon_{i}] = 0$
++ The mean and the median to coincide
++ The 1Q and 3Q to be equally distant from the mean (specular)
+
+## Coefficients 
+
+### Estimate 
+The `Estimate` prints the sample coefficients for the model.
+
+#### Correlation
+Is the correlation between $X$ and $Y$ positive or negative?
+
+$\beta_{1}$, the angular coefficient, dictates the direction of the slope for the regression
+* If the estimate for $\beta_{1}$ is **positive**, then there is a positive correlation between X and Y
+    + The sign of $\hat{\beta_{1}}$ is the sign of Pearsons's correlation coefficient $r_{xy}$
+    + If too strong, it might symbolize that it is not working properly.
+* Else, the correlation is negative
+
+### Std. error
+
+### t-value
+
+### p-value 
+
+
+
+```{r}
+head(summary(fit))
+
+head(fitted(fit))
+
+head(residuals(fit))
+```
+
+
+---
+
+
