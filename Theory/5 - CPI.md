@@ -81,7 +81,7 @@ Notice that the F statistics is the t-test statistic squared.
 
 ---
 ## Interactions
->An interaction occurs when an independent variable has a different effect on the outcome depending on the values of another independent variable. 
+>An interaction occurs when an independent variable has a different effect on the outcome depending on the values of another independent variable.
 
 Let's consider: 
 $$Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{1}x_{2}+\varepsilon$$
@@ -100,6 +100,7 @@ In terms of regression equations, we have three different models:
 3. Sex has an effect with an interaction: 
    * $x_{2}=1 \rightarrow Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{1}x_{2}+\varepsilon$
 
+We consider the first and the third ones.
 
 ### Fitting the model in R
 
@@ -116,7 +117,14 @@ You should only do this as a last resort!
  
 ```r
 fi_mlr_int <- lm(flipper_length_mm ̃ body_mass_g + sex + body_mass_g : sex, data = penguins)
+summary (fi_mlr_int)
 ```
+
+![int2ex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/int2ex.png?raw=TRUE)
+
+$\beta_{2}$ has lost its significance, since we used a more complex model and we estimated a lower variance (the model now explains more). $\beta_{3}$ has high p-value too!
+
+By using a more complex model, we shadow the signal of $\beta_{2}$.
 
 3) An alternative method uses the `*` operator. This method automatically creates the interaction term, as well as any ”lower order terms” which in this case are the first order terms for body_mass_g and sex
 
@@ -125,18 +133,82 @@ fi_mlr_int2 <-lm(flipper_length_mm ̃ body_mass_g * sex, data = penguins)
 ```
 
 ### Verifying Hypothesis
-We consider the first and the third ones, to test for difference in the two groups.
-$$H_{0}: \beta_{3}=0 vs H_{A} \neq 0$$
+Testing for $\beta_{3}$: 
+* Testing two lines with parallel slopes $H_{0}: \beta_{3}=0$
+  * Less complex models, same angular coefficient, different intercepts
+* Testing two lines with possibly different slopes $H_{A}: \beta_{3}\neq 0$
+  * More complex models, different angular coefficients, different intercepts
 
+```r
+# Uses a t-test to perform the test
+summary(fi_mlr_int)$coefficients["body_mass_g:sexmale",]
+[1]
+    Estimate        Std. Error      t value         Pr(>|t|)
+    -0.0006176503   0.0010129746    -0.6097391962   0.5424554613
+```
+The t-value is close to 0 and the p-value is very high, so we do not reject the $H_{0}$ with confidence. We can say that, the effect of the total dimension of the penguin on the flipper length is equal in the two groups, even though they have different mean values. We can use test ANOVA again if neeeded.
 
+![estimateex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/estimateex.png?raw=TRUE)
 
+Even if the results differ, they have no statistically relevant difference, which leads us to use a simpler model, with a difference only in the intercept.
 
 ---
 
 ## Factor Variables
+> A "factor" is a vector whose elements can take on one of a specific set of values.
 
+For example, "Sex" will usually take on only the values "M" or "F," whereas "Name" will generally have lots of possibilities. The set of values that the elements of a factor can take are called its **levels**. If you want to add a new level to a factor, you can do that, but you can't just change elements to have new values that aren't already levels [2]
+
+How can we translate factors, usually strings, into numerical values to inculde them into a model?
+```r
+# Check type
+class(penguins$sex)
+```
+
+If we only have two levels we can encode a variable gender which takes 0 for male and 1 for female penguins, and use it to fit a model.
+```r
+penguins$gender <- 0
+penguins$gender[penguins$sex == "female"] = 1
+penguins$gender[1:4]
+
+[1] 0 1 1 1
+
+class(penguins$gender)
+[1] "numeric"
+
+fc_mlr_add_alt <- lm(flipper_length_mm ̃ body_mass_g + gender, data = penguins)
+
+# Same R^2
+summary(fc_mlr_add)$r.squared; summary(fc_mlr_add_alt)$r.squared
+[1] 0.7784678
+[1] 0.7784678
+```
+
+However, it seems that it doesn’t produce the same results
+* $\beta_{0}$ changes
+* $\beta_{1}$ is different, as is the the coefficient in front of sex
+* $\beta_{2}$ same magnitude
+```r
+coef(fc_mlr_add)
+    (Intercept)     body_mass_g     sexmale
+    134.63634714    0.01624103      -3.95699583
+
+coef(fc_mlr_add_alt)
+    (Intercept)     body_mass_g     gender
+    130.67935131    0.01624103      3.95699583
+```
+
+What is happening?
+When we ask R to use a variable stored as a string, the program turns this into a factor
+and from the factor it creates dummy variables: one dummy for each level except the
+reference level
+
+The reference level is taken to be the first level, by the order is set alphabetically.
+
+factor variables are special variables that R uses to deal with categorical variables.
 
 ## Factors with more than two levels
+
 
 ---
 
@@ -152,3 +224,5 @@ $$H_{0}: \beta_{3}=0 vs H_{A} \neq 0$$
 ---
 Credits 
 * [1 - Interaction](https://www.medicine.mcgill.ca/epidemiology/joseph/courses/EPIB-621/interaction.pdf) from [Lawrence Joseph](https://www.medicine.mcgill.ca/epidemiology/joseph/)'s Epidemiology Course at [McGill University](https://www.mcgill.ca/)
+* [2 - Factors](https://faculty.nps.edu/sebuttre/home/R/factors.html) from [Samuel E. Buttrey](https://faculty.nps.edu/sebuttre/)'s General Applied Statistics Course at [Naval Postgraduate School](https://nps.edu/)
+
