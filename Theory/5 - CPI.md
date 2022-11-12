@@ -288,6 +288,11 @@ levels(penguins$sex2)
 ## 4 - Factors with more than two levels
 Let’s now consider a factor variable with more than two levels.
 
+We have three ways to encode these labels:
+* Ordinal Encoding
+* One-Hot-Encoding
+* Dummy-Encoding 
+
 Species is an example:
 ```r
 penguins$species <- factor(penguins$species)
@@ -299,11 +304,6 @@ table(penguins$species)
 unique(as.numeric(penguins$species))
 [1] 1 3 2
 ```
-
-We have three ways to encode these labels:
-* Ordinal Encoding
-* One-Hot-Encoding
-* Dummy-Encoding 
 
 ### 4.1 - Ordinal Encoding - When is it useful?
 > An "ordered" factor is a factor whose levels have a particular order. 
@@ -329,11 +329,9 @@ The problem is that this representation includes redundancy. For example, if we 
 
 This is called a dummy variable encoding, and always represents $i$ categories with $i-1$ binary variables.[5](https://machinelearningmastery.com/one-hot-encoding-for-categorical-data/)
 
-We create multiple $v_{i}$ binary variables whose levels are either 1 or 0, for each one of the levels $i$ in the factor column representing the categorical variable. Unfortunately, this influences the order of the parametric space.
-
-#### Dummy-Encoding for penguins example
+#### 4.3.1 - Dummy-Encoding for penguins example
 Let’s define three dummy variables related to the species factor variable. 
-* v1, Adelie (1) or not Adelie (0)
+* v1, Adelie (1) or not Adelie (0), the **reference level**
 * v2, Chinstrap (1) or not Chinstrap (0)
 * v3, Gentoo (1) or not Gentoo (0)
 
@@ -343,6 +341,7 @@ $$Y = \beta_{0} + \beta_{1}x + \beta_{2}v_{2} +  \beta_{3}v_{3} + \varepsilon$$
 
 Notice we use two dummy variables to codify the three level categorical variable.
 
+In R
 ```r
 fc_mass_species <- lm(flipper_length_mm ̃ body_mass_g + species, data = penguins)
 fc_mass_species
@@ -354,8 +353,65 @@ Coefficients:
     (Intercept)     body_mass_g     speciesChinstrap    speciesGentoo
     158.546071      0.008515        5.491543            15.328938
 ```
-R doesn’t use $v_{1}$ because it doesn’t need to. To create three lines, it only needs two dummy variables since it is using a **reference level**.
+If species was a continuous variable, R would return 3 coefficients.
 
+R doesn’t use $v_{1}$ because it doesn’t need to.  To create three lines, it only needs two dummy variables since it is using a **reference level**:
+* Same angular coefficient (line or relation between mass and flipper length)
+* 3 different intercepts (given by 2 additional $\beta$ parameters)
+  * $\beta_{2}$ describes the (estimate) difference of the intercept between the 2nd species vs 1st species
+  * $\beta_{3}$ describes the (estiamate) difference of the interecept between the 3rd species vs 1st species
+  * $\beta_{0}$ describes the estimate for the 1st species (the reference level), which is absorbed by the general intercept.
+
+We are using the info from each of the 3 groups to estimate the variance, the estimate for $\sigma^{2}$ is based on each group.
+
+R automatically creates an appropriate model matrix:
+```r
+model.matrix(fc_mass_species)[c(1,220,330),]
+    (Intercept) body_mass_g speciesChinstrap speciesGentoo
+1       1       3750            0               0
+228     1       5800            0               1
+341     1       3400            1               0
+
+# Check the rows numbers
+colSums(model.matrix(fc_mass_species)[,3:4])
+speciesChinstrap speciesGentoo
+68                  119
+
+table(penguins$species)
+    Adelie  Chinstrap   Gentoo
+    146     68          119
+```
+
+The three "sub models", have the same slope but three intercepts:
+* Adelie: $Y = \beta_{0} + \beta_{1}x + \varepsilon$
+* Chinstrap: $Y = (\beta_{0} +  \beta_{2}) +\beta_{1}x + \varepsilon$
+* Gentoo: $Y = (\beta_{0} +  \beta_{3}) +\beta_{1}x + \varepsilon$
+
+In this case Adelie is the reference level: $\beta_{0}$ is specific to Adelie, but $\beta_{2}$ and $\beta_{3}$ are used to represent quantities relative to Adelie.
+
+![dummyencex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/dummyencex.png?raw=TRUE)
+
+### Interaction Model
+Is the relationship between body mass and flipper length the same for all species?
+We can assess this using an interaction model.
+
+```r
+fc_mass_int_species <- lm(flipper_length_mm ̃ body_mass_g * species, data = penguins)
+fc_mass_int_species
+
+Call:
+lm(formula = flipper_length_mm ̃ body_mass_g * species, data = penguins)
+
+Coefficients:
+(Intercept)     body_mass_g
+165.603241      0.006610
+
+speciesChinstrap    speciesGentoo
+-14.222367          4.063979
+
+body_mass_g:speciesChinstrap    body_mass_g:speciesGentoo
+0.005295                        0.002730
+```
 
 
 ---
