@@ -23,7 +23,7 @@ $$Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \varepsilon$$
 For our example the meaning is: 
 
 $$x_{2} = \left\{ \begin{array}{rcl}
-1 & male & Y_{male} = (\beta_{0}+\beta_{2}) + \beta_{1}x_{1} + \varepsilon = \beta_{0} + \beta_{1}x_{1} + \beta_{2}\cdot 1 +\varepsilon\\ 
+1 & male & Y_{male} = (\beta_{0}+\beta_{2}) + \beta_{1}x_{1} + \varepsilon\\ 
 0 & female & Y_{female} = \beta_{0} + \beta_{1}x_{1}+\varepsilon
 \end{array}\right.$$
 
