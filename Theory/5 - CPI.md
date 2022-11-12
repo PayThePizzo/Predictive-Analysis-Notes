@@ -1,5 +1,7 @@
 # Categorical Predictors and Interactions
 
+---
+
 ## Some Vocabulary First
 > Categorical variables (also called qualitative variable) refers to a characteristic that can’t be quantifiable.
 
@@ -38,12 +40,12 @@ This looks like a graph of the residuals and we can tell there is a difference! 
 
 <p style="color:red">Beware that any conversion from categorical variables to numerical values, can be misleading when used for certain arithmetic operations.</p>
 
-## Dummy Variables 
+## 1 - First Approach: Dummy Variables and Binary Encoding
 > A dummy variable (or indicator) is a numerical variable that is used in a regression analysis to code for a binary numerical variable
 
 It is exactly what we call a binary variable.
 
-Let's update the model:
+Let's update the model and perform a binary encoding:
 
 $$Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \varepsilon$$
 * Y remains the same but,
@@ -72,9 +74,11 @@ fc_mlr_add <- lm(flipper_length_mm ~ body_mass_g + sex, data = penguins)
 
 Since, the models are bound to pass through $(\bar{x}, \bar{y})$, this tells us that there is a difference in the the intercept of the two groups.
 
+### 1.1 - Splitting the dataset by levels, is it a good idea?
 We could achieve the same results by estimating two different models, but this would have resulted in a loss in the number of observations used to estimate. <mark>In fact, we lose the variability of the full sample </mark>and we merely focus on the instances of the same sex, restricting our vision of the sample. Consequently the estimate of the variance would not match between two different models.
 
-### Verifying Hypothesis
+
+### 1.2 - Verifying Hypothesis
 We want to test: $H_{0}:\beta_{2} = 0 vs H_{A}:\beta_{2} \neq 0$, where $H_{0}$ indicates no difference between the two interecepts. 
 
 ```r
@@ -87,7 +91,7 @@ summary(fc_mlr_add)$coefficients["sexmale",]
 ```
 We can see there is a difference of 3.957 mm in the length of the flipper, which is statistically relevant.
 
-### Anova & F test
+### 1.3 - Anova & F test
 It is easy to see that these models can be thought as nested models, so an ANOVA test is
 alternative.
 
@@ -107,7 +111,7 @@ Model 2: flipper_length_mm ̃ body_mass_g + sex
 Notice that the F statistics is the t-test statistic squared.
 
 ---
-## Interactions
+## 2 - Interactions
 >An interaction occurs when an independent variable has a different effect on the outcome depending on the values of another independent variable. [1](https://www.medicine.mcgill.ca/epidemiology/joseph/courses/EPIB-621/interaction.pdf)
 
 Let's consider: 
@@ -125,13 +129,13 @@ In terms of regression equations, we have three different models:
 2. Sex has an effect but **no interaction**: 
    * $x_{2}=1 \rightarrow Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} +(0 \cdot x_{1}x_{2})+\varepsilon$
 3. Sex has an effect with an interaction: 
-   * $x_{2}=1 \rightarrow Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{1}x_{2}+\varepsilon$
+   * $x_{2}=1 \rightarrow Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{1}x_{2}+\varepsilon$ 
 
 We consider the first and the third ones.
 
-### Fitting the model in R
+### 2.1 - Fitting the model in R
 
-1) Create a new variable then fit a model like any other
+#### 2.1.1 - Create a new variable then fit a model like any other
  
 ```r
 penguins$sexInt <- penguins$body_mass_g * (penguins$sex == "Male")
@@ -140,7 +144,7 @@ do_not_do_this <- lm(flipper_length_mm ̃ body_mass_g + sex + sexInt, data = pen
 ```
 You should only do this as a last resort!
 
-2) Use the existing data with an interaction term such as the `:` operator
+#### 2.1.2 - Use the existing data with an interaction term such as the `:` operator
  
 ```r
 fi_mlr_int <- lm(flipper_length_mm ̃ body_mass_g + sex + body_mass_g : sex, data = penguins)
@@ -153,13 +157,14 @@ $\beta_{2}$ has lost its significance, since we used a more complex model and we
 
 By using a more complex model, we shadow the signal of $\beta_{2}$.
 
-3) An alternative method uses the `*` operator. This method automatically creates the interaction term, as well as any ”lower order terms” which in this case are the first order terms for body_mass_g and sex
+#### 2.1.3 - The * operatore 
+An alternative method uses the `*` operator. This method automatically creates the interaction term, as well as any ”lower order terms” which in this case are the first order terms for body_mass_g and sex
 
 ```r
 fi_mlr_int2 <-lm(flipper_length_mm ̃ body_mass_g * sex, data = penguins)
 ```
 
-### Verifying Hypothesis
+### 2.2 - Verifying Hypothesis
 Testing for $\beta_{3}$: 
 * Testing two lines with parallel slopes $H_{0}: \beta_{3}=0$
   * Less complex models, same angular coefficient, different intercepts
@@ -181,18 +186,16 @@ Even if the results differ, they have no statistically relevant difference, whic
 
 ---
 
-## Factor Variables
+## 3 - Factor Variables
 > A "factor" is a vector whose elements can take on one of a specific set of values, called levels (categories).
 
-Factor variables are special variables that R uses to deal with categorical variables.
-A factor can also contain ordinal variables.
+Factor variables are special variables that R uses to deal with categorical variables. A factor can also contain ordinal variables.
 
 For example, "Sex" will usually take on only the values "M" or "F," whereas "Name" will generally have lots of possibilities. The set of values that the elements of a factor can take are called its **levels**. If you want to add a new level to a factor, you can do that, but you can't just change elements to have new values that aren't already levels [2]
 
-### Binary Encoding
+### 3.1 - Binary Encoding for Penguins
 If we only have two levels for a factor, we can encode a variable with an appropriate name (i.e. `is_x` or `has_`) which takes 0 if the condition (or the feature is not present) is not statisfied, else 1,  and use it to fit a model.
 
-### Introductory example for Penguins
 How can we translate factors, usually strings, into numerical values to inculde them into our model?
 ```r
 # Check type
@@ -201,6 +204,7 @@ class(penguins$sex)
 
 We can encode a variable gender which takes 0 for male and 1 for female penguins.
 ```r
+# Manually
 # Set col to 0 
 penguins$gender <- 0
 # Set female instances to gender=1
@@ -211,7 +215,10 @@ penguins$gender[1:4]
 
 class(penguins$gender)
 [1] "numeric"
+```
 
+Or automatically
+```r
 # Build the model 
 fc_mlr_add_alt <- lm(flipper_length_mm ̃ body_mass_g + gender, data = penguins)
 
@@ -221,7 +228,7 @@ summary(fc_mlr_add)$r.squared; summary(fc_mlr_add_alt)$r.squared
 [1] 0.7784678
 ```
 
-However, it seems that it doesn’t produce the same results
+However, it seems that it doesn’t produce the same results for the models:
 * $\beta_{0}$ changes
 * $\beta_{1}$ is different, as is the the coefficient in front of sex
 * $\beta_{2}$ same magnitude
@@ -235,7 +242,7 @@ coef(fc_mlr_add_alt)
     130.67935131    0.01624103      3.95699583
 ```
 
-### Generalizing - Under the hood
+### 3.2 - Generalizing - Under the hood
 What is happening?
 
 When we ask R to use a variable stored as a string, the program turns this into a factor
@@ -276,15 +283,9 @@ levels(penguins$sex2)
 
 [1] "female" "male"
 ```
-### Ordered Factors
-> An "ordered" factor is a factor whose levels have a particular order. 
-
-Ordered variables inherit from factors, so anything that you can to a factor you can do to an ordered factor. Create ordered factors with the `ordered()` command, or by using `factor(...,ordered=TRUE)`. Many R models generally ignore ordering even if it is present.
-
-Remember that R is case sensitive, so "female" and "Female" are seen as two different levels.
 
 ---
-## Factors with more than two levels
+## 4 - Factors with more than two levels
 Let’s now consider a factor variable with more than two levels.
 
 Species is an example:
@@ -298,16 +299,39 @@ table(penguins$species)
 unique(as.numeric(penguins$species))
 [1] 1 3 2
 ```
-It would not make much sense to include a numerical values as encoding of the labels from the species (es: `Adelie -> 1`), as that would imply a numerical distance between the species. 
 
-### One-Hot-Encoding
-This method is best suited when an element can take a set of values (i.e. movies can be dramatic and romantic).
+We have three ways to encode these labels:
+* Ordinal Encoding
+* One-Hot-Encoding
+* Dummy-Encoding 
 
-We use dichotomous variables for each one of the levels.
+### 4.1 - Ordinal Encoding - When is it useful?
+> An "ordered" factor is a factor whose levels have a particular order. 
 
-We create multiple $v_{i}$ dummies binary variables whose levels are either 1 or 0, for each one of the levels $i$ in the factor column representing the categorical variable.
+In ordinal encoding, each unique category value is assigned an integer value. For example, “red” is 1, “green” is 2, and “blue” is 3.
 
-### Penguins example
+It is a natural encoding for ordinal variables. For categorical variables, it imposes an ordinal relationship where no such relationship may exist. For categorical variables where no ordinal relationship exists, the integer encoding may not be enough, at best, or misleading to the model at worst.
+
+Forcing an ordinal relationship via an ordinal encoding and allowing the model to assume a natural ordering between categories may result in poor performance or unexpected results (predictions halfway between categories). [5](https://machinelearningmastery.com/one-hot-encoding-for-categorical-data/)
+
+#### 4.1.1 - In R
+Ordered variables inherit from factors, so anything that you can to a factor you can do to an ordered factor. Create ordered factors with the `ordered()` command, or by using `factor(...,ordered=TRUE)`. Many R models generally ignore ordering even if it is present. Remember that R is case sensitive, so "female" and "Female" are seen as two different levels.
+
+### 4.2 - One-Hot-Encoding
+This method is best suited when an element can take a set of values (i.e. movies can be dramatic and romantic). A one-hot encoding is appropriate for categorical data where no relationship exists between categories. This is where the integer encoded variable is removed and one new binary variable is added for each unique integer value in the variable.
+
+> It would be absurd to use an ordinal enconding since species as that would imply a numerical distance between the species. Furthermore the One-Hot-Encoding creates redundancy.
+
+### 4.3 - Dummy-Encoding
+The one-hot encoding creates one binary variable for each category.
+
+The problem is that this representation includes redundancy. For example, if we know that [1, 0, 0] represents “blue” and [0, 1, 0] represents “green” we don’t need another binary variable to represent “red“, instead we could use 0 values for both “blue” and “green” alone, e.g. [0, 0].
+
+This is called a dummy variable encoding, and always represents $i$ categories with $i-1$ binary variables.[5](https://machinelearningmastery.com/one-hot-encoding-for-categorical-data/)
+
+We create multiple $v_{i}$ binary variables whose levels are either 1 or 0, for each one of the levels $i$ in the factor column representing the categorical variable. Unfortunately, this influences the order of the parametric space.
+
+#### Dummy-Encoding for penguins example
 Let’s define three dummy variables related to the species factor variable. 
 * v1, Adelie (1) or not Adelie (0)
 * v2, Chinstrap (1) or not Chinstrap (0)
@@ -330,7 +354,7 @@ Coefficients:
     (Intercept)     body_mass_g     speciesChinstrap    speciesGentoo
     158.546071      0.008515        5.491543            15.328938
 ```
-R doesn’t use $v_{1}$ because it doesn’t need to. To create three lines, it only needs two dummy variables since it is using a **reference level**
+R doesn’t use $v_{1}$ because it doesn’t need to. To create three lines, it only needs two dummy variables since it is using a **reference level**.
 
 
 
@@ -345,3 +369,4 @@ R doesn’t use $v_{1}$ because it doesn’t need to. To create three lines, it 
 * [2 - Factors](https://faculty.nps.edu/sebuttre/home/R/factors.html) from [Samuel E. Buttrey](https://faculty.nps.edu/sebuttre/)'s General Applied Statistics Course at [Naval Postgraduate School](https://nps.edu/)
 * [3 - Types of Variables](https://www150.statcan.gc.ca/n1/edu/power-pouvoir/ch8/5214817-eng.htm) by [Statistics Canada](https://www.statcan.gc.ca/en/start)
 * [4 - Dichotomous Variable](https://www.statisticshowto.com/dichotomous-variable/) by [Statistics How To](https://www.statisticshowto.com/)
+* [5 - Ordinal and One-Hot Encodings for Categorical Data](https://machinelearningmastery.com/one-hot-encoding-for-categorical-data/) by Jason Brownlee
