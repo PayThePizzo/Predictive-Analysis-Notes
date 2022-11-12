@@ -387,7 +387,7 @@ The three "sub models", have the same slope but three intercepts:
 * Chinstrap: $Y = (\beta_{0} +  \beta_{2}) +\beta_{1}x + \varepsilon$
 * Gentoo: $Y = (\beta_{0} +  \beta_{3}) +\beta_{1}x + \varepsilon$
 
-In this case Adelie is the reference level: $\beta_{0}$ is specific to Adelie, but $\beta_{2}$ and $\beta_{3}$ are used to represent quantities relative to Adelie.
+In this case Adelie is the reference level: $\beta_{0}$ is specific to Adelie, but $\beta_{2}$ and $\beta_{3}$ are used to represent quantities relative to Adelie. To find the interecept for the other two groups, we just need to add estimates to $\beta_{0}$
 
 ![dummyencex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/dummyencex.png?raw=TRUE)
 
