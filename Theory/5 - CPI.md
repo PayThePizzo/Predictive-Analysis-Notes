@@ -464,11 +464,19 @@ Model 2: flipper_length_mm ̃ body_mass_g * species
 ```
 We see a low p-value, and thus reject the null (at 0.05). We prefer the interaction model over the additive model. Usually we prefer a p-value closer to 0.01 or lower
 
+Using dummies allows us to have different estimates for each group, where we exploit the information captured by all the groups to evaluate the uncertainty of estimate for each single group. In a way is like having shared information between groups that can be used instead of locking them out and reduce the scope of the sample data.
+
+However, the price to pay is the strong assumptions that the errors are equals in all the groups.
+
 ---
 
 ## 6 - Linear Models Repurposed
+What if we only use a factor variable in the analysis? 
 
-What if we only use a factor variable in the analysis? See a factor with two levels:
+We subsitute the use of body_mass_g with sex as main predictor.
+
+TO FINISH
+
 ```r
 mfa_only <- lm(flipper_length_mm ̃ sex, data = penguins)
 summary(mfa_only)$coef
