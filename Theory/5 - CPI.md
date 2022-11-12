@@ -1,20 +1,47 @@
 # Categorical Predictors and Interactions
-It is normal to find columns filled with non-numerical values when dealing with datasets.
-This kinds of variables are called *categorical variables*, and they include nominal variables which we know in computer science as strings.
 
-Until now we have not covered any way to include this kind of information inside the model, even though the many categorical predictors could be useful. How can we use categorical, nominal (strings) variables for the linear model?
+## Some Vocabulary First
+> Categorical variables (also called qualitative variable) refers to a characteristic that can’t be quantifiable.
+
+Categorical variables can be either nominal or ordinal.
+
+> A nominal variable is one that describes a name, label or category without natural order. 
+Sex and type of dwelling are examples of nominal variables 
+
+> An ordinal variable is a variable whose values are defined by an order relation between the different categories. 
+
+In the variable “behaviour” is ordinal because the category “Excellent” is better than the category “Very good,” which is better than the category “Good,” etc. There is some natural ordering, but it is limited since we do not know by how much “Excellent” behaviour is better than “Very good” behaviour.[3](https://www150.statcan.gc.ca/n1/edu/power-pouvoir/ch8/5214817-eng.htm)
+
+> Dichotomous variables (or indicator) are categorical variables with two categories or levels — different groups within the same independent variable.
+
+> Binary variables are a sub-type of dichotomous variable; variables assigned either a 0 or a 1 are said to be in a binary state. For example Male (0) and female (1)
+
+Dichotomous variables can be further described as either a discrete dichotomous variable or a continuous dichotomous variable. The idea is very similar to regular discrete variables and continuous variables. 
+* When two dichotomous variables are discrete, there’s nothing in between them
+  * “Dead or Alive” is a discrete dichotomous variable. You can be dead. Or you can be alive. But you can’t be both at the same time.
+* When they are continuous, there are possibilities in between.
+  * “Passing or Failing an Exam” is a continuous dichotomous variable. Grades on a test can range from 0 to 100% with every possible percentage in between. You could get 74% and pass. You could get 69% and fail. Or a 69.5% and pass (if your professor rounds up!).
+
+The line between discrete and continuous dichotomous variables is very thin. For example, it could be argued that a person who has been dead for three days is “more” dead than someone who has been declared brain dead and who is on life support.[4](https://www.statisticshowto.com/dichotomous-variable/)
+
+---
+
+It is normal to find columns filled with non-numerical values (i.e. strings) when dealing with datasets.
+
+Until now we have not covered any way to include this kind of information inside the model, even though the many categorical predictors could be useful. How can we use categorical variables for the linear model?
 
 To check what we are missing, we just need to plot our usual model $Y = \beta_{0} + \beta_{1}x_{1} + \varepsilon$ and give a color to the points (X,Y) based on one of their categorical variables (i.e. for the penguins' dataset we can try and see female vs male). Adding our linear regression, will highlight the usefulness of adding that categorical variable to the model.
 
-<p style="color:red">Beware that any conversion from categorical variables/nominal variables/factors to numerical values, can be misleading when used for certain arithmetic operations.</p>
-
 ![Intro ex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/introex.png?raw=TRUE)
 
-This looks like a graph of the residuals and we can tell there is a difference! Let's implement it
+This looks like a graph of the residuals and we can tell there is a difference! Let's find a way to quantify it.
 
----
+<p style="color:red">Beware that any conversion from categorical variables to numerical values, can be misleading when used for certain arithmetic operations.</p>
+
 ## Dummy Variables 
-> A dummy variable is a numerical variable that is used in a regression analysis to code for a binary numerical variable
+> A dummy variable (or indicator) is a numerical variable that is used in a regression analysis to code for a binary numerical variable
+
+It is exactly what we call a binary variable.
 
 Let's update the model:
 
@@ -81,7 +108,7 @@ Notice that the F statistics is the t-test statistic squared.
 
 ---
 ## Interactions
->An interaction occurs when an independent variable has a different effect on the outcome depending on the values of another independent variable.
+>An interaction occurs when an independent variable has a different effect on the outcome depending on the values of another independent variable. [1](https://www.medicine.mcgill.ca/epidemiology/joseph/courses/EPIB-621/interaction.pdf)
 
 Let's consider: 
 $$Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \beta_{3}x_{1}x_{2}+\varepsilon$$
@@ -162,6 +189,9 @@ A factor can also contain ordinal variables.
 
 For example, "Sex" will usually take on only the values "M" or "F," whereas "Name" will generally have lots of possibilities. The set of values that the elements of a factor can take are called its **levels**. If you want to add a new level to a factor, you can do that, but you can't just change elements to have new values that aren't already levels [2]
 
+### Binary Encoding
+If we only have two levels for a factor, we can encode a variable with an appropriate name (i.e. `is_x` or `has_`) which takes 0 if the condition (or the feature is not present) is not statisfied, else 1,  and use it to fit a model.
+
 ### Introductory example for Penguins
 How can we translate factors, usually strings, into numerical values to inculde them into our model?
 ```r
@@ -169,7 +199,7 @@ How can we translate factors, usually strings, into numerical values to inculde 
 class(penguins$sex)
 ```
 
-If we only have two levels we can encode a variable gender which takes 0 for male and 1 for female penguins, and use it to fit a model.
+We can encode a variable gender which takes 0 for male and 1 for female penguins.
 ```r
 # Set col to 0 
 penguins$gender <- 0
@@ -213,34 +243,29 @@ and from the factor it creates dummy variables: one dummy for each level except 
 reference level. The reference level is taken to be the first level, by the order is set alphabetically. 
 
 By having the program create the levels we can avoid doing unreasonable things such as
-making prediction for levels we have not observed:
+making prediction for levels we have not observed. Let's avoid the following operations:
 ```r
 # Dumb Prediction, what does gender=0.2 mean???
 predict(fc_mlr_add_alt,newdata = data.frame(body_mass_g=45,gender=0.2))
-
-        1
-132.2016
-
 # This gives an error
 predict(fc_mlr_add,newdata=data.frame(body_mass_g=45,sex="unknown"))
-# This returns some consistent values
-predict(fc_mlr_add,newdata=data.frame(body_mass_g=c(45,45),sex=c("male","female")))
-
-        1          2
-131.4102    135.3672
 ```
 Obviously this defeats the binary nature of the variables, even though R allows us to estimate absurd instances.
 
-<mark>Under the hood, R has turned the string into a dummy variable </mark>, with female as the baseline ($x_{2} = 0$)
+<mark>Under the hood, R has turned the string into a dummy variable </mark>, with female as the baseline ($x_{2} = 0$):
 
 ```r
-# Not including output here
+# This returns some consistent values
+predict(fc_mlr_add,newdata=data.frame(body_mass_g=c(45,45),sex=c("male","female")))
+        1          2
+131.4102    135.3672
+
+# Not including output here, but remember the naming conventions also matter
 head(model.matrix(fc_mlr_add))
 ```
 
 We can also force this transformation manually by calling the `factor()` function on a column of the dataset.Then to check the levels (possible values) for a factor we use the function `levels()`
 ```r
-
 penguins$sex2 <- factor(penguins$sex)
 penguins$sex2[1:4]
 
@@ -251,9 +276,61 @@ levels(penguins$sex2)
 
 [1] "female" "male"
 ```
+### Ordered Factors
+> An "ordered" factor is a factor whose levels have a particular order. 
+
+Ordered variables inherit from factors, so anything that you can to a factor you can do to an ordered factor. Create ordered factors with the `ordered()` command, or by using `factor(...,ordered=TRUE)`. Many R models generally ignore ordering even if it is present.
+
+Remember that R is case sensitive, so "female" and "Female" are seen as two different levels.
 
 ---
 ## Factors with more than two levels
+Let’s now consider a factor variable with more than two levels.
+
+Species is an example:
+```r
+penguins$species <- factor(penguins$species)
+# To check the number of instances
+table(penguins$species)
+[1] Adelie  Chinstrap   Gentoo
+    146     68          119
+
+unique(as.numeric(penguins$species))
+[1] 1 3 2
+```
+It would not make much sense to include a numerical values as encoding of the labels from the species (es: `Adelie -> 1`), as that would imply a numerical distance between the species. 
+
+### One-Hot-Encoding
+This method is best suited when an element can take a set of values (i.e. movies can be dramatic and romantic).
+
+We use dichotomous variables for each one of the levels.
+
+We create multiple $v_{i}$ dummies binary variables whose levels are either 1 or 0, for each one of the levels $i$ in the factor column representing the categorical variable.
+
+### Penguins example
+Let’s define three dummy variables related to the species factor variable. 
+* v1, Adelie (1) or not Adelie (0)
+* v2, Chinstrap (1) or not Chinstrap (0)
+* v3, Gentoo (1) or not Gentoo (0)
+
+We fit an additive model in R, using `flipper_length_mm` as the response (Y), and `body_mass_g` (x) and `species` ($v_{2}, v_{3}$ the dummy variables defined above) as predictors that uses ”three regression lines” to model flipper’s length, one for each of the possible species levels
+
+$$Y = \beta_{0} + \beta_{1}x + \beta_{2}v_{2} +  \beta_{3}v_{3} + \varepsilon$$
+
+Notice we use two dummy variables to codify the three level categorical variable.
+
+```r
+fc_mass_species <- lm(flipper_length_mm ̃ body_mass_g + species, data = penguins)
+fc_mass_species
+
+Call:
+lm(formula = flipper_length_mm ̃ body_mass_g + species, data = penguins)
+
+Coefficients:
+    (Intercept)     body_mass_g     speciesChinstrap    speciesGentoo
+    158.546071      0.008515        5.491543            15.328938
+```
+R doesn’t use $v_{1}$ because it doesn’t need to. To create three lines, it only needs two dummy variables since it is using a **reference level**
 
 
 
@@ -266,4 +343,5 @@ levels(penguins$sex2)
 #### Credits 
 * [1 - Interaction](https://www.medicine.mcgill.ca/epidemiology/joseph/courses/EPIB-621/interaction.pdf) from [Lawrence Joseph](https://www.medicine.mcgill.ca/epidemiology/joseph/)'s Epidemiology Course at [McGill University](https://www.mcgill.ca/)
 * [2 - Factors](https://faculty.nps.edu/sebuttre/home/R/factors.html) from [Samuel E. Buttrey](https://faculty.nps.edu/sebuttre/)'s General Applied Statistics Course at [Naval Postgraduate School](https://nps.edu/)
-
+* [3 - Types of Variables](https://www150.statcan.gc.ca/n1/edu/power-pouvoir/ch8/5214817-eng.htm) by [Statistics Canada](https://www.statcan.gc.ca/en/start)
+* [4 - Dichotomous Variable](https://www.statisticshowto.com/dichotomous-variable/) by [Statistics How To](https://www.statisticshowto.com/)
