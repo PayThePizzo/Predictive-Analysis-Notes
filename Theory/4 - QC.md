@@ -38,7 +38,7 @@ $$-2\log Lik(\mathcal{M}) + k * p(\mathcal{M})$$
 
 For linear regression, the Max Likelihood reduces to a function of the $SS_{RES}$ after fitting the model $\mathcal{M}$, but it is only valid for this type of model:
 
-![IC](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/IC.png?raw=TRUE)
+![IC](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/IC.png?raw=TRUE)
 
 Because the MLE of $\sigma$ is $\hat{\sigma} = (\sum_{i=1}^{n}(y - \hat{y_{i}})^{2})/n$
 

@@ -46,7 +46,7 @@ The model becomes:
 
 $$Y = X\beta + \varepsilon$$
 
-![Matrix Approach](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/matrix.png?raw=TRUE)
+![Matrix Approach](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/matrix.png?raw=TRUE)
 
 ```r
 # Gets rows, the number of the observed values

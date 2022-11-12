@@ -32,7 +32,7 @@ H_alt <- lm(target ~ x1 + x2, data = dataset)
 ### 1) ANOVA
 We decompose the $SS_{TOT}$ into an **AN**alysis **O**f **VA**riance table
 
-![ANOVA](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/ANOVA.png?raw=TRUE)
+![ANOVA](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/ANOVA.png?raw=TRUE)
 
 ```r
 # Sum of Squares
@@ -152,7 +152,7 @@ And now we repeat the same procedure.
 
 ### 1) ANOVA
 
-![ANOVANM](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/resources/ANOVANS.png?raw=TRUE)
+![ANOVANM](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/ANOVANS.png?raw=TRUE)
 
 The degrees of freedom is the difference in the number of beta-parameters estimated in the two models
 
