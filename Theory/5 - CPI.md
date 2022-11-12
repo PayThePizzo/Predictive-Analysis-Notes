@@ -226,9 +226,10 @@ predict(fc_mlr_add,newdata=data.frame(body_mass_g=45,sex="unknown"))
 # This returns some consistent values
 predict(fc_mlr_add,newdata=data.frame(body_mass_g=c(45,45),sex=c("male","female")))
 
-        1           2
+        1          2
 131.4102    135.3672
 ```
+Obviously this defeats the binary nature of the variables, even though R allows us to estimate absurd instances.
 
 <mark>Under the hood, R has turned the string into a dummy variable </mark>, with female as the baseline ($x_{2} = 0$)
 
@@ -262,7 +263,7 @@ levels(penguins$sex2)
 
 
 ---
-Credits 
+#### Credits 
 * [1 - Interaction](https://www.medicine.mcgill.ca/epidemiology/joseph/courses/EPIB-621/interaction.pdf) from [Lawrence Joseph](https://www.medicine.mcgill.ca/epidemiology/joseph/)'s Epidemiology Course at [McGill University](https://www.mcgill.ca/)
 * [2 - Factors](https://faculty.nps.edu/sebuttre/home/R/factors.html) from [Samuel E. Buttrey](https://faculty.nps.edu/sebuttre/)'s General Applied Statistics Course at [Naval Postgraduate School](https://nps.edu/)
 
