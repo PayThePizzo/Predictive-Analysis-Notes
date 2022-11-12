@@ -393,8 +393,20 @@ In this case Adelie is the reference level: $\beta_{0}$ is specific to Adelie, b
 
 ### Interaction Model
 Is the relationship between body mass and flipper length the same for all species?
-We can assess this using an interaction model.
 
+Now that we managed to include the species, we are able to corroborate our theory that body_mass_g influences flipper_length_mm at the same rate for each species. Thus, the interecepts can be different, but we want to find out whether $\beta_{1}$ changes or not.
+
+We can assess this using an interaction model, where we focus on the interaction between body_mass_g and species. Then, we can proceed with hypothesis testing.
+
+We need to be careful, since we have multiple levels the significance of a group is not the significance of the nested models (unlike before). 
+
+The approach here is different, we need to estimate two more parameters that analyze the difference between the angular cofficients
+* Adelie vs Chinstrap, $\gamma_{2}xv_{2}$ 
+* Adelive vs Gentoo, $\gamma_{3}xv_{3}$ 
+
+**If they are positive the relation is stronger.**
+
+R fits the model: $Y = \beta_{0} + \beta_{1}x + \beta_{2}v_{2} + \beta_{3}v_{3} + \gamma_{2}xv_{2} + \gamma_{3}xv_{3} + \varepsilon$
 ```r
 fc_mass_int_species <- lm(flipper_length_mm ̃ body_mass_g * species, data = penguins)
 fc_mass_int_species
@@ -403,15 +415,33 @@ Call:
 lm(formula = flipper_length_mm ̃ body_mass_g * species, data = penguins)
 
 Coefficients:
-(Intercept)     body_mass_g
-165.603241      0.006610
-
+#beta_0_hat         #beta_1_hat
+(Intercept)         body_mass_g
+165.603241          0.006610
+#beta_2_hat         #beta_3_hat
 speciesChinstrap    speciesGentoo
 -14.222367          4.063979
 
+#gamma_2_hat                    gamma_3_hat
 body_mass_g:speciesChinstrap    body_mass_g:speciesGentoo
 0.005295                        0.002730
+# Positive so stronger relation
 ```
+The three "sub models", have the same slope but three intercepts:
+* Adelie: $Y = \beta_{0} + \beta_{1}x + \varepsilon$
+* Chinstrap: $Y = (\beta_{0} +  \beta_{2}) + (\beta_{1}+ \gamma_{2})x + \varepsilon$
+* Gentoo: $Y = (\beta_{0} +  \beta_{3}) +(\beta_{1}+ \gamma_{3})x + \varepsilon$
+
+Interpretation:
+* $(\hat{\beta_{0}} + \hat{\beta_{2}})$ = 165.603241 + -14.222367, is the estimated average flipper_length of a Chinstrap penguing weighting 0 gr
+* $(\hat{\beta_{1}}+ \hat{\gamma_{3}})$ = 0.006610 + 0.002730, is the estimated change in average flipper length of Gentoo penguins whose weight differs of 1 gr.
+
+So as we have seen before, $\beta_{2}$ and $\beta_{3}$ change the intercepts for Chinstrap and Gentoo penguins relative to the reference level of $\beta_{0}$ for Adelie penguins
+
+Now similarly $\gamma_{2}$ and $\gamma_{3}$ change the slopes for Chinstrap and Gentoo penguins relative the reference level of $\beta_{1}$ for Adelie penguins.
+
+![interactionex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/interactionex.png?raw=TRUE)
+
 
 
 ---
