@@ -391,7 +391,7 @@ In this case Adelie is the reference level: $\beta_{0}$ is specific to Adelie, b
 
 ![dummyencex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/dummyencex.png?raw=TRUE)
 
-### Interaction Model
+## 5 - Interaction Model
 Is the relationship between body mass and flipper length the same for all species?
 
 Now that we managed to include the species, we are able to corroborate our theory that body_mass_g influences flipper_length_mm at the same rate for each species. Thus, the interecepts can be different, but we want to find out whether $\beta_{1}$ changes or not.
@@ -442,12 +442,41 @@ Now similarly $\gamma_{2}$ and $\gamma_{3}$ change the slopes for Chinstrap and 
 
 ![interactionex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/interactionex.png?raw=TRUE)
 
+### 5.1 - Hypothesis Testing
+To justify the interaction model (i.e., a unique slope for each
+species level) compared to the additive model (single slope), we can perform an F-test:
+$$H_{0}: \gamma_{2} = \gamma_{3} = 0 \rightarrow Y = \beta_{0} + \beta_{1}x + \beta_{2}v_{2} + \beta_{3}v_{3} $$
 
+When this happens the three angular coefficients are equal. In this case we roll back to the model with the three parallel lines, with no interaction.
+Conversely, if we cannot reject $H_{0}$, that would imply a difference in the relation. 
+
+Through ANOVA we can perform the test:
+```r
+anova(fc_mass_species, fc_mass_int_species)
+
+Analysis of Variance Table
+Model 1: flipper_length_mm ̃ body_mass_g + species
+Model 2: flipper_length_mm ̃ body_mass_g * species
+
+    Res.Df  RSS     Df  Sum of Sq   F       Pr(>F)
+1   329     9612.8
+2   327     9368.2  2   244.61      4.269   0.01478 *
+```
+We see a low p-value, and thus reject the null (at 0.05). We prefer the interaction model over the additive model. Usually we prefer a p-value closer to 0.01 or lower
 
 ---
 
-## Linear Models Repurposed
+## 6 - Linear Models Repurposed
 
+What if we only use a factor variable in the analysis? See a factor with two levels:
+```r
+mfa_only <- lm(flipper_length_mm ̃ sex, data = penguins)
+summary(mfa_only)$coef
+
+                Estimate    Std.Error   t value         Pr(>|t|)
+(Intercept)     197.363636  1.056598    186.791565      0.000000000000
+sexmale         7.142316    1.487570    4.801332        0.000002391097
+```
 
 ---
 #### Credits 
