@@ -6,6 +6,8 @@ Until now we have not covered any way to include this kind of information inside
 
 To check what we are missing, we just need to plot our usual model $Y = \beta_{0} + \beta_{1}x_{1} + \varepsilon$ and give a color to the points (X,Y) based on one of their categorical variables (i.e. for the penguins' dataset we can try and see female vs male). Adding our linear regression, will highlight the usefulness of adding that categorical variable to the model.
 
+<p style="color:red">Beware that any conversion from categorical variables/nominal variables/factors to numerical values, can be misleading when used for certain arithmetic operations.</p>
+
 ![Intro ex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/introex.png?raw=TRUE)
 
 This looks like a graph of the residuals and we can tell there is a difference! Let's implement it
@@ -44,8 +46,6 @@ fc_mlr_add <- lm(flipper_length_mm ~ body_mass_g + sex, data = penguins)
 Since, the models are bound to pass through $(\bar{x}, \bar{y})$, this tells us that there is a difference in the the intercept of the two groups.
 
 We could achieve the same results by estimating two different models, but this would have resulted in a loss in the number of observations used to estimate. <mark>In fact, we lose the variability of the full sample </mark>and we merely focus on the instances of the same sex, restricting our vision of the sample. Consequently the estimate of the variance would not match between two different models.
-
-<p style="color:red">Beware that this variable has a binary meaning, such as a boolean, and sometimes it is not to be included in arithmetic operations as it would be misleading</p>
 
 ### Verifying Hypothesis
 We want to test: $H_{0}:\beta_{2} = 0 vs H_{A}:\beta_{2} \neq 0$, where $H_{0}$ indicates no difference between the two interecepts. 
@@ -148,18 +148,22 @@ summary(fi_mlr_int)$coefficients["body_mass_g:sexmale",]
 ```
 The t-value is close to 0 and the p-value is very high, so we do not reject the $H_{0}$ with confidence. We can say that, the effect of the total dimension of the penguin on the flipper length is equal in the two groups, even though they have different mean values. We can use test ANOVA again if neeeded.
 
-![estimateex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/estimateex.png?raw=TRUE)
+![estimatex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/estimatex.png?raw=TRUE)
 
 Even if the results differ, they have no statistically relevant difference, which leads us to use a simpler model, with a difference only in the intercept.
 
 ---
 
 ## Factor Variables
-> A "factor" is a vector whose elements can take on one of a specific set of values.
+> A "factor" is a vector whose elements can take on one of a specific set of values, called levels (categories).
+
+Factor variables are special variables that R uses to deal with categorical variables.
+A factor can also contain ordinal variables.
 
 For example, "Sex" will usually take on only the values "M" or "F," whereas "Name" will generally have lots of possibilities. The set of values that the elements of a factor can take are called its **levels**. If you want to add a new level to a factor, you can do that, but you can't just change elements to have new values that aren't already levels [2]
 
-How can we translate factors, usually strings, into numerical values to inculde them into a model?
+### Introductory example for Penguins
+How can we translate factors, usually strings, into numerical values to inculde them into our model?
 ```r
 # Check type
 class(penguins$sex)
@@ -167,7 +171,9 @@ class(penguins$sex)
 
 If we only have two levels we can encode a variable gender which takes 0 for male and 1 for female penguins, and use it to fit a model.
 ```r
+# Set col to 0 
 penguins$gender <- 0
+# Set female instances to gender=1
 penguins$gender[penguins$sex == "female"] = 1
 penguins$gender[1:4]
 
@@ -176,6 +182,7 @@ penguins$gender[1:4]
 class(penguins$gender)
 [1] "numeric"
 
+# Build the model 
 fc_mlr_add_alt <- lm(flipper_length_mm ̃ body_mass_g + gender, data = penguins)
 
 # Same R^2
@@ -198,28 +205,61 @@ coef(fc_mlr_add_alt)
     130.67935131    0.01624103      3.95699583
 ```
 
+### Generalizing - Under the hood
 What is happening?
+
 When we ask R to use a variable stored as a string, the program turns this into a factor
 and from the factor it creates dummy variables: one dummy for each level except the
-reference level
+reference level. The reference level is taken to be the first level, by the order is set alphabetically. 
 
-The reference level is taken to be the first level, by the order is set alphabetically.
+By having the program create the levels we can avoid doing unreasonable things such as
+making prediction for levels we have not observed:
+```r
+# Dumb Prediction, what does gender=0.2 mean???
+predict(fc_mlr_add_alt,newdata = data.frame(body_mass_g=45,gender=0.2))
 
-factor variables are special variables that R uses to deal with categorical variables.
+        1
+132.2016
 
+# This gives an error
+predict(fc_mlr_add,newdata=data.frame(body_mass_g=45,sex="unknown"))
+# This returns some consistent values
+predict(fc_mlr_add,newdata=data.frame(body_mass_g=c(45,45),sex=c("male","female")))
+
+        1           2
+131.4102    135.3672
+```
+
+<mark>Under the hood, R has turned the string into a dummy variable </mark>, with female as the baseline ($x_{2} = 0$)
+
+```r
+# Not including output here
+head(model.matrix(fc_mlr_add))
+```
+
+We can also force this transformation manually by calling the `factor()` function on a column of the dataset.Then to check the levels (possible values) for a factor we use the function `levels()`
+```r
+
+penguins$sex2 <- factor(penguins$sex)
+penguins$sex2[1:4]
+
+[1] male female female female
+Levels: female male
+
+levels(penguins$sex2)
+
+[1] "female" "male"
+```
+
+---
 ## Factors with more than two levels
 
 
----
-
-## Model Assumptions
 
 ---
 
-## Residuals-based displays
+## Linear Models Repurposed
 
-
-### QQplots
 
 ---
 Credits 
