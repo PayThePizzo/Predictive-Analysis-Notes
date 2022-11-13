@@ -1,7 +1,7 @@
 # Model Checking
+A great problem when dealing with any kind of model is to check whether our assumptions are correct.
 
 ## Recap
-
 The least square estimate is “optimal” if the relationship betweem Y and $(X_{1},..., X_{p})$ is approximately linear.
 
 We have discussed methods to test for significance and for estimating the variability of
@@ -22,9 +22,12 @@ If the assumptions are not valid we can not rely on the theory to do inference.
 ## Model Assumptions
 Often, the assumptions of linear regression, are stated as:
 * **L**inearity: the response can be written as a linear combination of the predictors. (With noise about this true linear relationship.)
+  * Goal: We verify that there is no variable left that could be relevant for the final prediction. 
 * **I**ndependence: the errors are independent.
+  * Very hard to test
 * **N**ormality: the distribution of the errors should follow a normal distribution.
 * **E**qual Variance: the error variance is the same at any set of predictor values.
+  * Homoscedasticity
 
 There are a number of statistical tests and graphical approaches to verify the validity of
 these assumptions.
@@ -34,6 +37,10 @@ is a craft more than a science
 
 ---
 ## Residuals & Residuals-based displays
+We use the residuals to prove our assumptions.
+
+They are not exactly the errors, they represent the part of the model which has not be included and they explain part of the variance.
+
 We define the residuals $r_{i}$ (often indicated also as $e_{i}$) which are a sample estimate of the errors $\varepsilon_{i}$: 
 $$r_{i} = (y_{i} - \hat{y_{i}})$$
 
@@ -43,7 +50,7 @@ By definition:
 
 *How do we use the residuals? To verify our assumptions!*
 1. We use the residuals to **verify whether assumptions are met** (like for simple linear models, but now its harder to separate out the effect of each variable on the quality of the fit)
-2. We use residual plots to** check** both the **linearity** and **constant variance assumptions**.
+2. We use residual plots to **check** both the **linearity** and **constant variance assumptions**.
 3. We use the qqplot of residuals to verify the **normality assumption**.
 4. We can use residuals to verify the **independence assumption** - but we should also control for this when designing the data collection
 
@@ -51,6 +58,8 @@ By definition:
 If the model is well specified, the sample of ($r_{1}, ..., r_{n}$) should be i.i.d. normally distributed and with a constant variance.
 
 ## Plotting
+Typically we graphically check the residuals to hope an empirical proof of how the errors of the model behave.
+
 For each model we fit to a dataset we have a different vector of residuals $r_{i}$
 
 ### First residuals plot: plot $r_{i}$ against $\hat{y_{i}}$
@@ -61,6 +70,12 @@ Goal: There should not be a discernible patter in the data (no systematic under 
 Let's use an example:
 
 ![residualplotex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/residualplotex.png?raw=TRUE)
+
+1. In the first case (leftmost graph) we see that for larger estimated values, the residual's variance grows. This is a problem of **heteroscedasticity** and it is typical to see this funnel-like shape for the data
+2. In the second case (center graph), we observe a **non-linear relation** since the residuals. It is evident that we are underestimating for the values of the residuals that are really low or really high, and we are overestimating for the values around the mean.
+3. The third case (rightmost graph), is what we would like to observe on average.
+
+When observing the first two graphs we want to go back and, understand what we got wrong and we can modify.
 
 ### QQplots
 The residuals should be normally distributed. If that was true the empirical cdf/pdf should look like the cdf/pdf of a normal. 
