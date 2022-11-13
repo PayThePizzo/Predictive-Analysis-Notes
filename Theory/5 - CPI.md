@@ -471,12 +471,11 @@ However, the price to pay is the strong assumptions that the errors are equals i
 ---
 
 ## 6 - Linear Models Repurposed
+
+### 6.1 - Sex
 What if we only use a factor variable in the analysis? 
 
-We subsitute the use of body_mass_g with sex as main predictor.
-
-TO FINISH
-
+We subsitute the use of body_mass_g with sex as main predictor, and check the presence of statistically relevant differences between them.
 ```r
 mfa_only <- lm(flipper_length_mm ̃ sex, data = penguins)
 summary(mfa_only)$coef
@@ -486,6 +485,94 @@ summary(mfa_only)$coef
 sexmale         7.142316    1.487570    4.801332        0.000002391097
 ```
 
+The resulting fitting submodels are:
+* Female penguins: $Y = \beta_{0} + \varepsilon$
+* Male penguins $Y = (\beta_{0} + \beta_{1}) + \varepsilon$
+
+Remember that estimating linear models is strictly tied to estimating the expected value of the target. Consequently:
+* $\mathbb{E}[Y|female] = \beta_{0}$ 
+* $\mathbb{E}[Y|male] = \beta_{0}  + \beta_{1}$
+
+This indicates $\beta_{1}$ represents the difference in means, thus:
+$$H_{0}: \beta_{1}=0 \rightarrow \mathbb{E}[Y|female] = \mathbb{E}[Y|male]$$ 
+
+The test of this null hypothesis, can be reinterpreted as testing the equality between the two models.If the models are equal, we have no relevant proof to add a layer of complexity. 
+
+Mind that this is a t-test! Simply put this t-test is a linear model, where the only predictor is sex (a dichotomus variable) and the effect that is given by being female or male, is the difference in the means ($\beta_{1}$)
+
+We use a t-test, with the strong assumption that the errors around the mean, are equal `var.equal=TRUE`
+```r
+t.test(flipper_length_mm ̃ sex, data = penguins, var.equal = TRUE)
+
+Two Sample t-test
+data: flipper_length_mm by sex
+t = -4.8013, df = 331, p-value = 0.000002391
+alternative hypothesis: true difference in means between group 
+female and group male is not equal to 0 
+95 percent confidence interval:
+-10.068599 -4.216033
+sample estimates:
+mean in group female    mean in group male
+197.3636                204.5060
+```
+It is not a case that, the t-test value is the t value obtained in a linear model where we evaluate the difference on one predictor variable that is categorical.
+
+> It is just a linear model
+
+```r
+summary(mfa_only)$coef
+            Estimate    Std. Error    t value       Pr(>|t|)
+(Intercept) 197.363636  1.056598      186.791565    0.000000000000
+sexmale     7.142316    1.487570      4.801332      0.000002391097
+```
+We can easily see that the sum of the two estimates in the first column of this summary, is equal to the mean in group male from the previous script, and this confirms our theory.
+
+The same results are achieved through the confidence intervals
+```r
+confint(mfa_only)[2,]
+  2.5 %       97.5 %
+  4.216033    10.068599
+
+t.test(flipper_length_mm ̃ sex, data = penguins,var.equal = TRUE)$conf.int
+[1] -10.068599 -4.216033
+
+attr(,"conf.level")
+[1] 0.95
+```
+In this case we can see there is evidence to say the two means are different!
+
+### 6.2 - Species
+What happens to factors with more levels?
+
+```r
+summary(lm(flipper_length_mm ̃ species, data = penguins))$coef
+                  Estimate  Std. Error  t value     Pr(>|t|)
+(Intercept)       190.10274 0.5522277   344.24702   0.000000e+00
+speciesChinstrap  5.72079   0.9796493   5.83963     1.252748e-08
+speciesGentoo     27.13255  0.8240767   32.92479    2.680334e-106
+```
+We can see the means are different and Gentoo is estimated to have the largest mean.
+
+There a widely-employed statistical technique called ANOVA `aov()` **which generalizes the T-test**, not to be confused with the ANOVA table which is used for comparisons between models. 
+* We use anova() when we would like to compare the fit of nested regression models to determine if a regression model with a certain set of coefficients offers a significantly better fit than a model with only a subset of the coefficients.
+* We use aov() when we would like to fit an ANOVA model and view the results in an ANOVA summary table.[6]
+
+ANOVA also assumes the variance is the same within all the groups.
+```r
+summary(aov(flipper_length_mm ̃ species, data = penguins))
+            Df  Sum Sq  Mean Sq   F value   Pr(>F)
+species     2   50526   25263     567.4     <2e-16 ***
+Residuals   330 14693   45
+...
+
+summary(lm(flipper_length_mm ̃ species, data = penguins))$fstatistic
+value     numdf   dendf
+567.407   2.000   330.000
+```
+Notice that equal variances are assumed - this might be not an obvious assumption in some situations.
+
+To sum up, for our purposes the use of categorical variables allow us to find the differences of the means in different groups and understand whether a more complex model should be used.
+
 ---
 #### Credits 
 * [1 - Interaction](https://www.medicine.mcgill.ca/epidemiology/joseph/courses/EPIB-621/interaction.pdf) from [Lawrence Joseph](https://www.medicine.mcgill.ca/epidemiology/joseph/)'s Epidemiology Course at [McGill University](https://www.mcgill.ca/)
@@ -493,3 +580,4 @@ sexmale         7.142316    1.487570    4.801332        0.000002391097
 * [3 - Types of Variables](https://www150.statcan.gc.ca/n1/edu/power-pouvoir/ch8/5214817-eng.htm) by [Statistics Canada](https://www.statcan.gc.ca/en/start)
 * [4 - Dichotomous Variable](https://www.statisticshowto.com/dichotomous-variable/) by [Statistics How To](https://www.statisticshowto.com/)
 * [5 - Ordinal and One-Hot Encodings for Categorical Data](https://machinelearningmastery.com/one-hot-encoding-for-categorical-data/) by Jason Brownlee
+* [6 - When to Use aov() vs. anova() in R](https://www.statology.org/aov-vs-anova-in-r/) by Zach
