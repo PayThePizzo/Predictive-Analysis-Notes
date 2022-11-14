@@ -22,7 +22,8 @@ If the assumptions are not valid we can not rely on the theory to do inference.
 ## Model Assumptions
 Often, the assumptions of linear regression, are stated as:
 * **L**inearity: the response can be written as a linear combination of the predictors. (With noise about this true linear relationship.)
-  * Goal: We verify that there is no variable left that could be relevant for the final prediction. 
+  * Goal: We verify that there is **no variable left that could be relevant for the final prediction**.
+  * There could be some quadratic/polynomial relation or interaction and we should transform the predictors.
 * **I**ndependence: the errors are independent.
   * Very hard to test
 * **N**ormality: the distribution of the errors should follow a normal distribution.
@@ -39,7 +40,7 @@ is a craft more than a science
 ## Residuals & Residuals-based displays
 We use the residuals to prove our assumptions.
 
-They are not exactly the errors, they represent the part of the model which has not be included and they explain part of the variance.
+They are not exactly the errors, they represent the part of the model which has not be included and they explain part of the variance. 
 
 We define the residuals $r_{i}$ (often indicated also as $e_{i}$) which are a sample estimate of the errors $\varepsilon_{i}$: 
 $$r_{i} = (y_{i} - \hat{y_{i}})$$
@@ -51,6 +52,7 @@ By definition:
 *How do we use the residuals? To verify our assumptions!*
 1. We use the residuals to **verify whether assumptions are met** (like for simple linear models, but now its harder to separate out the effect of each variable on the quality of the fit)
 2. We use residual plots to **check** both the **linearity** and **constant variance assumptions**.
+   1. We do not want the residuals to grow when $\hat{Y}$ grows
 3. We use the qqplot of residuals to verify the **normality assumption**.
 4. We can use residuals to verify the **independence assumption** - but we should also control for this when designing the data collection
 
@@ -80,6 +82,8 @@ When observing the first two graphs we want to go back and, understand what we g
 ### QQplots
 The residuals should be normally distributed. If that was true the empirical cdf/pdf should look like the cdf/pdf of a normal. 
 
+The qqplot help us comparing the empirical residuals to the theoretical quantiles of a normal distribution.
+
 We compare them:
 1. Option 1: plot a histogram of residuals.
 2. Option 2 (a better option): compare empirical and theoretical quantiles via a qqplot.
@@ -93,22 +97,28 @@ Which should follow a standard normal. This means for example that 95% of the re
 
 ![qqplotex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/qqplotex.png?raw=TRUE)
 
+We see we can have:
+* A tail that is heavier (asymmetric data. i.e.: salary cannot be negative)
+* Two heavy tails
+* A good normal distributions for the errors, which is our goal
+
+Altough the $n$ can improve the variability.
 
 ### Try it in R - qqplot and qqline
 In R see `qqPlot()`, `qqplot()` and `qqline()`
 
 Practically:
 1. Sort the residuals from the smallest $r_{1}$ to the largest $r_{n}$
-2. Assign the observation in position $i$ the empirical cdf value
-   1. for example $(i-0.5)/n$.
+2. Assign the observation in position $i$ the empirical cdf value 
+   1. for example $(i-0.5)/n$. 
 3. Compare the valeue of $r_{i}$ to the theoretical value of a normal sample of size $n$
-4. 
 
 It is very useful to identify specific points with particularly high residuals, and deviations from normality.
 
 ---
 ## To sum up
 The baseline is, if model assumptions are not valid the inference might be dubious.
+
 But nothing is set in stone: models which deviate from the assumptions can be still be OK.
 
 Nevertheless if keeping a non-significance variable in the model improves the model-checks it might be a good reason to keep the variable. The same hold for transformations discussed below. 
