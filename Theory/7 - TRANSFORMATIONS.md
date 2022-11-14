@@ -7,9 +7,10 @@ Models checks can highlight the issues with linearity and homoschedasticity assu
   * One possible approach is to transform X (transformation of predictor variables) or Y (target transformation) to make the relationship linear.
 * For homoskedasticity problems, transform Y to make the variance more constant
 
-Real life example
+
+### Real life example
 ```r
-initech_fit <- lm(salary ̃ years, data = initech)
+initech_fit <- lm(salary ~ years, data = initech)
 summary(initech_fit)
 
 Call:
@@ -34,28 +35,50 @@ It seems like a good model until we check the residuals
 
 ![badresex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/badresex.png?raw=TRUE)
 
+This is a typical problem of heteroskedasticity, when $\hat{Y}$ grows so do the residuals
 
 ---
 ## 1 - Target Transformation
-One first approach we can use to face the issue of linearity is to change the model, namely the response variable. That is, one imagines the model is:
+Usually we have a constant variance $Var[Y|X=x] = \sigma^{2}$, while here we see the variance is a function of the mean $Var[Y|X=x] = h(\mathbb{E}[Y|X=x])$ , for some increasing function $h$
 
-$$g(Y) = \beta_{0} + \beta_{1}x + \varepsilon_{i}$$
+In order to correct this, one first approach we can use is to change the model, namely the response variable.
 
-for some invertible function g. In more old-fashioned sources, this is advocated as a way of handling non-constant variance, or non-Gaussian noise. 
+We choose and apply some invertible function to $Y$ called **variance stabilizing function** whose goal is to achieve a variance $Var[g(Y)|X=x]=c$, where c is a constant that does not depend on the mean $\mathbb{E}[Y|X=x]$. 
 
-A better rationale is that it might in fact be true. Since the transfor- mation g has an inverse, we can write
+$$g(Y) = \beta_{0} + \beta_{1}x + \varepsilon_{i} \rightarrow Y = g^{-1}(\beta_{0} + \beta_{1}x + \varepsilon_{i})$$
 
-$$Y = g^{-1}(\beta_{0} + \beta_{1}x + \varepsilon_{i})$$
+### 1.2 - Variance-Stabilizing Transformation
+A common variance stabilizing transformation when we see increasing variance in a fitted versus residuals plot is $\log(Y)$
 
-Even if $\varepsilon_{i} \thicksim \mathcal{N}(0, \sigma^{2})$, this implies hat Y will have a non-Gaussian distribution,
-with a non-linear relationship between $\mathbb{E}[Y|X=x]$ and x, and a non-constant variance. 
+Also, if the values of a variable range over more than one order of magnitude and the **variable is strictly positive**, then replacing the variable by its logarithm is likely to be helpful.
 
-If that’s actually the case, we’d like to incorporate that into the model.
+$$\log(Y_{i}) = \beta_{0} + \beta_{1}x_{i} + \varepsilon_{i}$$
 
-## 2 - Variance-Stabilizing Transformation
+```r
+initech_fit_log <- lm(log(salary) ~ years, data = initech)
+```
 
+![logvstex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/logvstex.png?raw=TRUE)
 
-## 3 - Box-Cox Transformation
+n the original scale of the data we have:
+
+$$Y_{i} = exp(\beta_{0} + \beta_{1}x_{i}) \cdot exp(varepsilon_{i})$$
+
+which has the errors entering the model in a multiplicative fashion.
+
+We turn the additive model into a multiplicative model
+
+![origscex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/origscex.png?raw=TRUE)
+
+And we check the residuals
+
+![resvstex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/resvstex.png?raw=TRUE)
+
+The fitted versus residuals plot looks much better. It appears the constant variance assumption is no longer violated.
+
+It has been demonstrated that this application, stops the variance from growing.
+
+## 2 - Box-Cox Transformation
 The great statisticians G. E. P. Box and D. R. Cox introduced a family of transformations which includes powers of Y and taking the logarithm of Y , parameterized by a number $\lambda$
 
 This is implemented in R through the function `boxcox` in the package MASS.
