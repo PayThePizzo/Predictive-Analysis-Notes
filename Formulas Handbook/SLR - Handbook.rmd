@@ -20,7 +20,7 @@ setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01/")
 
 # SLR
 
-Model: $Y_{i} = \beta_{0} + \beta_{1}X_{i} + \varepsilon_{i}$
+Model we are estimating : $\mathbb{E}[Y|X=x] = \beta_{0} + \beta_{1}X_{i} + \varepsilon_{i}$
 
 ```{r, include=FALSE}
 # df loading
@@ -28,8 +28,10 @@ dataset <- read.csv("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/
 dataset <- na.omit(dataset) ## same dataset without missing values
 ```
 
+Let's see how `body_mass_g` can predict `flipper_length_mm`
 ```{r}
-colnames(dataset)
+flipper_length <- bodyfat[,c("body_mass_g", "flipper_length_mm")]
+plot(flipper_length_mm~body_mass_g, data = dataset)
 ```
 
 ```{r}
@@ -71,16 +73,10 @@ yhat <- beta0 +  beta1 * x
 ```{r}
 # Define model
 fit <- lm(formula = y ~ x, data = dataset)
-
-# Coefficients 
-coef(fit)
-```
-
-As you can see, there is no difference when respecting the assumptions.
-
-```{r}
 summary(fit)
 ```
+
+Let us analyze the different aspects of the result.
 
 ## Residuals
 The `Residuals` prints the sample positional statistics of the residuals for the model.
@@ -91,6 +87,8 @@ Usually, for normality purposes, we want:
 * The 1Q and 3Q to be equally distant from the mean (specular)
 
 ## Coefficients 
+
+
 
 ### Estimate 
 The `Estimate` prints the sample coefficients for the model.

@@ -20,6 +20,12 @@ The course's page and the slides specify the material used already, but I will t
 * [Hastie, Tibshirani and Friedmam - The elements of statistical learning](https://hastie.su.domains/ElemStatLearn/download.html)
 
 ---
+
+### TODO
+* Formulas Handbook
+* 
+
+---
 ### Credits
 Maintained by PayThePizzo
 

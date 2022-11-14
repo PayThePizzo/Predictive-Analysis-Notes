@@ -1,0 +1,170 @@
+---
+title: "Lab 05 - categorical data"
+author: "me my self and I"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Using categorical data 
+
+```{r}
+data(Prestige, package = "carData")
+head(Prestige)
+plot(Prestige)
+```
+
+Un primo modello con education e income come predittori 
+
+```{r}
+fit1 <- lm(prestige ~ income+education, data = Prestige)
+summary(fit1)
+```
+
+```{r}
+par(mfrow = c(2,2))
+plot(fit1)
+```
+
+```{r}
+plot(residuals(fit1) ~ Prestige$women); abline(h = 0)
+plot(residuals(fit1) ~ Prestige$census); abline(h = 0)
+plot(residuals(fit1) ~ Prestige$type); abline(h = 0)
+```
+
+
+```{r}
+fit_wthtype <- update(fit1, . ~ .+type)
+fit_wthcensus <- update(fit1, . ~ .+census)
+summary(fit_wthtype)
+summary(fit_wthcensus)
+```
+
+```{r, error=TRUE}
+AIC(fit1); AIC(fit_wthcensus); AIC(fit_wthtype)
+AIC(fit1, fit_wthcensus, fit_wthtype)
+anova(fit1, fit_wthtype)
+Prestige[is.na(Prestige$type),]
+```
+
+Attenzione: si possono solo confrontare modelli stimati sullo stesso dataset. 
+
+
+```{r}
+# Prestige <- Prestige[!is.na(Prestige$type),] 
+fit1 <- lm(prestige ~ income + education, data = Prestige, subset = !is.na(Prestige$type))
+fit_wthtype <- update(fit1, . ~ .+type)
+fit_wthcensus <- update(fit1, . ~ .+census)
+AIC(fit1, fit_wthcensus, fit_wthtype)
+anova(fit1, fit_wthtype)
+anova(fit1, fit_wthcensus)
+```
+
+Continuiamo con `fit_wthtype`. 
+
+
+```{r}
+head(model.matrix(fit_wthtype))
+colSums(model.matrix(fit_wthtype))
+table(Prestige$type)
+fit_wthtype$coefficients
+```
+
+```{r}
+plot(Prestige$income, Prestige$prestige)
+nd <- data.frame(income = seq(0, 25000, by = 100), education = mean(Prestige$education), 
+                 type = "prof")
+lines(nd$income, predict(fit_wthtype, newdata = nd), col = 2)
+points(Prestige$income[Prestige$type == "prof"], 
+      Prestige$prestige[Prestige$type == "prof"], col = 2, pch = 16)
+nd <- data.frame(income = seq(0, 25000, by = 100), education = mean(Prestige$education), 
+                 type = "wc")
+lines(nd$income, predict(fit_wthtype, newdata = nd), col = 4)
+nd <- data.frame(income = seq(0, 25000, by = 100), education = mean(Prestige$education), 
+                 type = "bc")
+lines(nd$income, predict(fit_wthtype, newdata = nd), col = 6)
+```
+
+```{r}
+fit_intall <- lm(prestige ~ income*type + education*type, 
+                 data = Prestige, 
+    subset = !is.na(Prestige$type))
+summary(fit_intall)
+```
+
+```{r}
+AIC(fit_intall, fit_wthtype)
+anova(fit_wthtype, fit_intall)
+confint(fit_wthtype, parm = "education")
+confint(fit_intall, parm = "education")
+```
+
+
+```{r}
+fit_inted <- lm(prestige ~ income+type + education*type, 
+                 data = Prestige, 
+    subset = !is.na(Prestige$type))
+fit_intinc <- lm(prestige ~ income*type + education+type, 
+                 data = Prestige, 
+    subset = !is.na(Prestige$type))
+summary(fit_inted)
+summary(fit_intinc)
+anova(fit_inted, fit_intall)
+anova(fit_intinc, fit_intall)
+anova(fit_wthtype, fit_intinc)
+AIC(fit_inted, fit_intinc, fit_intall)
+BIC(fit_inted, fit_intinc, fit_intall)
+```
+
+```{r}
+#coef angolare per prof
+(0.0031344 - 0.0025102)
+# coef angolare per wc 
+(0.0031344 - 0.0014856)
+```
+
+*cambiare il livello di riferimento* 
+
+```{r}
+Prestige$newtype <- factor(Prestige$type, 
+                           levels = c("wc","bc","prof"))
+table(Prestige$newtype)
+table(Prestige$type)
+coef(lm(prestige ~ income * newtype + education + newtype, data = Prestige, 
+    subset = !is.na(Prestige$newtype)))
+coef(fit_intinc)
+(0.001648851 -0.001024614 )
+
+logLik(lm(prestige ~ income * newtype + education + newtype, data = Prestige, 
+    subset = !is.na(Prestige$newtype)))
+logLik(fit_intinc)
+```
+
+
+```{r}
+head(model.matrix(fit_intinc))
+head(model.matrix(lm(prestige ~ income * newtype + education + newtype, 
+                     data = Prestige, 
+    subset = !is.na(Prestige$newtype))))
+```
+
+
+
+```{r}
+col_type <- rep(1, length(Prestige$type)) 
+col_type[Prestige$type == "wc"] <- 4                
+col_type[Prestige$type == "prof"] <- 2      
+plot(Prestige$income, Prestige$prestige, pch = 16, col = col_type)
+# education = 10 
+abline(a = coef(fit_intinc)[1]+coef(fit_intinc)[4]+coef(fit_intinc)[5]*10,
+       b = coef(fit_intinc)[2]+coef(fit_intinc)[7], col = 4)
+abline(a = coef(fit_intinc)[1]+coef(fit_intinc)[3]+coef(fit_intinc)[5]*10,
+       b = coef(fit_intinc)[2]+coef(fit_intinc)[6], col = 2)
+abline(a = coef(fit_intinc)[1]+coef(fit_intinc)[5]*10,
+       b = coef(fit_intinc)[2], col = 1)
+
+
+```
+
