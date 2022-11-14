@@ -41,7 +41,7 @@ This is a typical problem of heteroskedasticity, when $\hat{Y}$ grows so do the 
 ## 1 - Target Transformation
 Usually we have a constant variance $Var[Y|X=x] = \sigma^{2}$, while here we see the variance is a function of the mean $Var[Y|X=x] = h(\mathbb{E}[Y|X=x])$ , for some increasing function $h$
 
-In order to correct this, one first approach we can use is to change the model, namely the response variable.
+In order to correct this, one first approach we can use is to change the model, namely the response variable by applying a power transformation.
 
 We choose and apply some invertible function to $Y$ called **variance stabilizing function** whose goal is to achieve a variance $Var[g(Y)|X=x]=c$, where c is a constant that does not depend on the mean $\mathbb{E}[Y|X=x]$. 
 
@@ -60,13 +60,13 @@ initech_fit_log <- lm(log(salary) ~ years, data = initech)
 
 ![logvstex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/logvstex.png?raw=TRUE)
 
-n the original scale of the data we have:
+In the original scale of the data we have:
 
 $$Y_{i} = exp(\beta_{0} + \beta_{1}x_{i}) \cdot exp(varepsilon_{i})$$
 
 which has the errors entering the model in a multiplicative fashion.
 
-We turn the additive model into a multiplicative model
+Let's check the results
 
 ![origscex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/origscex.png?raw=TRUE)
 
@@ -74,16 +74,110 @@ And we check the residuals
 
 ![resvstex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/resvstex.png?raw=TRUE)
 
-The fitted versus residuals plot looks much better. It appears the constant variance assumption is no longer violated.
+The fitted versus residuals plot looks much better. <mark>It appears the constant variance assumption is no longer violated, but we pay the price of having different model.</mark>
 
-It has been demonstrated that this application, stops the variance from growing.
+Let's compare errors
+```r
+sqrt(mean(resid(initech_fit) ˆ 2))
+[1] 27080.16
+sqrt(mean(resid(initech_fit_log) ˆ 2))
+[1] 0.1934907
+```
+But wait, that isn’t fair, this difference is simply due to the different scales being used.
+Since we changed the model, <mark>we also changed the scale of the data!</mark>
+```r
+sqrt(mean((initech$salary - fitted(initech_fit)) ˆ 2))
+[1] 27080.16
+sqrt(mean((initech$salary - exp(fitted(initech_fit_log))) ˆ 2))
+[1] 24280.36
+```
 
-## 2 - Box-Cox Transformation
-The great statisticians G. E. P. Box and D. R. Cox introduced a family of transformations which includes powers of Y and taking the logarithm of Y , parameterized by a number $\lambda$
+In fact, the mode here is 
 
-This is implemented in R through the function `boxcox` in the package MASS.
+$$log(\hat{y}(x)) = \hat{\beta_{0}}+ \hat{\beta_{1}}x$$
 
-It is important to remember that this family of transformations is just somet hing that Box and Cox made up because it led to tractable math. There is absolutely no justification for it in probability theory, general considerations of mathematical modeling, or scientific theories. There is also no reason to think that the correct model will be one where some transformation of Y is a linear function of the predictor variable plus Gaussian noise. Estimating a Box-Cox transformation by maximum likelihood does not relieve us of the need to run all the diagnostic checks after the transformation. Even the best Box-Cox transformation may be utter rubbish.
+If we re-scale the data from a log scale back to the original scale of the data, we now have
+
+$$\hat{y}(x) = exp(\hat{\beta_{0}}) \cdot exp(\hat{\beta_{1}}x)$$
+
+The average salary increases $exp(\hat{\beta_{1}}x)$ times for one additional year of experience.
+
+Comparing the RMSE using the original and transformed response, we also see that the log transformed model simply fits better, with a smaller average squared error
+
+### 1.2.1 - Conclusions for VST
+The model has changed, we are now considering $\log(Y)$:
+* We turned the additive model of the noise into a multiplicative model of the noise. 
+  * It makes sense, since it takes into account the increasing error. 
+* Here the **meaning of the beta parameters is not the same** and Y's distribuiton is a log-Normal distribution.
+* Since the logarithm is a monotonic transformation, the median is the exponential of Y's log will be the same, in fact: $\text{median}\log(X) = \log(\text{median}(X))$
+* The expected value is not the same, in fact: $\mathbb{E}[(g(X))] \neq g(\mathbb{E}[X])$
+* The scale is different, we are modeling a different variable and back-transforming needs to be done with care.
+
+If the data is negative, this cannot be applied!
+
+---
+## 2 - Power Transformation
+>In statistics, a power transform is a family of functions applied to create a monotonic transformation of data using power functions. It is a data transformation technique used to stabilize variance, make the data more normal distribution-like, improve the validity of measures of association (such as the Pearson correlation between variables), and for other data stabilization procedures.[2]
+
+Definition: 
+> The power transformation is defined as a continuously varying function, with respect to the power parameter $\lambda$, in a piece-wise function form that makes it continuous at the point of singularity ($\lambda = 0$). 
+
+For data vectors ($y_{1},..., y_{n}$) in which each $y_{i} > 0$, the power transform is
+
+$$y_i^{(\lambda)} =
+\begin{cases}
+\dfrac{y_i^\lambda-1}{\lambda(\operatorname{GM}(y))^{\lambda -1}} , &\text{if } \lambda \neq 0 \\[12pt]
+\operatorname{GM}(y)\ln{y_i} , &\text{if } \lambda = 0
+\end{cases}$$
+
+where: $\operatorname{GM}(y) = \left(\prod_{i=1}^n y_i\right)^\frac{1}{n} = \sqrt[n]{y_1 y_2 \cdots y_n} \,$ is the geometric mean of the observations $y_{1},..., y_{n}$. The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.
+
+---
+## 3 - Box-Cox Transformation
+The great statisticians G. E. P. Box and D. R. Cox introduced a family of transformations which includes powers of Y and taking the logarithm of Y, parameterized by a number $\lambda$
+
+$$y_i^{(\lambda)} =
+\begin{cases}
+\dfrac{y^\lambda-1}{\lambda} , &\text{if } \lambda \neq 0 \\[12pt]
+\log(y) , &\text{if } \lambda = 0
+\end{cases}$$
+
+> Idea: The transformation is defined for positive data only, so the possible remedy could be translating the data after to the positive domain by adding a constant. 
+
+It is important to remember that this family of transformations is just something that Box and Cox made up because it led to tractable math. There is absolutely no justification for it in probability theory, general considerations of mathematical modeling, or scientific theories. 
+
+There is also no reason to think that the correct model will be one where some transformation of Y is a linear function of the predictor variable plus Gaussian noise. 
+
+Estimating a Box-Cox transformation by maximum likelihood does not relieve us of the need to run all the diagnostic checks after the transformation. Even the best Box-Cox transformation may be utter rubbish.
+
+We choose $\lambda$:
+* $\lambda < 1$ for positively skewed data
+* $\lambda > 1$ for negatively skewed data
+
+The $\lambda$ is chosen by numerically maximizing the log-likelihood:
+
+$$L(\lambda) = -\frac{n}{2} \cdot \log(\frac{SS_{err}(\lambda)}{n}) + (\lambda-1)\sum_{i=1}^{n}\log(y_{i})$$
+
+where $SS_{err}(\lambda) = \sum_{i=1}^{n}(y_{\lambda,i} - \hat{y}_{\lambda, i})^{2}$
+
+In reality what happens is that
+1. Computes many $\lambda$ values
+2. Computes the likelihood of the transformation
+3. Looks for $\lambda$ values that "stabilize" the values of Y, so that its variability is reduced
+
+
+A $100(1−\alpha)$% confidence interval for $\lambda$ is:
+
+$${\lambda: L(\lambda) >  L(\hat{\lambda}-\frac{1}{n}) }$$
+
+
+This is implemented in R through the function `boxcox` in the package MASS. We then use the boxcox function to find the best transformation of the form considered by the Box-Cox method. R will plot for us to help quickly select an appropriate $\lambda$ value
+```r
+# Box-Cox transform
+boxcox(initech_fit, plotit = TRUE)
+```
+
+![boxcoxex]()
 
 ---
 ## 4 - Transformations of predictor variables
@@ -98,3 +192,4 @@ It is important to remember that this family of transformations is just somet hi
 
 #### Credits
 * [1 - Lecture 7: Diagnostics and Modifications for Simple Regression](http://www.stat.cmu.edu/~cshalizi/mreg/) by [Cosma Shalizi](https://www.stat.cmu.edu/~cshalizi/)
+* [2 - Power Transformations on Wikipedia](https://en.wikipedia.org/wiki/Power_transform)
