@@ -168,7 +168,6 @@ F-statistic: 316.6 on 3 and 379 DF, p-value: < 2.2e-16
 
 $\beta_{hp}$ now is negative and significant. However we lost predictive ability
 
-
 ---
 ## Is multicollinearitya problem?
 Multicollinearity is another instance of the model correctness vs. usefulness
@@ -177,7 +176,7 @@ A model with multicollinearity might be perfectly valid in the sense of respecti
 
 But the model will be useless if the multicollinearity is high, since it can inflate the variability of the estimation without any kind of bound
 
-Some more advanced methods do exist to deal with multicollinearity, for example ridge regression or Priciple Components Regression: we do not discuss these in the course
+Some more advanced methods do exist to deal with multicollinearity, for example **ridge regression** or **Priciple Components Regression**, we do not discuss these in the course
 
 ---
 
