@@ -1,0 +1,270 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 20/21 - Appello II"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilare il file la prima volta usando il comando `getwd()`. 
+
+```{r, eval=TRUE}
+getwd()
+
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Per poter leggere i dati corretti - cambiare il valore nel numero di matricola qui sotto:
+
+```{r}
+matricola <- 12345
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.05$
+
+
+# Esercizio 1
+
+Braccio di Ferro desidera indagare se le caratteristiche degli spinaci che mangia hanno un effetto sulla durata del suo "braccio di ferro". Inizia quindi a misurare la durata in minuti dell'incremento nella forza (`BdF`), la marca di spinaci mangiata (`Marca`), la quantità di spinaci mangiata in grammi (`QSpin`). Tutte le informazioni raccolte da Braccio di Ferro sono disponibili nel dataset `dex1` che si può caricare usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
+
+```{r,cache=TRUE}
+dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/febExam/main/",matricola,"_a2ex1.txt"))
+# dex1 <- dget(paste0(your_path,matricola,"_a2ex1.txt"))
+```
+
+### Es. 1.a 
+
+
+I due modelli da stimare sono:
+
+```{r, solution = TRUE}
+fit_qspin <- lm(BdF~QSpin, data = dex1)
+fit_marca <- lm(BdF~Marca, data = dex1)
+summary(fit_qspin)
+summary(fit_marca)
+```
+
+Nel `summary` si nota che il p-value per la statistica F è molto piccolo: entrambi i modelli sono significativi (cioè spiegano molta più varianza del modello nullo che contiene solo l'intercetta come parametro). 
+
+### Es. 1.b 
+
+
+
+Il modello da stimare è:
+
+```{r, solution = TRUE}
+fit_qm <- lm(BdF~Marca+QSpin, data = dex1)
+summary(fit_qm)
+```
+
+
+Si nota che `QSpin` rimane una variabile molto significativa, mentre nessuno dei livelli di `Marca` sembra essere significativo. Si può verificare se questo modello con due variabili abbia una migliore bontà di adattamento rispetto ai modelli stimati in precedenza usando `anova`. 
+
+```{r, solution = TRUE}
+anova(fit_qspin, fit_qm) ## non significativo: aggiungere Marca non riduce di molto il RSS 
+anova(fit_marca, fit_qm) ## significativo: aggiungere QSpin riduce di molto il RSS
+```
+
+
+Mentre i modelli stimati al punto 1.a indicano che i singoli predittori hanno una buona capacità di catturare la variabilità dei dati, quando entrambi vengono inseriti nel modello si nota che `Marca` risulta non significativo: questo è dovuto al fatto che le due variabili sono correlate tra loro. Usare `Marca` corrisponde parzialmente ad indicare la quantità di spinaci mangiata, dato che quando `Marca` ha il valore "Timone" `QSpin` è molto alta. Essenzialmente è impossibile separare l'effetto della Marca Timone dall'effetto "tanti spinaci".   
+
+```{r, solution = TRUE}
+plot(dex1)
+```
+
+### Es. 1.c
+
+
+Il modello migliore risulta essere il modello `fit_qspin`: il modello ha un valore di AIC più basso rispetto agli altri modelli e il confronto con il modello `fit_qm`  tramite la analysis of variance mostra che l'inclusione della variabile `Marca` risulta non significativa. 
+
+
+```{r, solution = TRUE}
+AIC(fit_qspin,fit_marca,fit_qm)
+```
+
+Il modello scelto è quindi: 
+$$(BdF_i|QSpin_i) = \beta_0+\beta_1*\text{QSpin}_i + \varepsilon_i  \quad \quad \text{per } i= 1, \ldots, n$$
+dove $(\varepsilon_1, \ldots, \varepsilon_n)$ è un campione iid $\varepsilon_i \sim N(0,\sigma)$. 
+
+
+### Es. 1.d
+
+
+
+```{r, solution = TRUE}
+par(mfrow=c(2,2))
+plot(fit_qspin) 
+```
+
+I residui evidenziano un problema di eteroschedisticità. 
+
+
+### Es. 1.e
+
+
+Nel punto precedente è stato riscontrato un problema di eteroschedasticità. Una possibile soluzione è usare il logaritmo di `BdF` invece che `BdF` come variabile risposta. Usare il logaritmo di `BdF` ovvierebbe anche al problema che i modelli specificati fino ad ora possono in linea teorica risultare in stime di durata minori di 0, un evento impossibile. 
+I residui ottenuti usando `log(BdF)` come variabile risposta non evidenziano nessun problema.
+
+                     
+```{r, solution = TRUE}
+lfit_qspin <- lm(log(BdF)~QSpin, data = dex1)
+par(mfrow=c(2,2))
+plot(lfit_qspin) 
+```
+
+# Esercizio 2
+
+
+Il data set `dex2` contiene informazioni raccolte da un'agenzia immobiliare sui prezzi delle case in una città e i vari fattori che potenzialmente vanno a influire sul prezzo. In particolare il dataset contiene informazioni sul prezzo dell'immobile (`Price`), sulla superficie dell'immobile (`Living.Area`), la distanza dal centro urbano (`DistanceC`), la zona della città in cui è sito l'immobile (`City.Area`) e il tasso di disoccupazione nel distretto dove si trova l'immobile (`Unemp`).  
+
+Si carichi il dataset usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
+
+```{r,cache=TRUE}
+dex2 <- dget(paste0("https://raw.githubusercontent.com/ilapros/febExam/main/",matricola,"_a2ex2.txt"))
+# dex2 <- dget(paste0(your_path,matricola,"_a2ex2.txt"))
+```
+
+### Es. 2.a 
+
+
+```{r, solution = TRUE}
+fit_area <- lm(Price ~ Living.Area, data = dex2)
+fit_all <- lm(Price ~ ., data = dex2)
+AIC(fit_area, fit_all)
+BIC(fit_area, fit_all)
+```
+
+Entrambi i criteri indicano che la bontà di adattamento del modello più semplice (`fit_area`) è migliore: aggiungere parametri nel modello non riduce la somma dei quadrati dei residui in maniera sostanziale. 
+
+### Es. 2.b 
+
+
+I criteri di informazione (Information Cirteron) si definiscono: 
+$$\textrm{IC} = \textrm{-2*logLik}(\mathcal{M}) +  k * p(\mathcal{M})$$ 
+dove $p(\mathcal{M})$ indica il numero di parametri non noti nel modello $\mathcal{M}$. I criteri si basano sull'idea di controbilanciare la capacità di un modello di adattarsi ai dati (misurata dalla log-verosimiglianza, che sarà tanto più alta quanto più il modello stima accuratamente i dati osservati) con la complessità del modello, che viene misurata dal numero di parametri non noti nel modello ($p$). Il valore $k$ determina quanto forte debba essere la penalizzazione per modelli eccessivamente complessi. Quando $k=2$ il criterio corrisponde all'Akaike Information Criterion (AIC). Quando $k=log(n)$ (dove $n$ è la dimensionalità del campione usato per stimare il modello) il criterio corrisponde al Bayesian Information Criterion (BIC). Quando $log(n) > 2$ si ha che BIC tende a penalizzare maggiormente modelli con un numero grande di parametri. 
+
+
+### Es. 2.c 
+
+
+```{r}
+nd <- data.frame(Living.Area = c(1810,1825,1840))
+```
+
+Gli intervalli di confidenza sono:
+
+
+```{r, solution = TRUE}
+predict(fit_area,newdata = nd, interval = "confidence")
+```
+
+Gli intervalli di predizione sono:
+
+
+```{r, solution = TRUE}
+predict(fit_area,newdata = nd, interval = "prediction")
+```
+
+
+Gli intervalli di confidenza sono intervalli che danno una misura della variabilità della stima del valore atteso della variabile risposta valutato ad un dato valore del predittore X (quindi di $E[Price|Living.Area]$). Gli intervalli di predizione invece danno una misura della variabilità di una nuova realizzazione della variabile risposta, quindi di $Price|Living.Area$. Gli intervalli di predizione sono quindi molto più ampi degli intervalli di confidenza. 
+
+### Es. 2.d
+
+
+
+Lo standard error utilizzato per calcolare un intervallo di confidenza è: 
+$$s_e \sqrt{\frac{1}{n}+\frac{(x-\bar{x})^2}{\sum_{i = 1}^n(x_i-\overline{x})^2}}$$
+dove $s_e$ indica l'errore residuo del modello. Lo standard error è minimizzato quando $x_i=\overline{x}$, cioè quando viene valutato per valori del predittore pari alla media campionaria del predittore. 
+
+### Es. 2.e
+
+
+```{r, solution = TRUE}
+plot(Price~Living.Area, data = dex2, pch = 16, bty="l",col="grey70")
+nd <- data.frame(Living.Area = seq(min(dex2$Living.Area)-10, max(dex2$Living.Area)+10, length.out = 200))
+cis <- predict(fit_area, newdata = nd, interval = "confidence")
+pis <- predict(fit_area, newdata = nd, interval = "prediction")
+abline(fit_area,col=4)
+lines(nd$Living.Area, cis[,2], col = 2)
+lines(nd$Living.Area, cis[,3], col = 2)
+lines(nd$Living.Area, pis[,2], col = "forestgreen")
+lines(nd$Living.Area, pis[,3], col = "forestgreen")
+```
+
+
+Si nota che gli intervalli di predizione sono molto più ampi che gli intervalli di confidenza. 
+
+### Es. 2.f
+
+
+```{r}
+gen_and_fit <- function(fitteobj, sigma_mult = 1){
+  sigma <- summary(fitteobj)$sigma*sigma_mult ## \sigma : the standard deviation of th random variable 
+  deterministic <- model.matrix(fitteobj) %*% coef(fitteobj) ## X \beta
+  random_error <- rnorm(nrow(model.matrix(fitteobj)), 0, sigma) ## epsilon 
+  fake_y <- deterministic + random_error  ## X beta + epsilon 
+  as.vector(coef(lm(fake_y ~ model.matrix(fitteobj)-1))) ## parameters estimated using the fake data 
+}
+# gen_and_fit(fit_area)
+```
+
+
+```{r, solution = TRUE}
+plot(range(dex2$Living.Area), range(fitted(fit_area))*c(0.9,1.1), 
+     col = "white", xlab = "Living Area", ylab = "Price")
+set.seed(123)
+for(j in 1:20) abline(gen_and_fit(fit_area), col= "grey80")
+abline(fit_area,col=4)
+lines(nd$Living.Area, cis[,2], col = 2)
+lines(nd$Living.Area, cis[,3], col = 2)
+```
+
+Ognuno dei dataset generati dalla funzione rappresenta una possibile realizzazione di dati che avremmo potuto osservate se il modello fosse una descrizione accurata della realtà. Usando queste realizzazioni ipotetiche si stimano dei coefficienti di regressione che sono simili ma non identici ai parametri stimati usando i dati originali. Ognuna delle linee aggiunte al grafico rappresenta la stima del valore atteso di `Price` che si otterrebbe se i dati usati per stimare i parametri fossero stati una delle realizzazioni ipotetiche. Si nota che gli intervalli di confidenza derivati in precedenza definiscono una zona di incertezza della funzione che ha una forma simile a quella identificata usando le realizzazione ipotetiche del modello. 
+
+### Es. 2.g
+
+
+Il parametro `sigma_mult` permette di generare dati che provengono da distribuzioni che hanno varianze maggiori o minori di quelle del modello da cui vengono estratte le informazioni. Nel grafico si indaga l'effetto che ha usare una varianza molto maggiore quando si generano i dati che vengono poi usati per stimare i parametri. Si noti che quando la varianza è maggiore l'incertezza attorno alla stima del valore atteso è maggiore.   
+
+```{r, solution = TRUE}
+par(mfrow=c(1,2))
+plot(range(dex2$Living.Area), range(fitted(fit_area))*c(0.9,1.1), 
+     col = "white", xlab = "Living Area", ylab = "Price")
+set.seed(123)
+for(j in 1:20) abline(gen_and_fit(fit_area), col= "grey80")
+abline(fit_area,col=4)
+title(main = "Original Sigma")
+plot(range(dex2$Living.Area), range(fitted(fit_area))*c(0.9,1.1), 
+     col = "white", xlab = "Living Area", ylab = "Price")
+for(j in 1:20) abline(gen_and_fit(fit_area,sigma_mult = 3), col= "grey80")
+title(main = "3*Sigma")
+abline(fit_area,col=4)
+```
+
+Si può inoltre osservare quale è la variabilità delle stime dei parametri: anche questa variabilità risulta più grande quando il processo sottostante la generazione dei dati ha una maggiore varianza. Da questo si evince che la precisione dei parametri del modello e del valore atteso della variabile di interesse sarà tanto più precisa quanto meno variabile è il processo in esame. 
+
+```{r, solution = TRUE}
+out_mat_1 <- matrix(NA, ncol = 2, nrow=1000); for(j in 1:1000) out_mat_1[j,] <- gen_and_fit(fit_area)
+out_mat_3 <- matrix(NA, ncol = 2, nrow=1000); for(j in 1:1000) out_mat_3[j,] <- gen_and_fit(fit_area, sigma_mult = 3)
+apply(out_mat_1,2,mean); apply(out_mat_1,2,sd)
+apply(out_mat_3,2,mean); apply(out_mat_3,2,sd)
+```
+
+
+```{r, solution = TRUE}
+par(mfrow=c(1,2))
+hist(out_mat_1[,1], prob=FALSE, xlim = range(out_mat_3[,1]),main = " ")
+hist(out_mat_3[,1], prob=FALSE,add=TRUE,col=rgb(1,0,0,0.2), border = "red")
+title(main="Intercept")
+hist(out_mat_1[,2], prob=FALSE, xlim = range(out_mat_3[,2]),main = " ")
+hist(out_mat_3[,2], prob=FALSE,add=TRUE,col=rgb(1,0,0,0.2), border = "red")
+title(main="Slope")
+```
+

@@ -1,0 +1,129 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 21/22 - Appello I"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilate il file la prima volta usando il comando `getwd()`. 
+
+```{r, eval=TRUE}
+getwd()
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.02$
+
+
+# Esercizio 1
+
+Il data-scientist di un'azienda che produce app ludiche per cellulari vuole costruire un modello predittivo per il tempo in cui gli utenti hanno usato l'app. Dal dataset disponibile estrae i records delle persone che, nel periodo di Gennaio-Marzo 2021 hanno dichiarato al momento dell'iscrizione di voler condividere con l'azienda l'informazione sulla loro età: questo identifica 70 utenti per cui sono disponibili le seguenti informazioni: 
+
+* `numAccess`: il numero totale di accessi eseguiti all'app dall'utente nell'anno 2021
+* `age`: l'età dichiarata dall'utente
+* `time`: il tempo passato dall'utente usando l'app 
+
+La variabile `time` è la variabile di interesse (variabile risposta). 
+
+Tutte le informazioni a disposizione dell'analista sono disponibili nel dataset `dex1` che si può caricare usando il seguente codice: 
+
+```{r,cache=TRUE}
+dex1 <- read.csv("ex1_data.csv", header = TRUE)
+```
+
+### Es. 1.a 
+
+Si costruisca un primo modello `fit1` in cui le variabili `age` e `numAccess` sono usate come predittori. Si stimi il modello `fit1` commentando la sua significatività. 
+
+
+
+
+### Es. 1.b 
+
+Si costruisca un modello `fit2` in cui solo la variabile `numAccess` è usata come predittore: si verifichi tramite una verifica di ipotesi se il modello `fit2` risulta significativo rispetto al modello `fit1`. Si scriva in forma esplicita l'ipotesi nulla e alternativa che si stanno verificando tramite il test indicando infine se è possibile rifiutare l'ipotesi nulla. 
+
+
+
+### Es. 1.c
+
+Usando il modello `fit2` si calcolino degli intervalli di confidenza e di predizione per degli utenti che compiano 60 e 200 accessi. Si commenti l'ampiezza degli intervalli ottenuti e si spieghi brevemente la differenza tra intervallo di confidenza e di predizione.  
+
+
+
+
+
+
+### Es. 1.d
+
+Si commenti sulla generalizzabilità dell'analisi svolta dal data scientist per tutti gli utenti dell'app (suggerimento: si rilegga attentamente l'introduzione dell'esercizio in cui viene presentato il dataset).
+
+
+
+
+# Esercizio 2
+
+Il gestore di un sistema di rete mantiene un registro di informazioni varie in cui registra anche se in una giornata si sono registrati guasti che richiedono l'intervento di un operatore esterno per ripristinare il sistema. Il file `ex2_data.csv` contiene le seguenti variabili: 
+
+
+* `numAccess`: il numero di accessi alla rete
+* `numRequests`: il numero di richieste gestite dalla rete
+* `durationMean`: la durata media di una sessione di un utente
+* `durationMax`: la durata massima di una sessione di un utente 
+* `durationMin`: la durata minima di una sessione di un utente
+* `fail`: un indicatore che ha valore 1 quando si è registrato un guasto che richiede l'intervento di un operatore esterno per ripristinare il sistema 
+
+Si carichi il dataset usando il codice seguente:  
+
+```{r,cache=TRUE}
+dex2 <- read.csv("ex2_data.csv", header = TRUE)
+```
+
+Si desidera costruire un modello predittivo per la variabile `fail`, un modello cioè che predica se in un giorno sarà necessario l'intervento di un operatore esterno per ripristinare il sistema. 
+
+### Es. 2.a 
+
+Si stimi il modello `fitTot`, un modello lineare generalizzato in cui tutti predittori sono inseriti nel modello e la variabile risposta è l'indicatore di un guasto (`fail`): si usi la distribuzione Binomiale con legame canonico. 
+Si commenti l'effetto stimato delle variabili `numAccess` e `numRequests`
+
+
+
+
+
+### Es. 2.b
+
+Usando un approccio backward si parta dal modello `fitTot` per individuare dei modelli che risultino in qualche senso ottimali. Si utilizzi sia AIC che BIC per l'individuazione di questo modello ottimale. Si nota una qualche differenza nella scelta effettuata usando i due criteri? Si commenti il risultato della selezione delineando le differenze tra i due criteri. 
+
+
+
+
+
+### Es. 2.c 
+
+Usando il modello `fitTot`, si stimi la probabilità che si registri un guasto in due giornate con valori dei predittori pari a quelli contenuti nel dataset `nd` specificato più in basso. Si produca anche una stima intervallare per la probabilità usando un livello di confidenza pari al 95\%.
+
+```{r}
+nd <- data.frame(numAccess = c(10,5290), 
+                 numRequests = c(2000,5000), 
+                 durationMean = c(10,24.8), 
+                 durationMax = c(75,90), 
+                 durationMin = c(9,5))
+rownames(nd) <- c("day1","day2")
+```
+
+
+
+
+
+### Es. 2.d
+
+Usando il modello `fitTot` si predica per ogni giornata del dataset `dex2` se ci si aspetta che avvenga un guasto. Per definire se per una giornata viene predetto un guasto si usi un livello di probabilità pari a 0.5, cioè si definisce che per una giornata viene predetto l'evento `guasto` se la la probabilità che ci sia un guasto è > 0.5. Si verifichi la proporzione di predizioni corrette e sbagliate prodotte dal modello. 
+
+
+

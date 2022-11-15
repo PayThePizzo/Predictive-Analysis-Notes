@@ -68,6 +68,14 @@ which has the errors entering the model in a multiplicative fashion.
 
 Let's check the results
 
+```r
+plot(salary ~ years, data = initech, col = "grey", pch = 20, cex = 1.5, 
+      main = "Salaries at Initech, By Seniority")
+
+curve(exp(initech_fit_log$coef[1] + initech_fit_log$coef[2] * x),
+      from = 0, to = 30, add = TRUE, col = "darkorange", lwd = 2)
+```
+
 ![origscex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/origscex.png?raw=TRUE)
 
 And we check the residuals
@@ -109,7 +117,7 @@ The model has changed, we are now considering $\log(Y)$:
 * We turned the additive model of the noise into a multiplicative model of the noise. 
   * It makes sense, since it takes into account the increasing error. 
 * Here the **meaning of the beta parameters is not the same** and Y's distribuiton is a log-Normal distribution.
-* Since the logarithm is a monotonic transformation, the median is the exponential of Y's log will be the same, in fact: $\text{median}\log(X) = \log(\text{median}(X))$
+* Since the logarithm is a monotonic transformation, the median is the exponential of Y's log will be the same, in fact: $\text{median}(\log(X)) = \log(\text{median}(X))$
 * The expected value is not the same, in fact: $\mathbb{E}[(g(X))] \neq g(\mathbb{E}[X])$
 * The scale is different, we are modeling a different variable and back-transforming needs to be done with care.
 
@@ -117,7 +125,7 @@ If the data is negative, this cannot be applied!
 
 ---
 ## 2 - Power Transformation
->In statistics, a power transform is a family of functions applied to create a monotonic transformation of data using power functions. It is a data transformation technique used to stabilize variance, make the data more normal distribution-like, improve the validity of measures of association (such as the Pearson correlation between variables), and for other data stabilization procedures.[2]
+>In statistics, a power transform is a family of functions applied to create a monotonic transformation of data using power functions. It is a data transformation technique used to stabilize variance, make the data more normal distribution-like, improve the validity of measures of association (such as the Pearson correlation between variables), and for other data stabilization procedures.
 
 Definition: 
 > The power transformation is defined as a continuously varying function, with respect to the power parameter $\lambda$, in a piece-wise function form that makes it continuous at the point of singularity ($\lambda = 0$). 
@@ -130,7 +138,9 @@ $$y_i^{(\lambda)} =
 \operatorname{GM}(y)\ln{y_i} , &\text{if } \lambda = 0
 \end{cases}$$
 
-where: $\operatorname{GM}(y) = \left(\prod_{i=1}^n y_i\right)^\frac{1}{n} = \sqrt[n]{y_1 y_2 \cdots y_n} \,$ is the geometric mean of the observations $y_{1},..., y_{n}$. The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.
+where: $\operatorname{GM}(y) = \left(\prod_{i=1}^n y_i\right)^\frac{1}{n} = \sqrt[n]{y_1 y_2 \cdots y_n} \,$ is the geometric mean of the observations $y_{1},..., y_{n}$. 
+
+The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.[2]
 
 ---
 ## 3 - Box-Cox Transformation
@@ -165,19 +175,25 @@ In reality what happens is that
 2. Computes the likelihood of the transformation
 3. Looks for $\lambda$ values that "stabilize" the values of Y, so that its variability is reduced
 
+### Confidence Intrerval for $\lambda$
+How do we check if the value we chose is any good for our goal?
 
-A $100(1−\alpha)$% confidence interval for $\lambda$ is:
+We can build a $100(1−\alpha)$% confidence interval for $\lambda$ is:
 
 $${\lambda: L(\lambda) >  L(\hat{\lambda}-\frac{1}{n}) }$$
 
-
 This is implemented in R through the function `boxcox` in the package MASS. We then use the boxcox function to find the best transformation of the form considered by the Box-Cox method. R will plot for us to help quickly select an appropriate $\lambda$ value
+
 ```r
 # Box-Cox transform
 boxcox(initech_fit, plotit = TRUE)
 ```
 
-![boxcoxex]()
+![boxcoxex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/resvstex.png?raw=TRUE)
+
+We often choose a ”nice” value from within the confidence interval, instead of the value of
+$\lambda$ 
+* Ex: $\hat{\lambda} = 0.061$, that truly maximizes the likelihood. In this case we choose $\lambda = 0$
 
 ---
 ## 4 - Transformations of predictor variables

@@ -1,0 +1,174 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 21/22 - Appello II"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilate il file la prima volta usando il comando `getwd()`. 
+
+```{r, eval=TRUE}
+getwd()
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.02$
+
+
+# Esercizio 1
+
+Un docente di un corso di laurea desidera costruire un modello predittivo per predirre il voto atteso di uno studente in un determinato esame basandosi sui voti ottenuti in altri 9 esami. Tramite il gestionale dell'ateneo scarica i risultati dei voti ottenuti dagli studenti che hanno superato tutti i 9 esami nello scorso anno accademico e costruisce un dataset che contiene le seguenti variabili
+
+* `x1`-`x9`: il voto ottenuto nei 9 altri esami presi in considerazione
+* `y`: il voto dell'esame per cui si desidera costruire un modello predittivo
+
+Tutte le informazioni a disposizione dell'analista sono disponibili nel dataset `dex1` che si può caricare usando il seguente codice: 
+
+```{r,cache=TRUE}
+dex1 <- read.csv("ex1_data.csv", header = TRUE)
+```
+
+
+### Es. 1.a 
+
+
+```{r, solution = TRUE}
+fitAll <- lm(y~., data = dex1)
+summary(fitAll)
+```
+
+Il modello è altamente significativo: quando tutti i predittori vengono presi in considerazione si riesce a spiegare una parte della variabilità dei dati più alta di quella che si spiega senza prendere in considerazione nessun predittore. Dall'altro lato però, nessun predittore è particolarmente significativo: il p-value più piccolo è > 0.1. Per alcuni predittori si nota una stima negativa del coefficiente di regressione quando ad osservando il grafico dei singoli predittori contro `y` ci si aspetterebbe una relazione positiva. Data la forte correlazione tra i singoli predittori è probabile che si trovi in una situazione di multicolinearità. 
+
+```{r, solution = TRUE}
+plot(dex1)
+signif(cor(dex1),2)
+```
+
+
+### Es. 1.b 
+
+
+
+
+```{r,solution=TRUE}
+car::vif(fitAll)
+par(mfrow=c(2,2)); plot(fitAll)
+```
+
+
+Data la forte correlazione tra i predittori potremmo trovarci in una situazione di multicolinearità, questo crea problemi alla stima dei modello inflazionando la varianza della stima (che poi va anche ad influire sulla precisione della stima in termini di stima dell'effetto del predittore sulla variabile risposta). Si può quantificare quanto la possibile colinearità dei predittori vada ad inflazionare la variabilità della stima usando i Variance Inflation Factors, che indicano quanto più è grande la varianza nel modello stimato rispetto ad un modello con variabili indipendenti. Valori grandi di VIFs indicano che la variabilità della stima è ben più grande di quella che potrebbe essere usando predittori indipendenti. 
+Un altro controllo che è possibile (ed opportuno) fare è una verifica che le assunzioni del modello (normalità, varianza costante, etc...) siano soddisfatte: i grafici dei residui non mostrano forti devianze dalle assunzioni del modello lineare. La normalità dei residui non è totalmente dimostrata ma il qqplot non è particolarmente problematico. Eventuali forti deviazioni dalle assunzioni del modello possono inficiare la validità della stima di un modello lineare. 
+
+
+
+### Es. 1.c
+
+
+
+```{r,solution=TRUE}
+fit2 <- lm(y~x1+x3, data = dex1)
+summary(fit2)$r.squared; summary(fitAll)$r.squared
+summary(fit2)$adj.r.squared; summary(fitAll)$adj.r.squared
+```
+
+
+Non stupisce che `fitAll` abbia un valore di $R^2$ maggiore di quello per `fit2`: il valore di $R^2$ aumenta sempre se si aggiungono predittori. In questo caso, è più utile usare $R_{Adj}^2$ per confrontare i modelli, dato che questo ha una penalizzazione che tiene conto del numero di gradi di libertà usati dal modello. In questo caso quindi il modello `fit2` risulta avere un valore di $R_{Adj}^2$ maggiore ed avere quindi una migliore bontà di adattamento. 
+
+
+### Es. 1.d
+
+
+
+Essendo il modello `fit2` basato su 2 esami invece che 9 è possibile che ci sia una platea più ampia di studenti che sia riuscita a passare tutti gli esami. Questo permette di poter fare predizioni del voto dell'esame di interesse anche per studenti che abbiano passato solo i due esami `x1` e `x3`. Inoltre, escludere il voto dell'esame `x8` dal modello predittivo permette di avere un campione più ampio da usare per stimare il modello: questo permette di avere stime più precise. 
+
+
+# Esercizio 2
+
+Un docente universitario desidera costruire un modello predittivo per predirre se uno studente iscritto ad un corso passerà l'esame al primo appello. Per gli studenti iscritti al primo appello di un esame raccoglie quindi le seguenti informazioni:
+
+
+* `altriEsami`: il numero di esami diversi da quello di interesse a cui è iscritto lo studente 
+* `mediaVoti`: la media dei voti degli esami registrati fino ad ora in libretto
+* `votoQuiz`: il voto massimo ottenuto dallo studente in un quiz moodle per l'autovalutazione 
+* `tutorato`: una variabile che indica se lo studente ha partecipato alle attività di tutorato (valore `si` per studenti che hanno partecipato al tutorato)  
+* `promozione`: una variabile che indica se lo studente ha passato l'esame al primo appello (valore `1` per studenti che hanno passato l'esame al primo appello). Questa è la variabile risposta.  
+
+Si carichi il dataset usando il codice seguente:  
+
+```{r,cache=TRUE}
+dex2 <- read.csv("ex2_data.csv", header = TRUE)
+```
+
+Si desidera costruire un modello predittivo per la variabile `promozione`, un modello cioè che predica se uno studente passerà l'esame al primo appello.  
+
+### Es. 2.a 
+
+
+```{r, solution = TRUE}
+fit1 <- glm(promozione ~ mediaVoti + tutorato, data = dex2, family = binomial())
+fitAll <- glm(promozione ~ mediaVoti + tutorato+votoQuiz+altriEsami, data = dex2, family = binomial())
+anova(fit1, fitAll, test = "LRT")
+```
+
+
+Il sistema di verifica di ipotesi è 
+\[H_0: \beta_{votoQuiz} = \beta_{altriEsami} = 0 \quad VS \quad  H_0: \beta_{votoQuiz} \text{or} \beta_{altriEsami} != 0\]
+Il p-value del test è $>0.01$: non si può rifiutare l'ipotesi nulla al livello di significatività $\alpha = 0.01$. 
+
+
+### Es. 2.b
+
+
+
+```{r, solution = TRUE}
+fitNull <-  glm(promozione ~ 1, data = dex2, family = binomial())
+print(step(fitAll, direction = "backward", trace = 0, k = 2, 
+           scope = list(lower = fitNull, upper = fitAll)))
+print(step(fitNull, direction = "forward", trace = 0, k = 2, 
+           scope = list(lower = fitNull, upper = fitAll)))
+```
+
+AIC permette di individuare modelli in qualche senso ottimali bilanciando l'aumento della verosimiglianza per modelli più complessi con una penalizzazione basata sulla complessità del modelli (in termini di numero di parametri stimati). L'algoritmo forward parte da un modello poco complesso e verifica di volta in volta se aumentare la complessità del modello migliora la bontà di adattamento misurata tramite AIC. L'algoritmo backward invece parte da un modello complesso e ad ogni passo dell'algoritmo verifica se sottrarre una variabile migliora la bontà di adattamento (misurata tramite AIC). 
+
+
+### Es. 2.c 
+
+
+```{r}
+nd <- data.frame(altriEsami = c(7,4,4), 
+                 mediaVoti = c(25,25,25), 
+                 tutorato = c("si","si","no"), 
+                 votoQuiz = c(29,28,28))
+```
+
+
+
+```{r, solution = TRUE}
+predict(fit1, type = "response", newdata = nd)
+preds <- predict(fit1, type = "link", newdata = nd, se.fit = TRUE)
+cbind(binomial()$linkinv(preds$fit + qnorm(0.001)*preds$se.fit),
+      binomial()$linkinv(preds$fit + qnorm(0.995)*preds$se.fit))
+```
+
+La differenza nella stima ottenuta tra i tre studenti è interamente dovuta alla frequentazione o meno delle attività di tutorato: il modello `fit1` infatti non usa le informazioni `altriEsami` e `votoQuiz`. Si nota che partecipare alle attività di tutorato fa aumentare la probabilità che lo studente superi l'esame al primo appello. 
+
+### Es. 2.d
+
+
+```{r, solution = TRUE}
+plot(dex2$mediaVoti, jitter(dex2$promozione, factor = 0.3), pch = 16)
+nd <- data.frame(mediaVoti = seq(18, 30), tutorato = "si")
+lines(nd$mediaVoti, predict(fit1, newdata = nd, type="response"), col = 2)
+nd <- data.frame(mediaVoti = seq(18, 30), tutorato = "no")
+lines(nd$mediaVoti, predict(fit1, newdata = nd, type="response"), col = 4)
+legend("bottomright", bty = "n", legend = c("tutorato", "no tutorato"), 
+       col = c(2,4), lty = 1)
+```
+

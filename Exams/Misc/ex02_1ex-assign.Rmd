@@ -1,0 +1,169 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 20/21 - Appello II"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilare il file la prima volta usando il comando `getwd()`. 
+
+```{r, eval=TRUE}
+getwd()
+
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Per poter leggere i dati corretti - cambiare il valore nel numero di matricola qui sotto:
+
+```{r}
+matricola <- 12345
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.05$
+
+
+# Esercizio 1
+
+Braccio di Ferro desidera indagare se le caratteristiche degli spinaci che mangia hanno un effetto sulla durata del suo "braccio di ferro". Inizia quindi a misurare la durata in minuti dell'incremento nella forza (`BdF`), la marca di spinaci mangiata (`Marca`), la quantità di spinaci mangiata in grammi (`QSpin`). Tutte le informazioni raccolte da Braccio di Ferro sono disponibili nel dataset `dex1` che si può caricare usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
+
+```{r,cache=TRUE}
+dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/febExam/main/",matricola,"_a2ex1.txt"))
+# dex1 <- dget(paste0(your_path,matricola,"_a2ex1.txt"))
+```
+
+### Es. 1.a 
+
+Si stimino due modelli di regressione: un modello (chiamato `fit_qspin`) il cui la variabile `BdF` dipende linearmente dalla quantità di spinaci mangiata; e un modello (chiamato `fit_marca`) il cui la variabile `BdF` dipende linearmente dalla marca di spinaci mangiata. Per entrambi i modelli si commenti la significatività del modello. 
+
+
+
+
+### Es. 1.b 
+
+Si stimi un modello di regressione (chiamato `fit_qm`) il cui la variabile `BdF` dipenda linearmente dalla quantità di spinaci mangiata `QSpin` e dalla marca di spinaci `Marca`. Si verifichi se il modello risulta significativo rispetto al modello `fit_qspin` e al modello `fit_marca`. Si commenti il risultato delle verifiche. [Suggerimento - sia faccia un grafico dei dati per studiare le relazioni tra predittori]. 
+
+
+
+
+
+
+
+
+
+
+### Es. 1.c
+
+Si identifichi un modello che si ritene migliore tra i tre modelli stimati fino ad ora (esplicitando la motivazione/misura che ha portato alla scelta). Si scriva il modello selezionato in forma esplicita facendo attenzione a mettere in evidenza le assunzioni sottostanti al modello. 
+
+
+
+
+
+
+### Es. 1.d
+
+Utilizzando grafici basati sui residui, si verifichino le assunzioni sottostanti il modello selezionato come migliore al punto 1.c.
+
+
+
+
+
+### Es. 1.e
+
+Nel caso di problemi evidenziati al punto 1.d si verifichi se è possibile apportare cambiamenti al modello selezionato che risultino in un modello per cui le assunzioni sottostanti il modello siano meglio rispettate. Se non è stato riscontrato nessun problema nel modello non occorre rispondere a questa domanda. 
+
+
+                     
+
+# Esercizio 2
+
+
+Il data set `dex2` contiene informazioni raccolte da un'agenzia immobiliare sui prezzi delle case in una città e i vari fattori che potenzialmente vanno a influire sul prezzo. In particolare il dataset contiene informazioni sul prezzo dell'immobile (`Price`), sulla superficie dell'immobile (`Living.Area`), la distanza dal centro urbano (`DistanceC`), la zona della città in cui è sito l'immobile (`City.Area`) e il tasso di disoccupazione nel distretto dove si trova l'immobile (`Unemp`).  
+
+Si carichi il dataset usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
+
+```{r,cache=TRUE}
+dex2 <- dget(paste0("https://raw.githubusercontent.com/ilapros/febExam/main/",matricola,"_a2ex2.txt"))
+# dex2 <- dget(paste0(your_path,matricola,"_a2ex2.txt"))
+```
+
+### Es. 2.a 
+
+Si stimino due modelli di regressione lineare multipla: uno (`fit_area`) in cui il prezzo delle case (`Price`) dipenda linearmente dal predittore `Living.Area` e uno (`fit_all`) in  cui il prezzo delle case (`Price`) dipenda linearmente da tutti i predittori presenti nel dataset. Si confronti la bontà di adattamento dei due modelli usando sia AIC che BIC.  
+
+
+
+### Es. 2.b 
+
+Si definiscano AIC e BIC. Si spieghi perchè AIC e BIC sono dei criteri utili a confrontare la bontà di adattamento evidenziando le differenze tra i due criteri. 
+
+
+
+### Es. 2.c 
+
+Usando il modello `fit_area`, si calcolino gli intervalli di predizione e confidenza per il prezzo dei tre immobili le cui caratteristiche sono specificate nel dataset `nd`. Si espliciti la differenza tra intervalli di confidenza e predizione. 
+
+```{r}
+nd <- data.frame(Living.Area = c(1810,1825,1840))
+```
+
+
+
+
+
+
+
+
+
+### Es. 2.d
+
+Si specifichi quale è il valore di `Living.Area` per cui l'ampiezza dell'intervallo di confidenza è la minore ampiezza possibile. 
+
+
+
+### Es. 2.e
+
+Si crei una visualizzazione che mostri la relazione tra `Living.Area` e il valore atteso di `Price` stimata dal modello `fit_area`. Si mostrino anche gli intervalli di predizione e confidenza per il range di valori del predittore osservati nel campione. 
+
+
+
+
+
+
+### Es. 2.f
+
+La funzione `gen_and_fit` permette di generare dati da un modello lineare stimato e di usare tali dati per derivare stime dei parametri in un nuovo modello lineare. Questo permette di poter verificare come si comportano gli stimatori dei parametri di regressione in varie condizioni. La funzione ha un argomento `sigma_mult` che permette di modificare la variabilità della componente stocastica nella generazione dei dati. 
+
+```{r}
+gen_and_fit <- function(fitteobj, sigma_mult = 1){
+  sigma <- summary(fitteobj)$sigma*sigma_mult ## \sigma : the standard deviation of th random variable 
+  deterministic <- model.matrix(fitteobj) %*% coef(fitteobj) ## X \beta
+  random_error <- rnorm(nrow(model.matrix(fitteobj)), 0, sigma) ## epsilon 
+  fake_y <- deterministic + random_error  ## X beta + epsilon 
+  as.vector(coef(lm(fake_y ~ model.matrix(fitteobj)-1))) ## parameters estimated using the fake data 
+}
+# gen_and_fit(fit_area)
+```
+
+Si usi la funzione `gen_and_est` per quantificare e visualizzare l'incertezza ottenuta nella stima del valore atteso di `Price`. Si spieghi in maniera succinta come opera la funzione `gen_and_est` e perché può essere utile per quantificare l'incertezza nella stima del modello. 
+
+
+
+### Es. 2.g
+
+Si usi la funzione `gen_and_est` per indagare l'effetto della variabilità della componente stocastica del modello sull'incertezza ottenuta nella stima dei parametri di regressione e del valore atteso di `Price`. [Si deve sfruttare l'argomento `sigma_mult` della funzione. ]  
+
+
+
+
+
+
+
