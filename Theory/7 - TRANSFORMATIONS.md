@@ -78,7 +78,7 @@ curve(exp(initech_fit_log$coef[1] + initech_fit_log$coef[2] * x),
 
 ![origscex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/origscex.png?raw=TRUE)
 
-And we check the residuals
+And we check the residuals 
 
 ![resvstex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/resvstex.png?raw=TRUE)
 
@@ -86,13 +86,20 @@ The fitted versus residuals plot looks much better. <mark>It appears the constan
 
 Let's compare errors
 ```r
+# Sigma^2 under the original model
 sqrt(mean(resid(initech_fit) ˆ 2))
 [1] 27080.16
+
+# Sigma^2 under the log model
 sqrt(mean(resid(initech_fit_log) ˆ 2))
 [1] 0.1934907
 ```
+
 But wait, that isn’t fair, this difference is simply due to the different scales being used.
+
 Since we changed the model, <mark>we also changed the scale of the data!</mark>
+
+We cannot compare them like this, we need to rescale.
 ```r
 sqrt(mean((initech$salary - fitted(initech_fit)) ˆ 2))
 [1] 27080.16
@@ -100,7 +107,7 @@ sqrt(mean((initech$salary - exp(fitted(initech_fit_log))) ˆ 2))
 [1] 24280.36
 ```
 
-In fact, the model here is 
+The transformed response is a linear combination of the predictors:
 
 $$log(\hat{y}(x)) = \hat{\beta_{0}}+ \hat{\beta_{1}}x$$
 
@@ -114,9 +121,11 @@ Comparing the RMSE using the original and transformed response, we also see that
 
 ### 1.2.1 - Conclusions for VST
 The model has changed, we are now considering $\log(Y)$:
-* We turned the additive model of the noise into a multiplicative model of the noise. 
-  * It makes sense, since it takes into account the increasing error. 
-* Here the **meaning of the beta parameters is not the same** and Y's distribuiton is a log-Normal distribution.
+* Y's distribuiton is a log-Normal distribution, and we are merely modeling its transformation $g(\mathbb{E}[X])$.
+* We turned the additive model of the noise into a **multiplicative model** of the noise. 
+  * It makes sense, since it takes into account the increasing error.
+* Reinterpretation of **the beta parameters** :
+  * For each year $x_{i}$ of experience (unit of measure) the median changes accordingly to $x_{i} \cdot \hat{\beta_{1}}$
 * Since the logarithm is a monotonic transformation, the median is the exponential of Y's log will be the same, in fact: $\text{median}(\log(X)) = \log(\text{median}(X))$
 * The expected value is not the same, in fact: $\mathbb{E}[(g(X))] \neq g(\mathbb{E}[X])$
 * The scale is different, we are modeling a different variable and back-transforming needs to be done with care.
