@@ -139,7 +139,7 @@ If the data is negative, this cannot be applied!
 Definition: 
 > The power transformation is defined as a continuously varying function, with respect to the power parameter $\lambda$, in a piece-wise function form that makes it continuous at the point of singularity ($\lambda = 0$). 
 
-For data vectors ($y_{1},...,y_{n}$) in which each $y_{i} > 0$, the power transform is
+For data vectors $y_{1},...,y_{n}$ in which each $y_{i} > 0$, the power transform is
 
 ```math
 y_i^{(\lambda)} =
