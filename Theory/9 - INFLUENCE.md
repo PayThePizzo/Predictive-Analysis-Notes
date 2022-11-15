@@ -27,6 +27,16 @@ par(mfrow=c(2,2)); plot(fit_star)
 
 ![cybplot2](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot2.png?raw=TRUE)
 
+```r
+plot(star[,"temp"], cooks.distance(fit_star), pch = 16)
+```
+
+![cybplot3](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot3.png?raw=TRUE)
+
+Fitted lines with and without giant stars
+
+![cybplot4](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot4.png?raw=TRUE)
+
 ---
 
 ## What to do about influential points
