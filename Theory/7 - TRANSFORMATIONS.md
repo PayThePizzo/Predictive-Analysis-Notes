@@ -38,7 +38,7 @@ It seems like a good model until we check the residuals
 This is a typical problem of heteroskedasticity, when $\hat{Y}$ grows so do the residuals
 
 ---
-## 1 - Target Transformation - Heteroskedasticity problems
+## 1 - Target Transformation for Heteroskedasticity problems
 For the assumptions made until now, we want to achieve constant variance $Var[Y|X=x] = \sigma^{2}$. 
 
 Instead, here we see the variance is a function of the mean $Var[Y|X=x] = h(\mathbb{E}[Y|X=x])$ , for some increasing function $h$. In order to correct this, one first approach we can use is to change the model.
@@ -47,7 +47,8 @@ We choose and apply some invertible function to $Y$ called **variance stabilizin
 
 $$g(Y) = \beta_{0} + \beta_{1}x + \varepsilon_{i} \rightarrow Y = g^{-1}(\beta_{0} + \beta_{1}x + \varepsilon_{i})$$
 
-### 1.2 - Variance-Stabilizing Transformation
+---
+### 1.1 - Variance-Stabilizing Transformation
 A common variance stabilizing transformation when we see increasing variance in a fitted versus residuals plot is $\log(Y)$
 
 Also, if the values of a variable range over more than one order of magnitude and the **variable is strictly positive**, then replacing the variable by its logarithm is likely to be helpful.
@@ -119,7 +120,7 @@ The average salary increases $exp(\hat{\beta_{1}}x)$ times for one additional ye
 
 Comparing the RMSE using the original and transformed response, we also see that the log transformed model simply fits better, with a smaller average squared error
 
-### 1.2.1 - Conclusions for VST
+### 1.1.1 - Conclusions for VST
 The model has changed, we are now considering $\log(Y)$:
 * Y's distribuiton is a log-Normal distribution, and we are merely modeling its transformation $g(\mathbb{E}[X])$.
 * We turned the additive model of the noise into a **multiplicative model** of the noise. 
@@ -157,7 +158,7 @@ is the geometric mean of the observations $y_{1},..., y_{n}$.
 The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.[2]
 
 ---
-## 1.3 - Box-Cox Transformation
+## 1.2 - Box-Cox Transformation
 The great statisticians G. E. P. Box and D. R. Cox introduced a family of transformations which includes powers of Y and taking the logarithm of Y, parameterized by a number $\lambda$
 
 $$y_i^{(\lambda)} =
@@ -184,14 +185,14 @@ $$L(\lambda) = -\frac{n}{2} \cdot \log(\frac{SS_{err}(\lambda)}{n}) + (\lambda-1
 
 where $SS_{err}(\lambda) = \sum_{i=1}^{n}(y_{\lambda,i} - \hat{y}_{\lambda, i})^{2}$
 
-### Procedure 
+### 1.2.1 - Procedure 
 1. We need to estimate a linear model (and eventually re-iterate if we change the model)
    1. Choose the predictors 
 2. We compute many $\lambda$ values
 3. We compute the likelihood of the transformation
 4. We choose the $\lambda$ value that "stabilize" the values of Y, so that its variability is reduced. That is a $\lambda$ value that maximizes the function $\operatorname{L}(\lambda)$
 
-### In R - Confidence Intrerval for $\lambda$
+### 1.2.2 - In R - Confidence Intrerval for $\lambda$
 This is implemented in R through the function `boxcox` in the package MASS. We then use the boxcox function to find the best transformation of the form considered by the Box-Cox method, and builds a confidence interval for the best lambda values. 
 
 We can build a $100(1−\alpha)$% confidence interval for $\lambda$ is:
@@ -210,270 +211,6 @@ We often choose a ”nice” value from within the confidence interval, instead 
 * Ex: $\hat{\lambda} = 0.061$, that truly maximizes the likelihood. In this case we choose $\lambda = 0$, which takes us to the logarithmic function, very interpretable.
 
 ---
-## 2 - Transformations of predictor variables - Linearity problems
-Sometimes we can focus our attention on the x: the linear model is termed linear not because the regression curve is a plane, but because the effects of the parameters are linear.
-
-Rather than working with the sample $(x_{1}, y_{1}),...,(x_{n}, y_{n})$, we consider the transformed sample  $(\tilde{x}_{1}, y_{1}),...,(\tilde{x}_{n}, y_{n})$
-
-Practically this adds a new column to the design matrix but does not change the fact that the model is still linear $Y = X\beta +\varepsilon$. Furthermore, the interpretation does not change that much.
-
-For example consider these linear models and the possible transformed samples:
-1. $Y = \beta_{0} + \beta_{1}x^{2} + \varepsilon$ 
-   1. where we can work with $\tilde{x}_{i}=x_{i}^{2}$
-2. $Y = \beta_{0} + \beta_{1}\log(x) + \varepsilon$ 
-   1. where we can work with $\tilde{x}_{i}=\log(x_{i})$
-3. $Y = \beta_{0} + \beta_{1}(x^{3}-\log(|x|)+ 2^{x}) + \varepsilon$
-   1. where we can work with $\tilde{x}_{i}=x_{i}^{3}-\log(|x_{i}|)+ 2^{x_{i}}$
-
-Sometimes these transformations can help with violation of model assumptions and other times they can be used to simply fit a more flexible model!
-
-### Car Dataset Example
-Let's use the car dataset to to model `mpg` as a function of `hp`
-
-We first attempt a SLR, but we see a rather obvious pattern in the fitted versus residuals
-plot, which includes increasing variance.
-
-![failedslrex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/failedslrex.png?raw=TRUE)
-
-We attempt a log transform of the response (rough approximation)
-
-![failedtrsex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/failedtrsex.png?raw=TRUE)
-
-After performing the log transform of the response, we still have some of the same issues with the fitted versus response. We try also log transforming the predictor.
-
-![improvementex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/improvementex.png?raw=TRUE)
-
-Here, our fitted versus residuals plot looks good.
-
-### Tip
-1. If you apply a nonlinear transformation, namely $f()$, and fit the linear model $Y = \beta_{0} + \beta_{1}f(x) + \varepsilon$, then there is no point in fit also the model resulting from the negative transformation $-f()$.
-   1. The model with $-f()$ is exactly the same as the one with $f()$ but with the sign of $\beta_{1}$ flipped!
-2. As a rule of thumb, use the next figure with the transformations to compare it with the data pattern, then choose the most similar curve, and finally apply the corresponding function with **positive sign**.
-
----
-
-## 2.1 - Polynomials 
-A common ”transformation” of a predictor variable is the polynomial transformation Polynomials are very useful as they allow for more flexible models, but do not change the units of the variables.
-
-Consider the non-linear transformation, namely $f$:
-$$Y = f(x) + \varepsilon$$
-
-We make no global assumptions about the function $f$ but assume that locally it can be well approximated with a member of a simple class of parametric function, e.g. a constant or straight line
-
-This is related to Taylor's theorem that says that any continuous function can be approximated with polynomial.
-
-> Taylor teorem
-> Suppose $f$ is a real function on [$a,b$], $f^{K-1}$ is continuous on [$a,b$], $f^{K}(x)$ is bounded for $x\in(a,b)$ then for any distinct points $x_{0}< x_{1}$ in [$a,b$] there exists a point $\tilde{x}$ between $x_{0}< \tilde{x} < x_{1}$ such that
-
-$$f(x_{1})= f(x_{0}) + \sum_{k=1}^{K-1} \frac{f^{k}(x_{0})}{k!}(x_{1}-x_{0})^{k} + \frac{f^{K}(\tilde{x})}{K!}(x_{1}-x_{0})^{K}$$
-
-Notice: if we view $f(x_{0})+\sum_{k=1}^{K-1} \frac{f^{k}(x_{0})}{k!}(x_{1}-x_{0})^{k}$ as function of $x_{1}$, it's a polynomial in the family of polynomials
-
-$$\mathcal{P}_{K+1} = \{ f(x) = a_{0} + a_{1}x + ... + a_{K}x^{K}, (a_{0},...,a_{K})^{\text{'}} \in \mathbb{R}^{K+1} \}$$
-
-Using polynomials to approximate the predictors can be useful when we are not in high dimensional space. The only problems comes with extrapolation, since the estimate becomes more variable.
-
-We could fit a polynomial of an arbitrary order $K$,
-
-$$Y_{i} = \beta_{0} + \beta_{1}x_{i} + \beta_{2}x_{i}^{2}+...+ \beta_{K}x_{i}^{K} + \varepsilon_{i}$$
-
-and we can think of the polynomial model as the Taylor series expansion of the unknown function
-
-### Example Polynomials
-Suppose you work for an automobile manufacturer which makes a large luxury sedan. You would like to know how the car performs from a fuel efficiency standpoint when it is driven at various speeds.
-
-Instead of testing the car at every conceivable speed (which would be impossible) you create an experiment where the car is driven at speeds of interest in increments of 5 miles per hour (Response surface designs)
-
-Our goal then, is to fit a model to this data in order to be able to predict fuel efficiency when driving at certain speeds
-
-![polyyex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polycarex.png?raw=TRUE)
-
-We see a pattern but it is no linear pattern! Let's say we are very stubborn and wish to fit a SLR to this data
-
-```r
-econ <- read.csv("data/fuel-econ.csv")
-fit1 <- lm(mpg ̃ mph, data = econ)
-summary(fit1)
-
-Call:
-lm(formula = mpg ̃ mph, data = econ)
-
-Residuals:
-Min     1Q    Median 3Q     Max
--8.337 -4.895 -1.007 4.914 9.191
-
-Coefficients:
-              Estimate  Std. Error  t value Pr(>|t|)
-(Intercept)   22.74637  2.49877     9.103   1.45e-09 ***
-mph           0.03908   0.05312     0.736   0.469
-...
-Residual standard error: 5.666 on 26 degrees of freedom
-Multiple R-squared: 0.02039, Adjusted R-squared: -0.01729
-F-statistic: 0.5411 on 1 and 26 DF, p-value: 0.4686
-```
-
-![polyslrex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polyslrex2.png?raw=TRUE)
-
-Pretty clearly we can do better. 
-* Yes fuel efficiency does increase as speed increases, but only up to a certain point. 
-* We need to use include the quadratic trend of the data
-
-We will now add polynomial terms until we fit a suitable fit
-
-To add the second order term we need to use the `I()` function in the model specification.
-
-`I()` is the identity function, which tells R “leave this alone”. It basically adds to the model matrix a new column with the transformation specified inside the brackets.
-
-```r
-fit2 <- lm(mpg ̃ mph + I(mph ˆ 2), data = econ)
-summary(fit2)
-
-Call:
-lm(formula = mpg ̃ mph + I(mphˆ2), data = econ)
-
-Residuals:
-Min     1Q      Median  3Q      Max
--2.8411 -0.9694 0.0017  1.0181  3.3900
-
-Coefficients:
-            Estimate    Std.Error   t value   Pr(>|t|)
-(Intercept) 2.4444505   1.4241091   1.716     0.0984 .
-mph         1.2716937   0.0757321   16.792    3.99e-15 ***
-I(mphˆ2)    -0.0145014  0.0008719   -16.633   4.97e-15 ***
----
-...
-Residual standard error: 1.663 on 25 degrees of freedom
-Multiple R-squared: 0.9188, Adjusted R-squared: 0.9123
-F-statistic: 141.5 on 2 and 25 DF, p-value: 2.338e-14
-```
-
-The model becomes very significant, the residuals are almost centered around the 0! 
-
-![poly](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly.png?raw=TRUE)
-
-While this model clearly fits much better, and the second order term is significant, we still see a pattern in the fitted versus residuals plot which suggests higher order terms will help.
-
-Also, we would expect the curve to flatten as speed increases or decreases, not go sharply downward as we see here. In this case if we extrapolate we will find that the curve keeps going down as it was centered around the quadratic transformation of the x.
-
-Two degrees of freedom and and a quadratic polynomial are not enough!
-* This is the case where there is a real (unknown) function dictated by the physics of the engines, but in our case we are just approximating it.
-* We could use a polynomial of third degree, but it is not useful since we are focusing on polynomials of positive degree. In fact, we want to change how the curve reacts at the extremes, we do not want to change its direction.
-
-Let's try a polynomial of fourth degree.
-
-```r
-fit4 <- lm(formula = mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4), data = econ)
-
-# Omitting data on purpose
-```
-
-![poly4degex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly4degex.png?raw=TRUE)
-
-The fourth order term is significant with the other terms in the model. 
-
-Also we are starting to see what we expected for low and high speed. 
-
-However, there still seems to be a bit of a pattern in the residuals, so we will again try more higher order terms.
-
-We will add the fifth and sixth together, since adding the fifth will be similar to adding the third.
-
-```r
-fit6 <- lm(formula = mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) +
-            I(mphˆ6), data = econ)
-
-# Omitting data on purpose
-```
-
-![poly6degex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly6degex.png?raw=TRUE)
-
-Again the sixth order term is significant with the other terms in the model and here we see less pattern in the residuals plot
-
-### Confidence Intervals
-Let’s now test for which of the previous two models we prefer. We will test:
-
-$$H_{0}: \beta_{5} = \beta_{6} = 0$$
-
-```r
-ANOVA(fit4, fit6)
-
-Analysis of Variance Table
-
-Model 1: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4)
-Model 2: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) + I(mphˆ6)
-
-    Res.Df  RSS     Df  Sum of Sq   F       Pr(>F)
-1   23      19.922
-2   21      15.739  2   4.1828      2.7905  0.0842 .
-```
-
-This test does not reject the null hypothesis at a level of significance of $\alpha = 0.05$, however the p-value is still rather small, and the fitted versus residuals plot is much better for the model with the sixth order term. This makes the sixth order model a good choice.
-
-We could repeat this process one more time with `fit8` (you know how to proceed by now)
-
-```r
-ANOVA(fit6, fit8)
-
-Analysis of Variance Table
-Model 1: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) + I(mphˆ6)
-Model 2: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) + I(mphˆ6) +
-I(mphˆ7) + I(mphˆ8)
-
-    Res.Df  RSS     Df  Sum of Sq   F       Pr(>F)
-1   21      15.739
-2   19      15.506  2   0.2324      0.1424  0.8682
-```
-
-The eighth order term is not significant with the other terms in the model and the F-test does not reject.
-
-### Make it quicker
-There is a quicker way to specify a model with many higher order terms. The method produces the same fitted values ...
-
-```r
-fit6_alt <- lm(mpg ̃ poly(mph, 6), data = econ)
-
-all.equal(fitted(fit6), fitted(fit6_alt))
-[1] TRUE
-```
-
-... but the estimated coefficients are different because `poly()` uses orthogonal polynomials.
-
-```r
-coef(fit6)
-(Intercept)     mph           I(mphˆ2)      
--4.206224e+00   4.203382e+00  -3.521452e-01
-I(mphˆ3)        I(mphˆ4)
-1.579340e-02    -3.472665e-04
-I(mphˆ5)        I(mphˆ6)
-3.585201e-06    -1.401995e-08
-
-coef(fit6_alt)
-(Intercept)     poly(mph, 6)1   poly(mph, 6)2   
-24.40714286     4.16769628      -27.66685755 
-poly(mph, 6)3   poly(mph, 6)4
- 0.13446747     7.01671480
-poly(mph, 6)5   poly(mph, 6)6
-0.09288754      -2.04307796
-```
-To use `poly()` to obtain the same results as using `I()` repeatedly, we would need to set raw = TRUE
-
-```r
-fit6_alt2 <- lm(mpg ̃ poly(mph, 6, raw = TRUE), data = econ)
-
-coef(fit6_alt2)
-(Intercept)     poly(mph, 6, raw = TRUE)1   poly(mph, 6, raw = TRUE)2
--4.206224e+00   4.203382e+00                -3.521452e-01
-poly(mph, 6, raw = TRUE)3   poly(mph, 6, raw = TRUE)4 
-1.579340e-02                -3.472665e-04
-poly(mph, 6, raw = TRUE)5   poly(mph, 6, raw = TRUE)6
-3.585201e-06                -1.401995e-08
-```
-
----
-
-## 6 - Case Study: Melting Artic
-
----
-
 #### Credits
 * [1 - Lecture 7: Diagnostics and Modifications for Simple Regression](http://www.stat.cmu.edu/~cshalizi/mreg/) by [Cosma Shalizi](https://www.stat.cmu.edu/~cshalizi/)
 * [2 - Power Transformations on Wikipedia](https://en.wikipedia.org/wiki/Power_transform)
