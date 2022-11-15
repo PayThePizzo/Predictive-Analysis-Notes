@@ -314,13 +314,15 @@ F-statistic: 0.5411 on 1 and 26 DF, p-value: 0.4686
 
 ![polyslrex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polyslrex2.png?raw=TRUE)
 
-Pretty clearly we can do better. Yes fuel efficiency does increase as speed increases, but only up to a certain point.
+Pretty clearly we can do better. 
+* Yes fuel efficiency does increase as speed increases, but only up to a certain point. 
+* We need to use include the quadratic trend of the data
 
 We will now add polynomial terms until we fit a suitable fit
 
 To add the second order term we need to use the `I()` function in the model specification.
 
-`I()` is the identity function, which tells R “leave this alone”
+`I()` is the identity function, which tells R “leave this alone”. It basically adds to the model matrix a new column with the transformation specified inside the brackets.
 
 ```r
 fit2 <- lm(mpg ̃ mph + I(mph ˆ 2), data = econ)
@@ -344,11 +346,93 @@ Residual standard error: 1.663 on 25 degrees of freedom
 Multiple R-squared: 0.9188, Adjusted R-squared: 0.9123
 F-statistic: 141.5 on 2 and 25 DF, p-value: 2.338e-14
 ```
+
+The model becomes very significant, the residuals are almost centered around the 0! 
+
 ![poly](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly.png?raw=TRUE)
 
 While this model clearly fits much better, and the second order term is significant, we still see a pattern in the fitted versus residuals plot which suggests higher order terms will help.
 
-Also, we would expect the curve to flatten as speed increases or decreases, not go sharply downward as we see here.
+Also, we would expect the curve to flatten as speed increases or decreases, not go sharply downward as we see here. In this case if we extrapolate we will find that the curve keeps going down as it was centered around the quadratic transformation of the x.
+
+Two degrees of freedom and and a quadratic polynomial are not enough!
+* This is the case where there is a real (unknown) function dictated by the physics of the engines, but in our case we are just approximating it.
+* We could use a polynomial of third degree, but it is not useful since we are focusing on polynomials of positive degree. In fact, we want to change how the curve reacts at the extremes, we do not want to change its direction.
+
+Let's try a polynomial of fourth degree.
+
+```r
+fit4 <- lm(formula = mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4), data = econ)
+
+# Omitting data on purpose
+```
+
+![poly4degex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly4degex.png?raw=TRUE)
+
+The fourth order term is significant with the other terms in the model. 
+
+Also we are starting to see what we expected for low and high speed. 
+
+However, there still seems to be a bit of a pattern in the residuals, so we will again try more higher order terms.
+
+We will add the fifth and sixth together, since adding the fifth will be similar to adding the third.
+
+```r
+fit6 <- lm(formula = mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) +
+            I(mphˆ6), data = econ)
+
+# Omitting data on purpose
+```
+
+![poly6degex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly6degex.png?raw=TRUE)
+
+Again the sixth order term is significant with the other terms in the model and here we see less pattern in the residuals plot
+
+### Confidence Intervals
+Let’s now test for which of the previous two models we prefer. We will test:
+
+$$H_{0}: \beta_{5} = \beta_{6} = 0$$
+
+```r
+ANOVA(fit4, fit6)
+
+Analysis of Variance Table
+
+Model 1: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4)
+Model 2: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) + I(mphˆ6)
+
+    Res.Df  RSS     Df  Sum of Sq   F       Pr(>F)
+1   23      19.922
+2   21      15.739  2   4.1828      2.7905  0.0842 .
+```
+
+This test does not reject the null hypothesis at a level of significance of $\alpha = 0.05$, however the p-value is still rather small, and the fitted versus residuals plot is much better for the model with the sixth order term. This makes the sixth order model a good choice.
+
+We could repeat this process one more time with `fit8` (you know how to proceed by now)
+
+```r
+ANOVA(fit6, fit8)
+
+Analysis of Variance Table
+Model 1: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) + I(mphˆ6)
+Model 2: mpg ̃ mph + I(mphˆ2) + I(mphˆ3) + I(mphˆ4) + I(mphˆ5) + I(mphˆ6) +
+I(mphˆ7) + I(mphˆ8)
+
+    Res.Df  RSS     Df  Sum of Sq   F       Pr(>F)
+1   21      15.739
+2   19      15.506  2   0.2324      0.1424  0.8682
+```
+
+The eighth order term is not significant with the other terms in the model and the F-test does not reject.
+
+### Make it quicker
+There is a quicker way to specify a model with many higher order terms. The method produces the same fitted values ...
+
+```r
+fit6_alt <- lm(mpg ̃ poly(mph, 6), data = econ)
+
+all.equal(fitted(fit6), fitted(fit6_alt))
+```
 
 ---
 
