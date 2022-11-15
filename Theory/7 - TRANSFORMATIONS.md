@@ -39,9 +39,9 @@ This is a typical problem of heteroskedasticity, when $\hat{Y}$ grows so do the 
 
 ---
 ## 1 - Target Transformation
-Usually we have a constant variance $Var[Y|X=x] = \sigma^{2}$, while here we see the variance is a function of the mean $Var[Y|X=x] = h(\mathbb{E}[Y|X=x])$ , for some increasing function $h$
+For the assumptions made until now, we want to achieve constant variance $Var[Y|X=x] = \sigma^{2}$. 
 
-In order to correct this, one first approach we can use is to change the model, namely the response variable by applying a power transformation.
+Instead, here we see the variance is a function of the mean $Var[Y|X=x] = h(\mathbb{E}[Y|X=x])$ , for some increasing function $h$. In order to correct this, one first approach we can use is to change the model.
 
 We choose and apply some invertible function to $Y$ called **variance stabilizing function** whose goal is to achieve a variance $Var[g(Y)|X=x]=c$, where c is a constant that does not depend on the mean $\mathbb{E}[Y|X=x]$. 
 
@@ -58,7 +58,7 @@ $$\log(Y_{i}) = \beta_{0} + \beta_{1}x_{i} + \varepsilon_{i}$$
 initech_fit_log <- lm(log(salary) ~ years, data = initech)
 ```
 
-![logvstex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/logvstex.png?raw=TRUE)
+![logvstex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/logvstex.png?raw=TRUE)
 
 In the original scale of the data we have:
 
@@ -68,11 +68,11 @@ which has the errors entering the model in a multiplicative fashion.
 
 Let's check the results
 
-![origscex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/origscex.png?raw=TRUE)
+![origscex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/origscex.png?raw=TRUE)
 
 And we check the residuals
 
-![resvstex]((https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/resvstex.png?raw=TRUE)
+![resvstex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/resvstex.png?raw=TRUE)
 
 The fitted versus residuals plot looks much better. <mark>It appears the constant variance assumption is no longer violated, but we pay the price of having different model.</mark>
 
@@ -92,7 +92,7 @@ sqrt(mean((initech$salary - exp(fitted(initech_fit_log))) ˆ 2))
 [1] 24280.36
 ```
 
-In fact, the mode here is 
+In fact, the model here is 
 
 $$log(\hat{y}(x)) = \hat{\beta_{0}}+ \hat{\beta_{1}}x$$
 
