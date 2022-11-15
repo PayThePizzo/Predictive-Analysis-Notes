@@ -148,7 +148,7 @@ y_i^{(\lambda)} =
 \operatorname{GM}(y)\ln{y_i} , &\text{if } \lambda = 0
 \end{cases}
 ```
-where: $\operatorname{GM}(y) = (prod_{i=1}^{n}y_{i})^{\frac{1}{n}} = \sqrt[n]{y_1 y_2 \cdots y_n} \,$ is the geometric mean of the observations $y_{1},..., y_{n}$. 
+where: $\operatorname{GM}(y) = (\prod_{i=1}^{n}y_{i})^{\frac{1}{n}} = \sqrt[n]{y_1 y_2 \cdots y_n} \,$ is the geometric mean of the observations $y_{1},..., y_{n}$. 
 
 The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.[2]
 
