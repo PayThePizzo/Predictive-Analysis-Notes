@@ -12,6 +12,13 @@
 ---
 
 ## Case Study: CYG OB1 stars
+The data stars contains information on the log of the surface temperature and the log of the light intensity of 47 stars in the star cluster CYG OB1, which is in the direction of Cygnus.
+
+```r
+data(star, package = "faraway")
+plot(star)
+fit_star <- lm(light ̃ temp, data = star)
+```
 
 ![cybdataex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybdataex.png?raw=TRUE)
 
