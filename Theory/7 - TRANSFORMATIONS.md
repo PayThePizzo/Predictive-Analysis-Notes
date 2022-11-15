@@ -312,7 +312,7 @@ Multiple R-squared: 0.02039, Adjusted R-squared: -0.01729
 F-statistic: 0.5411 on 1 and 26 DF, p-value: 0.4686
 ```
 
-![polyslrex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polyslrex.png?raw=TRUE)
+![polyslrex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polyslrex2.png?raw=TRUE)
 
 Pretty clearly we can do better. Yes fuel efficiency does increase as speed increases, but only up to a certain point.
 
