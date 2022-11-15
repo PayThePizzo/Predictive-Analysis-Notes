@@ -432,6 +432,40 @@ There is a quicker way to specify a model with many higher order terms. The meth
 fit6_alt <- lm(mpg ̃ poly(mph, 6), data = econ)
 
 all.equal(fitted(fit6), fitted(fit6_alt))
+[1] TRUE
+```
+
+... but the estimated coefficients are different because `poly()` uses orthogonal polynomials.
+
+```r
+coef(fit6)
+(Intercept)     mph           I(mphˆ2)      
+-4.206224e+00   4.203382e+00  -3.521452e-01
+I(mphˆ3)        I(mphˆ4)
+1.579340e-02    -3.472665e-04
+I(mphˆ5)        I(mphˆ6)
+3.585201e-06    -1.401995e-08
+
+coef(fit6_alt)
+(Intercept)     poly(mph, 6)1   poly(mph, 6)2   
+24.40714286     4.16769628      -27.66685755 
+poly(mph, 6)3   poly(mph, 6)4
+ 0.13446747     7.01671480
+poly(mph, 6)5   poly(mph, 6)6
+0.09288754      -2.04307796
+```
+To use `poly()` to obtain the same results as using `I()` repeatedly, we would need to set raw = TRUE
+
+```r
+fit6_alt2 <- lm(mpg ̃ poly(mph, 6, raw = TRUE), data = econ)
+
+coef(fit6_alt2)
+(Intercept)     poly(mph, 6, raw = TRUE)1   poly(mph, 6, raw = TRUE)2
+-4.206224e+00   4.203382e+00                -3.521452e-01
+poly(mph, 6, raw = TRUE)3   poly(mph, 6, raw = TRUE)4 
+1.579340e-02                -3.472665e-04
+poly(mph, 6, raw = TRUE)5   poly(mph, 6, raw = TRUE)6
+3.585201e-06                -1.401995e-08
 ```
 
 ---
