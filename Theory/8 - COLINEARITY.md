@@ -76,8 +76,13 @@ year    0.5786      -0.3720     -0.4154     -0.3127     0.2922      1.0000
 ```
 Strong relationships to mpg but lots of correlation between variables
 
+### Some
 However a multicollinear relationship involving three or more predictor variables might be
-totally invisible on a pairs plot. We use some checks and metrics which can help identify issues.
+totally invisible on a pairs plot. 
+
+![multicex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/multicex.png?raw=TRUE)
+
+We use some checks and metrics which can help identify issues.
 1. Red flag 1: Large changes in estimated coefficients when one other predictor variable is included or removed
 2. Red flag 2: non-significant results in individual tests on $\beta_{j}$ for variables $X_{j}$ which appear to be important when taken individually
 3. Red flag 3: estimated value of $\beta_{j}$ with opposite sign from what we see in scatterplot of $(X_{j}, Y)$ or that we expect from theoretical considerations.
@@ -87,8 +92,17 @@ totally invisible on a pairs plot. We use some checks and metrics which can help
 ---
 
 ## Variance inflation factors (VIF)
+If the predictors were UNCORRELATED 
+
+$$Var\left[ \hat{\beta}_{i} \right] = \frac{\hat{\sigma^{2}}}{ns_{X_{i}}^{2}}$$
+
+If they were CORRELATED 
+
+$$Var\left[ \hat{\beta}_{i} \right] = \sigma^{2}(X^{T}X)_{i+1,i+1}^{-1}$$
 
 
+
+$$ VIF_{i} =(X^{T}X)_{i+1,i+1}^{-1} \cdot ns_{X_{i}}^{2}$$
 
 ## Is multicollinearitya problem?
 
