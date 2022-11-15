@@ -38,7 +38,7 @@ It seems like a good model until we check the residuals
 This is a typical problem of heteroskedasticity, when $\hat{Y}$ grows so do the residuals
 
 ---
-## 1 - Target Transformation
+## 1 - Target Transformation - Heteroskedasticity problems
 For the assumptions made until now, we want to achieve constant variance $Var[Y|X=x] = \sigma^{2}$. 
 
 Instead, here we see the variance is a function of the mean $Var[Y|X=x] = h(\mathbb{E}[Y|X=x])$ , for some increasing function $h$. In order to correct this, one first approach we can use is to change the model.
@@ -141,13 +141,14 @@ Definition:
 
 For data vectors ($y_{1},..., y_{n}$) in which each $y_{i} > 0$, the power transform is
 
-$$y_i^{(\lambda)} =
+```math
+y_i^{(\lambda)} =
 \begin{cases}
 \dfrac{y_i^\lambda-1}{\lambda(\operatorname{GM}(y))^{\lambda -1}} , &\text{if } \lambda \neq 0 \\[12pt]
 \operatorname{GM}(y)\ln{y_i} , &\text{if } \lambda = 0
-\end{cases}$$
-
-where: $\operatorname{GM}(y) = \left(\prod_{i=1}^n y_i\right)^\frac{1}{n} = \sqrt[n]{y_1 y_2 \cdots y_n} \,$ is the geometric mean of the observations $y_{1},..., y_{n}$. 
+\end{cases}
+```
+where: $\operatorname{GM}(y) = \left(\prod_{i=1}^{n}y_{i}\right)^{\frac{1}{n}} = \sqrt[n]{y_1 y_2 \cdots y_n} \,$ is the geometric mean of the observations $y_{1},..., y_{n}$. 
 
 The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.[2]
 
@@ -205,10 +206,12 @@ We often choose a ”nice” value from within the confidence interval, instead 
 * Ex: $\hat{\lambda} = 0.061$, that truly maximizes the likelihood. In this case we choose $\lambda = 0$, which takes us to the logarithmic function, very interpretable.
 
 ---
-## 4 - Transformations of predictor variables
+## 4 - Transformations of predictor variables - Linearity problems
 Sometimes we can focus our attention on the x: the linear model is termed linear not because the regression curve is a plane, but because the effects of the parameters are linear.
 
 Rather than working with the sample $(x_{1}, y_{1}),...,(x_{n}, y_{n})$, we consider the transformed sample  $(\tilde{x}_{1}, y_{1}),...,(\tilde{x}_{n}, y_{n})$
+
+Practically this adds a new column to the design matrix but does not change the fact that the model is still linear $Y = X\beta +\varepsilon$. Furthermore, the interpretation does not change that much.
 
 For example consider these linear models and the possible transformed samples:
 1. $Y = \beta_{0} + \beta_{1}x^{2} + \varepsilon$ 
@@ -236,6 +239,12 @@ After performing the log transform of the response, we still have some of the sa
 
 ![improvementex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/improvementex.png?raw=TRUE)
 
+Here, our fitted versus residuals plot looks good.
+
+### Tip
+1. If you apply a nonlinear transformation, namely $f()$, and fit the linear model $Y = \beta_{0} + \beta_{1}f(x) + \varepsilon$, then there is no point in fit also the model resulting from the negative transformation $-f()$.
+   1. The model with $-f()$ is exactly the same as the one with $f()$ but with the sign of $\beta_{1}$ flipped!
+2. As a rule of thumb, use the next figure with the transformations to compare it with the data pattern, then choose the most similar curve, and finally apply the corresponding function with **positive sign**.
 
 ---
 
