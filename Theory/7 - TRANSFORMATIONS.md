@@ -286,7 +286,7 @@ Instead of testing the car at every conceivable speed (which would be impossible
 
 Our goal then, is to fit a model to this data in order to be able to predict fuel efficiency when driving at certain speeds
 
-![polyyex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polyex.png?raw=TRUE)
+![polyyex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polycarex.png?raw=TRUE)
 
 We see a pattern but it is no linear pattern! Let's say we are very stubborn and wish to fit a SLR to this data
 
@@ -345,6 +345,10 @@ Multiple R-squared: 0.9188, Adjusted R-squared: 0.9123
 F-statistic: 141.5 on 2 and 25 DF, p-value: 2.338e-14
 ```
 ![poly](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly.png?raw=TRUE)
+
+While this model clearly fits much better, and the second order term is significant, we still see a pattern in the fitted versus residuals plot which suggests higher order terms will help.
+
+Also, we would expect the curve to flatten as speed increases or decreases, not go sharply downward as we see here.
 
 ---
 
