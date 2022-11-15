@@ -13,9 +13,26 @@
 
 ## Case Study: CYG OB1 stars
 
+![cybdataex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybdataex.png?raw=TRUE)
+
+```r
+plot(star[,"temp"], hatvalues(fit_star), pch = 16)
+```
+
+![cybplot1](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot1.png?raw=TRUE)
+
+```r
+par(mfrow=c(2,2)); plot(fit_star)
+```
+
+![cybplot2](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot2.png?raw=TRUE)
+
 ---
 
 ## What to do about influential points
+1. Automatic detection of influential points can be useful to find points which are problematic
+2. Sometimes these methods help us identify data recording issues or problematic measurement and we can discard the points 
+3. But sometime they are the symptom of something more complicated going on in the process: need to question what is the origin of these outlying points
 
 ---
 
