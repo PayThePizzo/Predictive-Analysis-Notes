@@ -1,0 +1,50 @@
+---
+title: "Lab 6 - things that can go wrong"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Body fat
+
+Prendiamo in esame il dataset `bodyfat` che abbiamo già usato in un esercizio. Leggiamo i dati e trasformiamo altezzae e peso dalle misure imperiali (libbre e pollici) a misure decimali (Kg e cm). 
+
+
+```{r}
+# urlLocation <- "https://dasl.datadescription.com/download/data/3079"
+# bodyfat <- read.table(urlLocation, header=TRUE)
+bodyfat <- read.csv("bodyfat.csv",header = TRUE)
+bodyfat$Height <- bodyfat$Height * 2.54
+bodyfat$Weight <- bodyfat$Weight / 2.205
+#plot(bodyfat)
+```
+
+Una descrizione completa del dataset è disponibile [qui](http://jse.amstat.org/datasets/fat.txt); le variabili contenute nel dataset sono: 
+
+* Density: Percent body fat using Brozek's equation, 457/Density - 414.2 
+* Pct.BF: Percent body fat using Siri's equation, 495/Density - 450
+* Age: Age (yrs)
+* Weight: Weight (lbs)
+* Height: Height (inches)
+* Neck: Neck circumference (cm)
+* Chest  Chest circumference (cm)
+* Abdomen/Waist: Abdomen circumference (cm) "at the umbilicus and level with the iliac crest"
+* Hip: Hip circumference (cm)
+* Thigh: Thigh circumference (cm)
+* Knee: Knee circumference (cm)
+* Ankle: Ankle circumference (cm)
+* Bicep: Extended biceps circumference (cm)
+* Forearm: Forearm circumference (cm)
+* Wrist: Wrist circumference (cm) "distal to the styloid processes"
+
+
+Si desidera costruire un modello per predire la percentuale di materia grassa di un individuo a partire dalle altre variabili. Possiamo iniziare con un modello che contenga tutti le variabili contenute nel dataset come predittori (tranne `Density`): 
+
+```{r}
+## remove density 
+fit_all <- lm(Pct.BF~., data = bodyfat[,-1])
+summary(fit_all)
+```
+
+
