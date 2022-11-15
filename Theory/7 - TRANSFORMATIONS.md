@@ -169,7 +169,7 @@ There is also no reason to think that the correct model will be one where some t
 
 Estimating a Box-Cox transformation by maximum likelihood does not relieve us of the need to run all the diagnostic checks after the transformation. Even the best Box-Cox transformation may be utter rubbish.
 
-We choose $\lambda$:
+We choose $\lambda$ that specifies how much we are changing the data:
 * $\lambda < 1$ for positively skewed data
 * $\lambda > 1$ for negatively skewed data
 
@@ -179,35 +179,69 @@ $$L(\lambda) = -\frac{n}{2} \cdot \log(\frac{SS_{err}(\lambda)}{n}) + (\lambda-1
 
 where $SS_{err}(\lambda) = \sum_{i=1}^{n}(y_{\lambda,i} - \hat{y}_{\lambda, i})^{2}$
 
-In reality what happens is that
-1. Computes many $\lambda$ values
-2. Computes the likelihood of the transformation
-3. Looks for $\lambda$ values that "stabilize" the values of Y, so that its variability is reduced
+### Procedure 
+1. We need to estimate a linear model (and eventually re-iterate if we change the model)
+   1. Choose the predictors 
+2. We compute many $\lambda$ values
+3. We compute the likelihood of the transformation
+4. We choose the $\lambda$ value that "stabilize" the values of Y, so that its variability is reduced. That is a $\lambda$ value that maximizes the function $\operatorname{L}(\lambda)$
 
-### Confidence Intrerval for $\lambda$
-How do we check if the value we chose is any good for our goal?
+### In R - Confidence Intrerval for $\lambda$
+This is implemented in R through the function `boxcox` in the package MASS. We then use the boxcox function to find the best transformation of the form considered by the Box-Cox method, and builds a confidence interval for the best lambda values. 
 
 We can build a $100(1−\alpha)$% confidence interval for $\lambda$ is:
 
-$${\lambda: L(\lambda) >  L(\hat{\lambda}-\frac{1}{n}) }$$
+$$\lambda: L(\lambda) >  L(\hat{\lambda})-\frac{1}{2}\chi_{1,\alpha}^{2}$$
 
-This is implemented in R through the function `boxcox` in the package MASS. We then use the boxcox function to find the best transformation of the form considered by the Box-Cox method. R will plot for us to help quickly select an appropriate $\lambda$ value
-
+R will plot for us to help quickly select an appropriate $\lambda$ value
 ```r
 # Box-Cox transform
 boxcox(initech_fit, plotit = TRUE)
 ```
 
-![boxcoxex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/resvstex.png?raw=TRUE)
+![boxcoxex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/boxcoxex.png?raw=TRUE)
 
-We often choose a ”nice” value from within the confidence interval, instead of the value of
-$\lambda$ 
-* Ex: $\hat{\lambda} = 0.061$, that truly maximizes the likelihood. In this case we choose $\lambda = 0$
+We often choose a ”nice” value from within the confidence interval, instead of the best value of $\lambda$, so that it is more interpretable.
+* Ex: $\hat{\lambda} = 0.061$, that truly maximizes the likelihood. In this case we choose $\lambda = 0$, which takes us to the logarithmic function, very interpretable.
 
 ---
 ## 4 - Transformations of predictor variables
+Sometimes we can focus our attention on the x: the linear model is termed linear not because the regression curve is a plane, but because the effects of the parameters are linear.
+
+Rather than working with the sample $(x_{1}, y_{1}),...,(x_{n}, y_{n})$, we consider the transformed sample  $(\tilde{x}_{1}, y_{1}),...,(\tilde{x}_{n}, y_{n})$
+
+For example consider these linear models and the possible transformed samples:
+1. $Y = \beta_{0} + \beta_{1}x^{2} + \varepsilon$ 
+   1. where we can work with $\tilde{x}_{i}=x_{i}^{2}$
+2. $Y = \beta_{0} + \beta_{1}\log(x) + \varepsilon$ 
+   1. where we can work with $\tilde{x}_{i}=\log(x_{i})$
+3. $Y = \beta_{0} + \beta_{1}(x^{3}-\log(|x|)+ 2^{x}) + \varepsilon$
+   1. where we can work with $\tilde{x}_{i}=x_{i}^{3}-\log(|x_{i}|)+ 2^{x_{i}}$
+
+Sometimes these transformations can help with violation of model assumptions and other times they can be used to simply fit a more flexible model!
+
+### Car Dataset Example
+Let's use the car dataset to to model `mpg` as a function of `hp`
+
+We first attempt a SLR, but we see a rather obvious pattern in the fitted versus residuals
+plot, which includes increasing variance.
+
+![failedslrex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/failedslrex.png?raw=TRUE)
+
+We attempt a log transform of the response (rough approximation)
+
+![failedtrsex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/failedtrsex.png?raw=TRUE)
+
+After performing the log transform of the response, we still have some of the same issues with the fitted versus response. We try also log transforming the predictor.
+
+![improvementex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/improvementex.png?raw=TRUE)
+
+
+---
 
 ## 5 - Polynomials 
+
+
 
 ---
 
