@@ -133,7 +133,7 @@ The model has changed, we are now considering $\log(Y)$:
 If the data is negative, this cannot be applied!
 
 ---
-## 2 - Power Transformation
+## Power Transformation
 >In statistics, a power transform is a family of functions applied to create a monotonic transformation of data using power functions. It is a data transformation technique used to stabilize variance, make the data more normal distribution-like, improve the validity of measures of association (such as the Pearson correlation between variables), and for other data stabilization procedures.
 
 Definition: 
@@ -157,7 +157,7 @@ is the geometric mean of the observations $y_{1},..., y_{n}$.
 The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.[2]
 
 ---
-## 3 - Box-Cox Transformation
+## 1.3 - Box-Cox Transformation
 The great statisticians G. E. P. Box and D. R. Cox introduced a family of transformations which includes powers of Y and taking the logarithm of Y, parameterized by a number $\lambda$
 
 $$y_i^{(\lambda)} =
@@ -210,7 +210,7 @@ We often choose a ”nice” value from within the confidence interval, instead 
 * Ex: $\hat{\lambda} = 0.061$, that truly maximizes the likelihood. In this case we choose $\lambda = 0$, which takes us to the logarithmic function, very interpretable.
 
 ---
-## 4 - Transformations of predictor variables - Linearity problems
+## 2 - Transformations of predictor variables - Linearity problems
 Sometimes we can focus our attention on the x: the linear model is termed linear not because the regression curve is a plane, but because the effects of the parameters are linear.
 
 Rather than working with the sample $(x_{1}, y_{1}),...,(x_{n}, y_{n})$, we consider the transformed sample  $(\tilde{x}_{1}, y_{1}),...,(\tilde{x}_{n}, y_{n})$
@@ -252,9 +252,99 @@ Here, our fitted versus residuals plot looks good.
 
 ---
 
-## 5 - Polynomials 
+## 2.1 - Polynomials 
+A common ”transformation” of a predictor variable is the polynomial transformation Polynomials are very useful as they allow for more flexible models, but do not change the units of the variables.
 
+Consider the non-linear transformation, namely $f$:
+$$Y = f(x) + \varepsilon$$
 
+We make no global assumptions about the function $f$ but assume that locally it can be well approximated with a member of a simple class of parametric function, e.g. a constant or straight line
+
+This is related to Taylor's theorem that says that any continuous function can be approximated with polynomial.
+
+> Taylor teorem
+> Suppose $f$ is a real function on [$a,b$], $f^{K-1}$ is continuous on [$a,b$], $f^{K}(x)$ is bounded for $x\in(a,b)$ then for any distinct points $x_{0}< x_{1}$ in [$a,b$] there exists a point $\tilde{x}$ between $x_{0}< \tilde{x} < x_{1}$ such that
+
+$$f(x_{1})= f(x_{0}) + \sum_{k=1}^{K-1} \frac{f^{k}(x_{0})}{k!}(x_{1}-x_{0})^{k} + \frac{f^{K}(\tilde{x})}{K!}(x_{1}-x_{0})^{K}$$
+
+Notice: if we view $f(x_{0})+\sum_{k=1}^{K-1} \frac{f^{k}(x_{0})}{k!}(x_{1}-x_{0})^{k}$ as function of $x_{1}$, it's a polynomial in the family of polynomials
+
+$$\mathcal{P}_{K+1} = \{ f(x) = a_{0} + a_{1}x + ... + a_{K}x^{K}, (a_{0},...,a_{K})^{\text{'}} \in \mathbb{R}^{K+1} \}$$
+
+Using polynomials to approximate the predictors can be useful when we are not in high dimensional space. The only problems comes with extrapolation, since the estimate becomes more variable.
+
+We could fit a polynomial of an arbitrary order $K$,
+
+$$Y_{i} = \beta_{0} + \beta_{1}x_{i} + \beta_{2}x_{i}^{2}+...+ \beta_{K}x_{i}^{K} + \varepsilon_{i}$$
+
+and we can think of the polynomial model as the Taylor series expansion of the unknown function
+
+### Example Polynomials
+Suppose you work for an automobile manufacturer which makes a large luxury sedan. You would like to know how the car performs from a fuel efficiency standpoint when it is driven at various speeds.
+
+Instead of testing the car at every conceivable speed (which would be impossible) you create an experiment where the car is driven at speeds of interest in increments of 5 miles per hour (Response surface designs)
+
+Our goal then, is to fit a model to this data in order to be able to predict fuel efficiency when driving at certain speeds
+
+![polyyex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polyex.png?raw=TRUE)
+
+We see a pattern but it is no linear pattern! Let's say we are very stubborn and wish to fit a SLR to this data
+
+```r
+econ <- read.csv("data/fuel-econ.csv")
+fit1 <- lm(mpg ̃ mph, data = econ)
+summary(fit1)
+
+Call:
+lm(formula = mpg ̃ mph, data = econ)
+
+Residuals:
+Min     1Q    Median 3Q     Max
+-8.337 -4.895 -1.007 4.914 9.191
+
+Coefficients:
+              Estimate  Std. Error  t value Pr(>|t|)
+(Intercept)   22.74637  2.49877     9.103   1.45e-09 ***
+mph           0.03908   0.05312     0.736   0.469
+...
+Residual standard error: 5.666 on 26 degrees of freedom
+Multiple R-squared: 0.02039, Adjusted R-squared: -0.01729
+F-statistic: 0.5411 on 1 and 26 DF, p-value: 0.4686
+```
+
+![polyslrex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/polyslrex.png?raw=TRUE)
+
+Pretty clearly we can do better. Yes fuel efficiency does increase as speed increases, but only up to a certain point.
+
+We will now add polynomial terms until we fit a suitable fit
+
+To add the second order term we need to use the `I()` function in the model specification.
+
+`I()` is the identity function, which tells R “leave this alone”
+
+```r
+fit2 <- lm(mpg ̃ mph + I(mph ˆ 2), data = econ)
+summary(fit2)
+
+Call:
+lm(formula = mpg ̃ mph + I(mphˆ2), data = econ)
+
+Residuals:
+Min     1Q      Median  3Q      Max
+-2.8411 -0.9694 0.0017  1.0181  3.3900
+
+Coefficients:
+            Estimate    Std.Error   t value   Pr(>|t|)
+(Intercept) 2.4444505   1.4241091   1.716     0.0984 .
+mph         1.2716937   0.0757321   16.792    3.99e-15 ***
+I(mphˆ2)    -0.0145014  0.0008719   -16.633   4.97e-15 ***
+---
+...
+Residual standard error: 1.663 on 25 degrees of freedom
+Multiple R-squared: 0.9188, Adjusted R-squared: 0.9123
+F-statistic: 141.5 on 2 and 25 DF, p-value: 2.338e-14
+```
+![poly](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/poly.png?raw=TRUE)
 
 ---
 
