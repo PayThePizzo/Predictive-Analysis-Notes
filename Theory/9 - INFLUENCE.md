@@ -219,7 +219,7 @@ Basically, this is saying we can take the old fitted value, and then subtract of
 
 Now we can define, $e_{\text{[i]}}$ or $e_{i}^{(-i)}$ as the leave-one-out residual for the $i^{th}$ observation, when that observation is not used to fit the model:
 
-$$e_{\text{[i]}} = e_{i}^{(-i)} \equiv y_{i} - \hat{y_{\text{ [i] } }} = y_{i} - \hat{m^{(-i)}}(x_{i})$$
+$$e_{\text{[i]}} = e_{i}^{(-i)} \equiv y_{i} - \hat{y_{\text{ [i] } }} = y_{i} - \hat{m}^{(-i)}(x_{i})$$
 
 Leaving out the data point $i$ would give us an MSE of $\hat{\sigma_{\text{[i]}}}$
 
