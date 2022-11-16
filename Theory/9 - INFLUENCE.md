@@ -122,7 +122,7 @@ $$\frac{\partial \hat{\beta}_{k}}{\partial y_{i}} = ((X^{T}X)^{-1}X^{T})_{ki} \;
 
 Comment:
 * If $y_{i}$ were different, it would change the estimates for all the coefficients and for all the fitted values. 
-* The rate at which the $k^{th}$ coefficient or fitted value changes is given by the kith entry in these matrices — matrices which, notice, are completely defined by the design matrix $X$.
+* The rate at which the $k^{th}$ coefficient or fitted value changes is given by the kith entry in these matrices — matrices which, notice, are completely defined by the design matrix $X$. Plus we need to consider the interactions, the collinearity etc...
 
 ---
 ## Leverage
@@ -136,27 +136,79 @@ Because the general linear regression model doesn’t assume anything about the 
 
 But we can say some things about the leverage.
 
-### Average Leverages
 > The trace of a matrix $A$, $\operatorname{tr}(A)$ is defined to be the sum of elements on the main diagonal (from the upper left to the lower right) of A. 
 * The trace is only defined for a square matrix (n × n).
 
-Then the trace of the design matrix equals to the sum of its diagonal entries, and at the same time it is equal to the number of coefficients we estimate. Therefore, the **trace of the design matrix is the sum of each point’s leverage**.
+Let's consider some aspects:
+1. The trace of the design matrix equals to the sum of its diagonal entries;
+   1. The diagonal entries are the $i$ leverages!
+2. At the same time it is equal to the number $p$ of coefficients we estimate 
+3. Therefore, the **trace of the design matrix is the sum of each point’s leverage** and is equal to p, the number of regression coefficients.
 
 $$tr(H) = \sum_{i=1}^{n}h_{ii} = h_{11} + h_{22} +...+ h_{nn} = p + 1 $$
 
+### Average Leverages
+$$\text{average leverage} = \frac{p+1}{n}$$
 
-It can be shown the sum of the $i$ leverages is equal to $p$, the number of regression coefficients:
+This represents the typical value, the leverage of a point $x_{i}$ should take.
 
+We don’t expect every point to have exactly the same leverage, but if some points have much more than others, the regression function is going to be pulled towards fitting the high-leverage points, and the function will tend to ignore the low-leverage points.
+
+![inflev1ex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/inflev1ex.png?raw=TRUE)
+
+Notice one curious feature of the leverage is, and of the hat matrix in general, is that it doesn’t care what we are regressing on the predictor variables. The **values of the leverage only depend** on $X$
 
 To sum up:
 1. The leverage of a data point just depends on the value of the predictors there
 2. It increases as the point moves away from the mean of the predictors. 
 3. It increases more if the difference is along low-variance coordinates, and less for differences along high-variance coordinates.
+
+When we are in a low dimensional space is easier to think in 2D, an influential point is something that does not follow the trend and impacts our estimates. However, when translating the same concept in a dimension that is higher than 3D, it is hard to notice.
+
 ---
 ## Standardized and Studentized residuals
+We return once more to the hat matrix. The residuals, too, depend only on the hat matrix:
+
+$$e = y - \hat{m} = (I-H)y$$
+
+We know that the residuals vary randomly with the noise, so let’s re-write this
+in terms of the noise:
+
+$$e = (I-H)\varepsilon$$
+
+Since $\mathbb{E}[\varepsilon] = 0$ and $Var[\varepsilon] = \sigma^{2}I$, we have 
+
+$$\mathbb{E}[e] = 0 \;\; \text{and} \;\; Var[e]=\sigma^{2}(I-H)(I-H)^{T} = \sigma^{2}(I-H)$$ 
+
+If we also assume that the noise is Gaussian, the residuals are Gaussian, with the stated mean and variance. What does this imply for the residual at the $i^{th}$ data point? It has expectation 0, $\mathbb{E}[e_{i}]=0$ and it has a variance which depends on $i$ through the design matrix:
+
+$$Var[e_{i}]= \sigma^{2}(I-H)_{ii} = \sigma^{2}(1-H_{ii})$$
+
+In other words: the **bigger the leverage** of a point $i$, the **smaller the variance of the residual** there (the model tries very hard to fit these points). If a point is strange, the model will try to minimize the error of that observation, focusing on that instance rather than the "regular" ones.
+
+Previously, when we looked at the residuals, we expected them to all be of roughly the same magnitude. This rests on the leverages $H_{ii}$ being all about the same size. If there are substantial variations in leverage across the data points, it’s better to scale the residuals by their expected size.
+
+The usual way to do this is through the standardized or studentized residuals
+
+$$r_{i} \equiv \frac{e_{i}}{\hat{\sigma}\sqrt{1-H_{ii}}}$$
+
+Why “studentized”? Because **we’re dividing by an estimate of the standard error**, just like in “Student’s” t-test for differences in means
+* The distribution here is however not quite a t-distribution, because, while $e_{i}$ has a Gaussian distribution and $\hat{\sigma}$ is the square root of a $\chi^{2} distributed variable, $e_{i}$ is actually used in computing $\hat{\sigma}$, hence they’re not statistically independent. 
+* Rather, $\frac{r_{i}^{2}}{n-p-1} \thicksim \beta(\frac{1}{2}, \frac{1}{2}(n-p-2))$ This gives us studentized residuals which all have the same distribution, and that distribution does approach a Gaussian as $n \rightarrow \inf$ with $p$ fixed.
+
+All of the residual plots we’ve done before can also be done with the studentized residuals. In
+particular, the studentized residuals should look flat, with constant variance, when plotted
+against the fitted values or the predictors.
+
+Indeed the plots we get when applying plot to an `lm` object in R are based ont eh Standardzed residuals, which can be obtained using `rstandard`
+
+## Leave-One-Out - Cross-Validated/ Externally Studentized residuals
+In defining the Leave-one-out cross validation (LOOCV) we considered what would be our estimate of $y_{i}$ if $y_{i}$ was not included in the dataset.
+
+We denoted this value with with $\hat{y}_{[i]}$ while $e_{[i]}$
 
 
-
+---
 ## Cook’s Distance
 
 ---
