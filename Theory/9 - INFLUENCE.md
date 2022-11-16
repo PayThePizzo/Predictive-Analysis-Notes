@@ -56,9 +56,9 @@ Notice that
 * $y_{i}$ will also make a big contribution to the slope when $y_{i}-\bar{y}$ (unless, again $x_{i} = \bar{x}$ )
 
 Let’s write a general formula for the predicted value, at an arbitrary point $X=x$
-* $ \hat{m}(x) = \hat{\beta}_{0} + \hat{\beta}_{1}x $
-* $ \hat{m}(x) = \bar{y} - \hat{\beta}_{1}\bar{x} + \hat{\beta}_{1}x $
-* $ \hat{m}(x) = \bar{y} + \hat{\beta}_{1}(x - \bar{x}) $
+* $\hat{m}(x) = \hat{\beta}_{0} + \hat{\beta}_{1}(x)$
+* $\hat{m}(x) = \bar{y} - \hat{\beta}_{1}\bar{x} + \hat{\beta}_{1}(x)$
+* $\hat{m}(x) = \bar{y} + \hat{\beta}_{1}(x - \bar{x})$
 
 $$\hat{m}(x) = \bar{y} + \frac{n^{-1} \sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^2}(x-\bar{x})$$
 
