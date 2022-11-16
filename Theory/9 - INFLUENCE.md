@@ -312,8 +312,9 @@ Fitted lines with (black line) and without giant stars (red line), the influenti
 
 ## What to do about influential points
 1. Automatic detection of influential points can be useful to find points which are problematic
-2. Sometimes these methods help us identify data recording issues or problematic measurement and we can discard the points 
-3. But sometime they are the symptom of something more complicated going on in the process: need to question what is the origin of these outlying points
+2. Sometimes these methods help us identify data recording issues or problematic measurement and we can discard the points or give them less weight
+3. But sometime they are the symptom of something more complicated going on in the process: need **to question what is the origin** of these outlying points
+   1. There may be some sub-populations that behave differently, which are not specified.
 
 ---
 
