@@ -14,6 +14,8 @@ As you can see, some points can be particularly influential in the estimation of
 
 On the other hand points which have extreme values of $X$ and $Y$ but which fall in line with the rest of the data do not greatly affect the estimation of $(\beta_{0}, \beta_{1})$
 
+![infpoint4ex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint4ex.png?raw=TRUE)
+
 If we are worried that outliers might be messing up our model, **we would like to quantify how much the estimates change** if we add or remove individual data points. 
 
 Fortunately, we can quantify this using only quantities we estimated on the complete data, especially the design matrix.
@@ -46,7 +48,19 @@ $$\hat{\beta_{1}} = \frac{c_{XY}}{s_{X}^2}$$
 
 The ratio between the sample covariance of X and Y and the sample variance of X. How does yi show up in this? It's
 
-$\hat{\beta_{1}} = \frac{n^{-1}\sum_{i=1}^{n}(x_{i}=\bar{x})(y_{i}-\bar{y})}{s_{X}^{2}}$
+$$\hat{\beta_{1}} = \frac{n^{-1}\sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^{2}}$$
+
+Notice that 
+* When $x_{i} = \bar{x}$, $y_{i}$ doesn't actually matter at all to the slope.
+* If $x_{i}$ is far from $\bar{x}$, then $x_{i}=\bar{x}$ will contibute to the slope and its contribution will get bigger (whether positive or negative) as $x_{i}=\bar{x}$ grows.
+* $y_{i}$ will also make a big contribution to the slope when $y_{i}-\bar{y}$ (unless, again $x_{i} = \bar{x}$ )
+
+Let’s write a general formula for the predicted value, at an arbitrary point $X=x$
+* $\hat{m}(x) = \hat{\beta}_{0} + \hat{\beta}_{1}x$
+* $\hat{m}(x) = \bar{y} - \hat{\beta}_{1}\bar{x} + \hat{\beta}_{1}x$
+* $\hat{m}(x) = \bar{y} + \hat{\beta}_{1}(x - \bar{x})$
+
+$$\hat{m}(x) = \bar{y} + \frac{n^{-1} \sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^2}(x-\bar{x})$$
 
 ---
 ## Leverage
