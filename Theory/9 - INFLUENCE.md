@@ -209,7 +209,22 @@ Indeed the plots we get when applying plot to an `lm` object in R are based ont 
 ## Leave-One-Out - Cross-Validated/ Externally Studentized residuals
 In defining the Leave-one-out cross validation (LOOCV) we considered what would be our estimate of $y_{i}$ if $y_{i}$ was not included in the dataset.
 
-We denoted this value with with $\hat{y_{\text{[i]}}}$ while $e_{\text{[i]}}$
+To recap a bit, the design matrix is a $n \times n$ matrix, if we deleted the $i^th$ observation when estimating the model, but still asked for a prediction at $x_{i}$, we would get a different $n \times (n-1)$ matrix which we call $H^{-i}$
+
+This in turn would lead to a new fitted value:
+
+$$\hat{y_{\text{[i]}}} = \hat{m^{(-i)}}(x_{i}) = \frac{(Hy)_{i}-H_{ii}y_{i}}{1-H_{ii}}$$
+
+Basically, this is saying we can take the old fitted value, and then subtract off the part of it which came from having included the observation yj in the first place. Because each row of the hat matrix has to add up to 1, we need to include the denominator
+
+Now we can define, $e_{\text{[i]}}$ or $e_{i}^{(-i)}$ as the leave-one-out residual for the $i^{th}$ observation, when that observation is not used to fit the model:
+
+$$e_{\text{[i]}} = e_{i}^{(-i)} \equiv y_{i} - \hat{y_{\text{ [i] } }} = y_{i} - \hat{m^{(-i)}}(x_{i})$$
+
+Leaving out the data point $i$ would give us an MSE of $\hat{\sigma_{\text{[i]}}}$
+
+A little work says that:
+
 
 
 ---
