@@ -250,8 +250,11 @@ As usual, there is a simplified formula, which evades having to re-fit the regre
 
 $$D_{i} = \frac{1}{p+1}e_{i}^{2} \cdot \frac{H_{ii}}{(1-H_{ii})^{2}}$$
 
-
 The total influence of a point over all the fitted values grows with both its leverage $H_{ii}$ and the size of its residual when it is included $e_{i}^{2}$
+
+This tells us how much the estimate $\hat{y}$ changes whether or not we have that particular point inside that particular model.
+* If large, the information is influent
+* However what we do not know is the reason! 
 
 ---
 
