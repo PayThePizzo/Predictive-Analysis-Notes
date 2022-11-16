@@ -68,7 +68,3 @@ residuals(fit)
 ### Multivariate Parameters
 
 
-#### Credits
-[PayThePizzo](https://github.com/PayThePizzo/)
-
-[Repository where I play with probability and statistics in R](https://github.com/PayThePizzo/Probability-Statistics)

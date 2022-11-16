@@ -1,7 +1,7 @@
 # Predictive Analytics Notes
 Notes and labs from the [CT0429 - Predictivie Analytics](https://www.unive.it/data/course/339919/programma) Course at Ca' Foscari University for the year 2022/2023, by Professor [Prosdocimi Ilaria](https://www.unive.it/data/people/19166744).
 
-All the credits go to the professor Prosdocimi Ilaria, the creators and owners of the resources used in this course. If you feel like your work has not been cited correctly, or you want me to remove it, please contact me as soon as possible.
+All the credits go to the professor Prosdocimi Ilaria, the creators and owners of the resources used in this course.
 
 ---
 ## Resources 
@@ -20,18 +20,18 @@ The course's page and the slides specify the material used already, but I will t
 * [Hastie, Tibshirani and Friedmam - The elements of statistical learning](https://hastie.su.domains/ElemStatLearn/download.html)
 
 ---
-
-### TODO
-* Formulas Handbook
-* 
-
----
 ### Credits
 Maintained by PayThePizzo
 
-Shoutout to 2 crazy helpful resources:
+Shoutout to 2 crazy helpful Latex-related resources:
 * [Matthias Heinkenschloss - Latex Symbols Pdf](https://www.cmor-faculty.rice.edu/~heinken/latex/symbols.pdf)
 * [CODECOGS - Equation Editor](https://latex.codecogs.com/eqneditor/editor.php)
 
 ---
-### 
+### Warning
+I take no credit from any of the material that is included, nor I assure the correctness of my notes since I am not a statistics professor. 
+
+All the material cited is intended for personal use and I highly recommend purchasing 
+the textbooks cited.
+
+If you feel like your work has not been cited correctly, or you want me to remove it, please contact me as soon as possible.

@@ -119,13 +119,3 @@ summary(fit)$sigma
 ### Multivariate Parameters
 
 ---
-
-#### Slide Sections 
-* 1 - 216
-
-#### Credits and Warning
-* [PayThePizzo](https://github.com/PayThePizzo/) for maintining this handbook/summary of the course.
-* The material of the course [PREDICTIVE ANALYTICS](https://www.unive.it/data/course/339919) is provided by Professor [Ilaria Prosdocimi](https://www.unive.it/data/persone/19166744) and is only intended for personal use.
-* Material in these slides was heavily influenced by [David Dalpiaz Applied Statistics with R!](https://book.stat420.org/)
-
-I take no credit from any of the material that is included and I highly recommend purchasing the textbooks cited.
