@@ -66,7 +66,7 @@ $$\hat{m}(x) = \bar{y} + \hat{\beta}_{1}(x - \bar{x})$$
 $$\hat{m}(x) = \bar{y} + \frac{n^{-1} \sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^2}(x-\bar{x})$$
 
 So, in words: 
-* The **predicted value is always a weighted average of all the** $y_{i}
+* The **predicted value is always a weighted average of all the** $y_{i}$
 * As $x_{i}$ moves away from $\bar{x}$, $y_{i}$ gets more weight (possibly a large negative weight). When $x_{i} = \bar{x}$, $y_{i}$ only matters because it contributes to the global mean $\bar{y}$ (little leverage)
 * The weights on all data points increase in magnitude when the point $x$ where we’re trying to predict is far from $\bar{x}$. 
   * If $x =\bar{x}$ only $\bar{y}$ matters.
@@ -81,14 +81,14 @@ $$\frac{1}{n} \sum_{i=1}^{n}(y_{i}-\hat{m}(x_{i}))^{2}$$
 
 But we’re not just using any old function $\hat{m}(x)$; we’re using a linear function.
 
-This has only two parameters, so we can’t change the predicted value to match each data point — altering the parameters to bring ˆm(xi) closer to yi might actually increase the error elsewhere. 
+This has only two parameters, so we can’t change the predicted value to match each data point — altering the parameters to bring $\hat{m}(x_{i})$ closer to $y_{i}$ might actually increase the error elsewhere. 
 
 By minimizing the over-all MSE with a linear function, we get two constraints
-* First, $\bar{y} = \hat{\beta}_{0} + \hat{\beta}_{1}\bar{x}$
+* First, $\bar{y} = \hat{\beta_{0}} + \hat{\beta_{1}}\bar{x}$
   * It makes the regression line insensitive to $y_{i}$ values when $x_{i}$ is close to $\bar{x}$
 * Second, $\sum_{i}e_{i}(x_{i} - \bar{x}) = 0$
   * It makes the regression line very sensitive to residuals when $x_{i} - \bar{x}$ is big
-  * When $x_{i} - \bar{x}$ is large, a big residual ($e_{i}$ far from 0) is harder to balance out than if $x_{i} - \bar{x}$ were smaller.
+  * When $x_{i} - \bar{x}$ is large, a big residual $e_{i}$ far from 0 is harder to balance out than if $x_{i} - \bar{x}$ were smaller.
 
 To sum up
 1. Least squares estimation tries to bring all the predicted values closer to $y_{i}$, but it can’t match each data point at once, because the fitted values are all functions of the same coefficients.
@@ -118,7 +118,11 @@ $$\hat{m} = X\hat{\beta} = X(X^{T}X)^{-1}X^{T} \cdot y = H \cdot y$$
 
 with the design matrix $H = X(X^{T}X)^{-1}X^{T}$. This leads to a very natural sense in which one observation might be more or less influential than another:
 
-$$\frac{\partial \hat{\beta}_{k}}{\partial y_{i}} = ((X^{T}X)^{-1}X^{T})_{ki} \;\; \text{and} \;\; \frac{\partial \hat{m}_{k}}{\partial y_{i}} = H_{ii}$$
+$$\frac{\partial \hat{\beta}_{k}}{\partial y_{i}} = ((X^{T}X)^{-1}X^{T})_{ki}$$
+
+and 
+
+$$\frac{\partial \hat{m}_{k}}{\partial y_{i}} = H_{ii}$$
 
 Comment:
 * If $y_{i}$ were different, it would change the estimates for all the coefficients and for all the fitted values. 
@@ -126,7 +130,7 @@ Comment:
 
 ---
 ## Leverage
-> $H_{ii}$ is the influence of $y_{i}$ on its own fitted value; it tells us how much of $\hat{m}_{i}$ is just $y_{i}$
+> $H_{ii}$ is the influence of $y_{i}$ on its own fitted value; it tells us how much of $\hat{m_{i}}$ is just $y_{i}$
 
 This turns out to be a key quantity in looking for outliers, so we’ll give it a special name, the leverage $h_{i}$. 
 
