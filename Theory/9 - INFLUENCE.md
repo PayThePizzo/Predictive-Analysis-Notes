@@ -255,7 +255,7 @@ The total influence of a point over all the fitted values grows with both its le
 This tells us how much the estimate $\hat{y}$ changes whether or not we have that particular point inside that particular model.
 * If large, the information is influent
 * However what we do not know is the reason! 
-
+ 
 ---
 
 ## Case Study: CYG OB1 stars
@@ -269,11 +269,15 @@ fit_star <- lm(light ̃ temp, data = star)
 
 ![cybdataex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybdataex.png?raw=TRUE)
 
+It is evident we have a strong presence of outliers.
+
 ```r
 plot(star[,"temp"], hatvalues(fit_star), pch = 16)
 ```
 
 ![cybplot1](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot1.png?raw=TRUE)
+
+It is interesting to see that the points close to the mean have leverage equal to 0
 
 ```r
 par(mfrow=c(2,2)); plot(fit_star)
@@ -281,13 +285,26 @@ par(mfrow=c(2,2)); plot(fit_star)
 
 ![cybplot2](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot2.png?raw=TRUE)
 
+Let's see what is happeing
+* Residuals vs Fitted: Highlights the functional form and over/under estimations
+  * we find a structural form in the model, which is not a good sign ❌ 
+* QQ-plot: Highlights the assumption of normality
+  * It is looking good
+* Scale-Location: Highlights the assumption of homoskedasticity
+  * It is not looking too bad
+* Residual vs Leverage: Highlights influence points
+  * If any point in this plot falls outside of Cook’s distance (the red dashed lines) then it is considered to be an influential observation.
+  * The four points in the top-right corner seem a bit problematic ❌ and they have a large Cook's distance.
+
+Let's analyze this last one.
+
 ```r
 plot(star[,"temp"], cooks.distance(fit_star), pch = 16)
 ```
 
 ![cybplot3](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot3.png?raw=TRUE)
 
-Fitted lines with and without giant stars
+Fitted lines with (black line) and without giant stars (red line), the influential points
 
 ![cybplot4](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/cybplot4.png?raw=TRUE)
 
@@ -303,3 +320,4 @@ Fitted lines with and without giant stars
 #### Credits
 * [1 - Lecture 20: Outliers and Influential Points](https://www.stat.cmu.edu/~cshalizi/mreg/15/) by Cosma Shalizi
 * [2 - Berman H.B., "Influential Points in Regression"](https://stattrek.com/regression/influential-points#:~:text=An%20influential%20point%20is%20an,with%20and%20without%20the%20outlier.)
+* [3 - What is a Residuals vs. Leverage Plot?](https://www.statology.org/residuals-vs-leverage-plot/) by Zach
