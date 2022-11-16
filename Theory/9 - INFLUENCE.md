@@ -1,7 +1,17 @@
 # Influential Points
 > An outlier is a data point which is very far, somehow, from the rest of the data. They are often worrisome, but not always a problem.[1]
 
+When we are doing regression modeling, in fact, we don’t really care about whether some data point is far from the rest of the data, but whether **it breaks a pattern the rest of the data seems to follow**.
+
 > An influential point is an outlier that greatly affects the slope of the regression line[2]
+
+<p float="center">
+  <img src="https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint1ex.png" width="100" />
+  <img src="https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint2ex.png" width="100" /> 
+</p>
+
+If we are worried that outliers might be messing up our model, we would like to quantify how much the estimates change if we add or remove individual data points. Fortunately, we can quantify this using only quantities we estimated on the complete data, especially the design matrix.
+
 
 ## Leverage
 
