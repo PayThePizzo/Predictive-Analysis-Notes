@@ -5,7 +5,7 @@ When we are doing regression modeling, in fact, we don’t really care about whe
 
 > An influential point is an outlier that greatly affects the slope of the regression line[2]
 
-<p float="center">
+<p float="left">
   <img src="https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint1ex.png" width="500" />
   <img src="https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint2ex.png" width="500" /> 
 </p>
