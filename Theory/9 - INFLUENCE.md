@@ -20,7 +20,7 @@ If we are worried that outliers might be messing up our model, **we would like t
 
 Fortunately, we can quantify this using only quantities we estimated on the complete data, especially the design matrix.
 
-## Example with SLR
+## SLR
 Let’s think about what happens with simple linear regression for a moment:
 
 $$Y = \beta_{0} + \beta_{1}X + \varepsilon$$
@@ -48,9 +48,7 @@ $$\hat{\beta_{1}} = \frac{c_{XY}}{s_{X}^2}$$
 
 The ratio between the sample covariance of X and Y and the sample variance of X. How does yi show up in this? It's
 
-```math
-\hat{\beta_{1}} = \frac{n^{-1}\sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^{2}}
-```
+$$\hat{\beta_{1}} = \frac{n^{-1}\sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^{2}}$$
 
 Notice that 
 * When $x_{i} = \bar{x}$, $y_{i}$ doesn't actually matter at all to the slope.
@@ -67,6 +65,58 @@ $$\hat{m}(x) = \bar{y} + \hat{\beta}_{1}(x - \bar{x})$$
 
 $$\hat{m}(x) = \bar{y} + \frac{n^{-1} \sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^2}(x-\bar{x})$$
 
+So, in words: 
+* The **predicted value is always a weighted average of all the** $y_{i}
+* As $x_{i}$ moves away from $\bar{x}$, $y_{i}$ gets more weight (possibly a large negative weight). When $x_{i} = \bar{x}$, $y_{i}$ only matters because it contributes to the global mean $\bar{y}$ (little leverage)
+* The weights on all data points increase in magnitude when the point $x$ where we’re trying to predict is far from $\bar{x}$. 
+  * If $x =\bar{x}$ only $\bar{y}$ matters.
+
+All of this is still true of the fitted values at the original data points:
+* if $x_{i} = \bar{x}$, $y_{i}$ only matter for the fitt because it contributes to $\bar{y}$
+* As $x_{i}$ moves away from $\bar{x}$, in either direction, it makes a bigger contribution to **ALL** the fitte values
+
+Why is this happening? We get the coefficient estimates by minimizing the MSE  which treats all data points equally:
+
+$$\frac{1}{n} \sum_{i=1}^{n}(y_{i}-\hat{m}(x_{i}))^{2}$$
+
+But we’re not just using any old function $\hat{m}(x)$; we’re using a linear function.
+
+This has only two parameters, so we can’t change the predicted value to match each data point — altering the parameters to bring ˆm(xi) closer to yi might actually increase the error elsewhere. 
+
+By minimizing the over-all MSE with a linear function, we get two constraints
+* First, $\bar{y} = \hat{\beta}_{0} + \hat{\beta}_{1}\bar{x}$
+  * It makes the regression line insensitive to $y_{i}$ values when $x_{i}$ is close to $\bar{x}$
+* Second, $\sum_{i}e_{i}(x_{i} - \bar{x}) = 0$
+  * It makes the regression line very sensitive to residuals when $x_{i} - \bar{x}$ is big
+  * When $x_{i} - \bar{x}$ is large, a big residual ($e_{i}$ far from 0) is harder to balance out than if $x_{i} - \bar{x}$ were smaller.
+
+To sum up
+1. Least squares estimation tries to bring all the predicted values closer to $y_{i}$, but it can’t match each data point at once, because the fitted values are all functions of the same coefficients.
+2. If $x_{i}$ is close to $\bar{x}$, $y_{i}$ makes little difference to the coefficients or fitted values — they’re pinned down by needing to go through the mean of the data.
+3. As $x_{i}$ moves away from $\bar{x}$, $y_{i} − \bar{y}$ makes a bigger and bigger impact on both the coefficients and on the fitted values.
+
+### Conclusions
+If we worry that some point isn’t falling on the same regression line as the others, we’re really worrying that including it will **throw off our estimate** of the line.
+
+This is going to be a concern either when $x_{i}$ is far from $\bar{x}$, or when the combination of $x_{i} -\bar{x}$ and $y_{i}-\bar{y}$ makes that point have a disproportionate impact on the estimates. 
+
+We should also be worried if the **residual values are too big** (particularly when they correspond to values with large $(x_{i} -\bar{x})$ value).
+
+However, when asking what’s “too big”, we need to take into account the fact that the model will try harder to fit some points than others. A big residual at a point of high leverage is more of a red flag than an equal-sized residual at point with little influence.
+
+All of this also holds for multiple regression models where things become more complicated because of the high dimensionality (harder to know when  $x_{i}$ is far from $\bar{x}$) and we need to deal with matrices
+
+## MLR
+
+Recall that our least-squares coefficient estimator is:
+
+$$\hat{\beta} = (X^{T}X)^{-1}X^{T}y$$
+
+from which we get our fitted values as:
+
+$$\hat{m} = X\hat{\beta} = X(X^{T}X)^{-1}X^{T} \cdot y = H \cdot y$$
+
+with the design matrix $H = X(X^{T}X)^{-1}X^{T}$. This leads to a very natural sense in which one observation might be more or less influential than another:
 
 ---
 ## Leverage
