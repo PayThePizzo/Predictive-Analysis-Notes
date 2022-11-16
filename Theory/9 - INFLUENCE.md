@@ -209,7 +209,7 @@ Indeed the plots we get when applying plot to an `lm` object in R are based ont 
 ## Leave-One-Out - Cross-Validated/ Externally Studentized residuals
 In defining the Leave-one-out cross validation (LOOCV) we considered what would be our estimate of $y_{i}$ if $y_{i}$ was not included in the dataset.
 
-We denoted this value with with $\hat{y}_{[i]}$ while $e_{[i]}$
+We denoted this value with with $\hat{y_{\text{[i]}}}$ while $e_{\text{[i]}}$
 
 
 ---
