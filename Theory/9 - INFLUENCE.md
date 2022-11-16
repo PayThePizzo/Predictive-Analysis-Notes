@@ -118,6 +118,12 @@ $$\hat{m} = X\hat{\beta} = X(X^{T}X)^{-1}X^{T} \cdot y = H \cdot y$$
 
 with the design matrix $H = X(X^{T}X)^{-1}X^{T}$. This leads to a very natural sense in which one observation might be more or less influential than another:
 
+$$\frac{\partial \hat{\beta}_{k}}{\partial y_{i}} = ((X^{T}X)^{-1}X^{T})_{ki} \;\; \text{and} \;\; \frac{\partial \hat{m}_{k}}{\partial y_{i}} = H_{ii}$$
+
+If $y_{i}$ were different, it would change the estimates for all the coefficients and for all the fitted values. The rate at which the $k^{th}$ coefficient or fitted value changes is given by the kith entry in these matrices — matrices which, notice, are completely defined by the design matrix $X$.
+
+
+
 ---
 ## Leverage
 
