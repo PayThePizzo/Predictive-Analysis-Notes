@@ -35,7 +35,7 @@ Suppose we had a data point, say the $i^{th}$ point, where $X = \bar{x}$. Then t
 value of $y_{i}$ almost wouldn't mater for the fitte value there.
 * The regression line **HAS** to go through $(\bar{x},\bar{y})$ never mind wheter $y_{i}$ is close to $\bar{y}$ or far way
 
-![infpoint3ex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint2ex.png?raw=TRUE)
+![infpoint3ex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint3ex.png?raw=TRUE)
 
 If $x_{i} = \bar{x}$, we say that "*$y_{i}$ has little average over $\hat{m}_{i}$*" or little influence on $\hat{m}_{i}$
 * It has *SOME* influence because $y_{i}$ is part of what we average to get $\bar{y}$,but that's not a lot of influence
