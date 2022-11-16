@@ -120,14 +120,38 @@ with the design matrix $H = X(X^{T}X)^{-1}X^{T}$. This leads to a very natural s
 
 $$\frac{\partial \hat{\beta}_{k}}{\partial y_{i}} = ((X^{T}X)^{-1}X^{T})_{ki} \;\; \text{and} \;\; \frac{\partial \hat{m}_{k}}{\partial y_{i}} = H_{ii}$$
 
-If $y_{i}$ were different, it would change the estimates for all the coefficients and for all the fitted values. The rate at which the $k^{th}$ coefficient or fitted value changes is given by the kith entry in these matrices — matrices which, notice, are completely defined by the design matrix $X$.
-
-
+Comment:
+* If $y_{i}$ were different, it would change the estimates for all the coefficients and for all the fitted values. 
+* The rate at which the $k^{th}$ coefficient or fitted value changes is given by the kith entry in these matrices — matrices which, notice, are completely defined by the design matrix $X$.
 
 ---
 ## Leverage
+> $H_{ii}$ is the influence of $y_{i}$ on its own fitted value; it tells us how much of $\hat{m}_{i}$ is just $y_{i}$
+
+This turns out to be a key quantity in looking for outliers, so we’ll give it a special name, the leverage $h_{i}$. 
+
+Once again, the leverage of the $i^{th}$ data point doesn’t depend on $y_{i}$, only on the design matrix.
+
+Because the general linear regression model doesn’t assume anything about the distribution of the predictors, other than that they’re not collinear, we can’t say definitely that some values of the leverage break model assumptions, or even are very unlikely under the model assumptions.
+
+But we can say some things about the leverage.
+
+### Average Leverages
+> The trace of a matrix $A$, $\operatorname{tr}(A)$ is defined to be the sum of elements on the main diagonal (from the upper left to the lower right) of A. 
+* The trace is only defined for a square matrix (n × n).
+
+Then the trace of the design matrix equals to the sum of its diagonal entries, and at the same time it is equal to the number of coefficients we estimate. Therefore, the **trace of the design matrix is the sum of each point’s leverage**.
+
+$$tr(H) = \sum_{i=1}^{n}h_{ii} = h_{11} + h_{22} +...+ h_{nn} = p + 1 $$
 
 
+It can be shown the sum of the $i$ leverages is equal to $p$, the number of regression coefficients:
+
+
+To sum up:
+1. The leverage of a data point just depends on the value of the predictors there
+2. It increases as the point moves away from the mean of the predictors. 
+3. It increases more if the difference is along low-variance coordinates, and less for differences along high-variance coordinates.
 ---
 ## Standardized and Studentized residuals
 
