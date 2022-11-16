@@ -10,12 +10,44 @@ When we are doing regression modeling, in fact, we don’t really care about whe
   <img src="https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/infpoint2ex.png" width="450" /> 
 </p>
 
-If we are worried that outliers might be messing up our model, we would like to quantify how much the estimates change if we add or remove individual data points. Fortunately, we can quantify this using only quantities we estimated on the complete data, especially the design matrix.
+As you can see, some points can be particularly influential in the estimation of $(\beta_{0}, \beta_{1})$ and even if their might be not pattern-breaking when considering the $x_{i}$ value or $y_{i}$ value, their combination $(x_{i}, y_{i})$ value might be at odds with the rest of the data.
+
+On the other hand points which have extreme values of $X$ and $Y$ but which fall in line with the rest of the data do not greatly affect the estimation of $(\beta_{0}, \beta_{1})$
+
+If we are worried that outliers might be messing up our model, **we would like to quantify how much the estimates change** if we add or remove individual data points. 
+
+Fortunately, we can quantify this using only quantities we estimated on the complete data, especially the design matrix.
+
+### Example with SLR
+Let’s think about what happens with simple linear regression for a moment:
+
+$$Y = \beta_{0} + \beta_{1}X + \varepsilon$$
+
+With a single real-valued predictor variable $X$. When we estimate the coefficients by least squares, we know that:
+
+$$\hat{\beta}_{0} = \bar{y} - \hat{\beta}_{1}\bar{x}$$
+
+Let us turn this around. The fitted value at $X = \bar{x}$ is 
+
+$$\bar{y} = \hat{\beta}_{0} + \hat{\beta}_{1}\bar{x}$$
+
+Suppose we had a data point, say the $i^{th}$ point, where $X = \bar{x}$. Then the actual
+value of $y_{i}$ almost wouldn't mater for the fitte value there.
+* The regression line **HAS** to go through $(\bar{x},\bar{y})$ never mind wheter $y_{i}$ is close to $\bar{y}$ or far way
+
+If $x_{i} = \bar{x}$, we say that "*$y_{i}$ has little average over $\hat{m}_{i}$*" or little influence on $\hat{m}_{i}$
+* It has *SOME* influence because $y_{i}$ is part of what we average to get $\bar{y}$,but that's not a lot of influence
 
 
+
+---
 ## Leverage
 
+
+---
 ## Standardized and Studentized residuals
+
+
 
 ## Cook’s Distance
 
