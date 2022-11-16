@@ -48,7 +48,9 @@ $$\hat{\beta_{1}} = \frac{c_{XY}}{s_{X}^2}$$
 
 The ratio between the sample covariance of X and Y and the sample variance of X. How does yi show up in this? It's
 
-$$\hat{\beta_{1}} = \frac{n^{-1}\sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^{2}}$$
+```math
+\hat{\beta_{1}} = \frac{n^{-1}\sum_{i=1}^{n}(x_{i}-\bar{x})(y_{i}-\bar{y})}{s_{X}^{2}}
+```
 
 Notice that 
 * When $x_{i} = \bar{x}$, $y_{i}$ doesn't actually matter at all to the slope.
