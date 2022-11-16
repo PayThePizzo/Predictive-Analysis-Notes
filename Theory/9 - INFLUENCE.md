@@ -213,7 +213,7 @@ To recap a bit, the design matrix is a $n \times n$ matrix, if we deleted the $i
 
 This in turn would lead to a new fitted value:
 
-$$\hat{y_{\text{[i]}}} = \hat{m}^{(-i)}(x_{i}) = \frac{(Hy)_{i}-H_{ii}y_{i}}{1-H_{ii}}$$
+$$\hat{y_{\text{[i]}}} = \hat{m}_{[i]} =\hat{m}^{(-i)}(x_{i}) = \frac{(Hy)_{i}-H_{ii}y_{i}}{1-H_{ii}}$$
 
 Basically, this is saying we can take the old fitted value, and then subtract off the part of it which came from having included the observation yj in the first place. Because each row of the hat matrix has to add up to 1, we need to include the denominator
 
@@ -221,14 +221,37 @@ Now we can define, $e_{\text{[i]}}$ or $e_{i}^{(-i)}$ as the leave-one-out resid
 
 $$e_{\text{[i]}} = e_{i}^{(-i)} \equiv y_{i} - \hat{y_{\text{[i]}}} = y_{i} - \hat{m}^{(-i)}(x_{i})$$
 
+That is, this is how far off the model’s prediction of $y_{i}$ would be if it didn’t actually get to see $y_{i}$ during the estimation, but had to honestly predict it.
+
 Leaving out the data point $i$ would give us an MSE of $\hat{\sigma_{\text{[i]}}}$
 
 A little work says that:
 
+$$t_{i} \equiv \frac{e_{i}^{(-i)}}{\hat{\sigma_{\text{[i]}}}\cdot \sqrt{1+X_{i}^{T}(X_{-i}^{T}X_{-i})^{-1}X_{i}} } \thicksim t_{n-p-2}$$
 
+Fortunately, we can compute this without having to actually re-run the regression:
+
+$$t_{i} = r_{i} \sqrt{\frac{n-p-2}{n-p-1-r_{i}^{2}}}$$
 
 ---
 ## Cook’s Distance
+Omitting point $i$ will generally change all of the fitted values, not just the fitted value at that point. We go from the vector of predictions $\hat{m}$ to $\hat{m}^{(-i)}$
+
+How big a change is this? It’s natural (by this point!) to use the squared length of the
+difference vector,
+
+$$||\hat{m} - \hat{m}^{(-i)}||^{2} = (\hat{m} - \hat{m}^{(-i)})^{T} (\hat{m} - \hat{m}^{(-i)}) $$
+
+To make this more comparable across data sets, it’s conventional to divide this by $(p+1)\sigma^{2}$, since there are really only $p + 1$ independent coordinates here, each of which might contribute something on the order of $sigma^{2}$. This is called the Cook’s distance or Cook’s statistic for point $i$:
+
+$$D_{i} = \frac{(\hat{m} - \hat{m}^{(-i)})^{T} (\hat{m} - \hat{m}^{(-i)})}{(p+1)\sigma^{2}}$$
+
+As usual, there is a simplified formula, which evades having to re-fit the regression:
+
+$$D_{i} = \frac{1}{p+1}e_{i}^{2} \cdot \frac{H_{ii}}{(1-H_{ii})^{2}}$$
+
+
+The total influence of a point over all the fitted values grows with both its leverage $H_{ii}$ and the size of its residual when it is included $e_{i}^{2}$
 
 ---
 
