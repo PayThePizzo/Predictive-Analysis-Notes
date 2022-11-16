@@ -40,7 +40,13 @@ value of $y_{i}$ almost wouldn't mater for the fitte value there.
 If $x_{i} = \bar{x}$, we say that $y_{i}$ *has little average over* $\hat{m}_{i}$ or little influence on $\hat{m}_{i}$
 * It has *SOME* influence because $y_{i}$ is part of what we average to get $\bar{y}$,but that's not a lot of influence
 
+Again, with SLR we know that:
 
+$$\hat{\beta_{1}} = \frac{c_{XY}}{s_{X}^2}$$
+
+The ratio between the sample covariance of X and Y and the sample variance of X. How does yi show up in this? It's
+
+$\hat{\beta_{1}} = \frac{n^{-1}\sum_{i=1}^{n}(x_{i}=\bar{x})(y_{i}-\bar{y})}{s_{X}^{2}}$
 
 ---
 ## Leverage
