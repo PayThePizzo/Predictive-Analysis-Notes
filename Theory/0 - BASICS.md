@@ -2,36 +2,40 @@
 
 --- 
 
-## SLR
-* Y, target
-* y
-  * $y_{i}$
-* X, predictor (or vector of predictors)
+## 1 - SLR (Least Squares Method)
+
+Our estimate for the Simple Linear Regression Model is built as:
+
+$$\hat{Y} = \hat{\beta}_{0} + \hat{\beta}_{1}X + \varepsilon$$
+
+## 1.1 - SLR, Meaning of parameters and variables (1 response, 1 predictor)
+* Y, random variable, target/response/regressand
+    + $\hat{Y} = \hat{m}(X)$, our estimated model
+* y, vector of observed values of the response
+    + $y_{i}$ is the i-th observed value
+    + $\hat{y}_{i}$, our estimated i-th observed value
+* X, random variable, input/predictor/explanatory variable
+* x, vector of observed values of the predictor
+    + $x_{i}$, is the i-th predictor
 * n, number of observations
-* x, predictor
-  * $x_{i}$, predictor
-* p, number of predictors
-* p-1, number of beta-parameters
+    + number of rows of the dataset
+* p, number of predictors (from $x_{1}$ to $x_{p}$)
+    + count of different predictors (in this case it's 1)
+* p+1, number of beta-parameters (from $\beta_{0}$ to $\beta_{p}$)
+    + $\beta_{0}$ and $\beta_{1}$ (in this case it's 2)
+    +  $\hat{\beta}_{0}$ and $\hat{\beta}_{1}$, our estimates
 
-$\beta$-Parameters: 
 
-Predictor variables:
-* Single $x_{1}$
-* Multiple $x_{1}, x_{2}$
-* p-1 $x_{1}, x_{2}, ..., x_{p-1}$
+## 1.2 - SLR, Assumptions
 
-## SLR - Assumptions
-The Simple Linear Regression Model is built as:
 
-$$Y = m(X) + \varepsilon$$
 
-To favor a high-level of interpretability: 
-1. We focus on Supervised Learning approaches, in particular for prediction ($y_{i} is a continuous numeric value$)
-2. In particular we only consider linear models, where the functions $m(X)$ built are linear combinations
-3. The error $\varepsilon$ identifies the stochasticity of the domain, the measurement errors and other discrepancies between Y and the model m
-4. We want to build generalizable 
+## 1.3 - SLR, Interpretation
+
+
 
 ---
+
 
 ## MLR
 * $Y$, the vector containing the $Y_{i}$ 

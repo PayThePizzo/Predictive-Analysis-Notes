@@ -30,7 +30,7 @@ covxy <- cov(x,y)
 rxy <- cor(x,y)
 
 mx <- mean(x)
-<- mean(y)
+my<- mean(y)
 
 beta1 <- rxy * sqrt(s2y/s2x)
 beta0 <- my - beta1 *mx

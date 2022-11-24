@@ -34,7 +34,7 @@ setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01")
 getwd()
 ```
 
-# Dataset Loading
+# Dataset Loading and Cleaning
 
 In this lab we will use a file containing information regarding the Palmers Islands' penguins
 
@@ -54,8 +54,6 @@ By applying `summary()` to the dataset, R returns:
     + Class
     + Mode
 
-## Dataset Cleaning
-
 Here we perform some operations to catpure a subset of the dataset where the 
 information is complete. In this case we remove all missing values, even though
 it not always the best option!
@@ -66,6 +64,8 @@ pengs <- na.omit(pengs)
 # Check the number of rows after cleaning 
 nrow(pengs)
 ```
+
+---
 
 # SLR - Manual mode
 
@@ -114,7 +114,7 @@ plot(flipper_length_mm ~ body_mass_g, data = pengs,pch = 16)
 abline(beta0_hat, beta1_hat, col = 2, lwd = 1.4)
 ```
 
-Because of the assumptions made, we are sure the yhat is the function that minimizes the MSE and that no other combination of coefficients can lower that value.
+Because of the assumptions made, we are sure the $\hat{Y}$ is the function that minimizes the MSE and that no other combination of coefficients can lower that value. We can confirm by comparing our results with any combination of values for $\beta_{0}$ and $\beta_{1}$
 
 ```{r}
 # Estimated values
@@ -122,17 +122,20 @@ yhat <- beta0_hat +  beta1_hat * x
 
 # Empirical MSE 
 (sum((y-yhat)^2))
-
-(sum((y-(137+0.016*x))^2) )
+# Some random coefficients
+(sum((y-(137+0.016*x))^2))
 ```
 
 Alternatively we can use the linear models defined in R.
 
+---
+
 # SLR in R 
 
-The main function to estimate linear models in R is `lm()`
+The main function to estimate linear models (with the least squares method) in R is `lm()`
 
-The first variable of `lm` is `formula = target ~ predictor1 + predictor2` where we could have one of more predictors. 
+The first variable of `lm` is `formula = target ~ predictor1 + predictor2 + ...` where we could have one or more predictors. 
+
 It is important to specify the dataset each time through `data = dataset`
 
 ```{r}
@@ -170,7 +173,6 @@ One the most important function is `fitted`,which derives the estimated values f
 (head(yhat,10))
 ```
 
-
 We want to get the residuals of the model through
 ```{r}
 # From lm
@@ -181,7 +183,6 @@ We want to get the residuals of the model through
 ```
 
 And the standard error $s_{e}$, which allows to get info about the variances of the beta-parameters
-
 ```{r}
 # For lm
 (se <- sqrt (sum((residuals(fit))^2) / (n-2)))
@@ -190,57 +191,85 @@ And the standard error $s_{e}$, which allows to get info about the variances of 
 (se <- sqrt (sum((yhat - y)^2) / (n-2)))
 ```
 
-## summary function
+---
+
+# `summary()` function
 
 A very useful function is `summary` which simplifies all things we just showed.
 
 ```{r}
 summary(fit)
+sse <- sum((pengs$flipper_length_mm - fit$fitted.values)^2)
+
+s2e <- (n/(n-2))*(sse/n)
+se <- sqrt(s2e)
+
+altse <- sqrt((sse/(n-2)))
+
 ```
 
 Which prints out:
 
 1. Call, the model
-2. Residuals, the errors of the model which should homoskedastic, have sample variance equal to 0 and constant variance
-    + If the distribution was symmetric (which we hope it is), the mean and the median should coincide
-    + Moreover, the 1st and 3rd quartile should be specular
+    + We can see the model built through `summary(fit)$call`
+2. Residuals, the errors of the model 
+    + They should be homoskedastic and have sample variance equal to 0
+    + If the distribution was symmetric (which we hope it is), the mean and the median should coincide, the `min` and `max` values should be specular, and the `1Q` and `3Q` should too.
+    + We can get them through `summary(fit)$residuals`
 3. Coefficients, the beta parameters' values
     + also available through `summary(fit)$coefficients`
-4. Residual Standard Error, the estimated variance of the errors $s_{e}$
-5. Multiple R-Squared
+    + their Std. Error, `summary(fit)$sigma`
+    + their t-value,
+    + their p-value,
+4. Residual Standard Error, the estimated variance of the errors $s_{e}$ which we can get through `summary(fit)$sigma`
+    + with `n-p` degrees of freedom, where `p` is the count of estimated $\beta$ parameters and `n` is the count of the rows (instances). We can even get the residual degrees of freedom for the model through `fit$df.residual`
+5. Multiple R-Squared, $R^{2}$ a measure of the model's goodness of fit
+    + `summary(fit)$r.squared`
 6. Adjusted R-Squared
+    + `summary(fit)$adj.r.squared`
 7. F-statistic
+    + `summary(fit)$fstatistic`
 8. P-value
 
-We can even get the residual degrees of freedom for the model
 
+We can find some utils we can call to get our data from 
 ```{r}
-fit$df.residual
+names(summary(fit))
 ```
 
-# SLR - Uncertainty
+# SLR - Uncertainty of the model
 
-We can see that the estimated value of $\sigma^2$ is present, which is the variance of random variable describing the error of the model, $\varepsilon$: 
+We can see that the estimated value of $\sigma^2$, or better $s_{e}$ is present in `Residual Standard Error`, which is the variance of random variable describing the error of the model, $\varepsilon$: 
 
 \[s_e^2 = \frac{1}{n}\sum_{i=1}^{n-2} (y_i - \hat{y}_i)\]
 
 ```{r}
+# se is Residual Standard Error
 summary(fit)$sigma
-sqrt(sum((pengs$flipper_length_mm  - fitted(fit))^2)/(nrow(pengs)-2))
+(se <- sqrt(sum(residuals(fit)^2)/(n-2)))
+(se <-sqrt(sum((pengs$flipper_length_mm  - fitted(fit))^2)/(nrow(pengs)-2)))
 ```
 
-$\hat{\sigma}$ is used to estimate the uncertainty of the model's coefficient estimates:
+$\hat{\sigma}$ is used to estimate the uncertainty of the model's coefficient estimates (the variances of the $\beta$ parameters):
+* $Var[\widehat{\beta}_0]$ = `Std. Error` of the $\widehat{\beta}_0$
+* $Var[\widehat{\beta}_1]$ = `Std. Error` of the $\widehat{\beta}_1$
+
 
 $$Var[\widehat{\beta}_0]= sigma_e^2\left[\frac{1}{n} + \frac{\overline{x}^2}{n s^2_X}\right]$$
 $$Var[\widehat{\beta}_1] = \frac{ sigma_e^2}{n s^2_X}$$
 
 ```{r}
-se <- summary(fit)$sigma
 n <- nrow(pengs)
+
 s2x <- sum((pengs$body_mass_g - mean(pengs$body_mass_g))^2)/n
+
+# Alternative way to get coefficients
 c(se * sqrt(1/n + mean(pengs$body_mass_g)^2/(n * s2x)), se * sqrt(1/(n * s2x)))
+
 summary(fit)$coef[,2]
 ```
+
+---
 
 **Esercizio**
 
@@ -248,23 +277,26 @@ Cosa succede alla variabilità della stima dei coefficienti se si usa come varia
 ```{r}
 pengs$mass_minus_4000 <- pengs$body_mass_g - 4000
 ```
+
 E cosa succede invece se il peso viene espresso in grammi: 
 ```{r}
 pengs$body_mass_Kg <- pengs$body_mass_g/1000
 ```
+
 Infine, cosa cambia invece quando si cambia anche la variabile risposta, per esempio esprimendo il valori in cm
 ```{r}
 pengs$bill_length_cm <- pengs$bill_length_mm*10
 ```
 
 
-
 Anche il valore di $R^2$ è presente nell'output:
 
 ```{r}
 summary(fit)$r.squared
+
 ## SSreg/SStot
 sum((fitted(fit) - mean(pengs$flipper_length_mm))^2)/sum((pengs$flipper_length_mm  - mean(pengs$flipper_length_mm ))^2)
+
 # 1- SSres/SStot 
 1 - sum((pengs$flipper_length_mm  - fitted(fit))^2)/sum((pengs$flipper_length_mm  - mean(pengs$flipper_length_mm ))^2)
 ```
@@ -312,6 +344,7 @@ dove $s_e$ è la deviazione standard dell'errore:
 sepengs <- sqrt(sum((pengs$flipper_length_mm-fit$fitted.values)^2)/(nrow(pengs)-2))
 sepengs
 ```
+
 Il valore della deviazione standard attorno al valore atteso di $Y|X=x$ dipende da $x$, il valore in cui valutiamo la funzione $m(x)$: 
 
 ```{r}
@@ -373,7 +406,7 @@ Vedremo più in dettaglio questi grafici nelle prossime lezioni.
 Sebbene sia stato mostrato come il modello di regressione lineare sia relativamente robusto ad alcune deviazioni dal modello - la stima dei parametri si basa sulle assunzioni specificate: se queste assunzioni non sono riscontrabili nei dati si corre il rischio di fare un inferenza non affidabile. è sempre raccomandabile verificare che le assunzioni del modello siano soddisfatte prima di utilizzare un modello per fare predizioni e prendere decisioni. 
 
 
-# Verifiche della teoria tramite simulazione 
+# Verifiche della teoria tramite simulazione (Ultimi 15 min)
 
 La simulazione è un approccio molto utile per indagare come si comportano i vari metodi di stima e per verificare in maniera empirica come si comportano gli stimatori. Il creare una procedura di simulazione dei dati per altro aiuta molto a capire in profondità quali sia il processo sotteso alla generazione dei dati che viene ipotizzato dal modello. 
 
