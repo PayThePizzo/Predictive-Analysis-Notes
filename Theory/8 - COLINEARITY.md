@@ -89,7 +89,7 @@ We use some checks and metrics which can help identify issues.
 1. Red flag 1: Large changes in estimated coefficients when one other predictor variable is included or removed
 2. Red flag 2: non-significant results in individual tests on $\beta_{j}$ for variables $X_{j}$ which appear to be important when taken individually
 3. Red flag 3: estimated value of $\beta_{j}$ with opposite sign from what we see in scatterplot of $(X_{j}, Y)$ or that we expect from theoretical considerations.
-4. Red flag 4: large sample correlations between $X_{i}s$ and $X_{j}$s
+4. Red flag 4: large sample correlations between $X_{i}s$ and $X_{j}s$
 5. Red flag 5: $X^{T}X$ is almost singular, then check if any eigenvalues are $\approx 0$
 
 ---
