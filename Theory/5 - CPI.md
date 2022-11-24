@@ -89,7 +89,7 @@ summary(fc_mlr_add)$coefficients["sexmale",]
     Estimate        Std. Error      t value             Pr(>|t|)
 -3.956995825081     0.801177208007  -4.938977027226     0.000001250047
 ```
-We can see there is a difference of 3.957 mm in the length of the flipper, which is statistically relevant.
+We can see that (when the other predictors have fixed values) there is a difference of 3.957 mm in the length of the flipper, which depends on the sex and is statistically relevant.
 
 ### 1.3 - Anova & F test
 It is easy to see that these models can be thought as nested models, so an ANOVA test is
@@ -157,7 +157,7 @@ $\beta_{2}$ has lost its significance, since we used a more complex model and we
 
 By using a more complex model, we shadow the signal of $\beta_{2}$.
 
-#### 2.1.3 - The * operatore 
+#### 2.1.3 - The * operator 
 An alternative method uses the `*` operator. This method automatically creates the interaction term, as well as any ”lower order terms” which in this case are the first order terms for body_mass_g and sex
 
 ```r

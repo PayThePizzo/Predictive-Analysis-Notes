@@ -199,6 +199,9 @@ A very useful function is `summary` which simplifies all things we just showed.
 
 ```{r}
 summary(fit)
+```
+
+```{r}
 sse <- sum((pengs$flipper_length_mm - fit$fitted.values)^2)
 
 s2e <- (n/(n-2))*(sse/n)
