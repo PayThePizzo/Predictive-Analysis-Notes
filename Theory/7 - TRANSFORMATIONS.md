@@ -162,7 +162,7 @@ The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.[2]
 The great statisticians G. E. P. Box and D. R. Cox introduced a family of transformations which includes powers of Y and taking the logarithm of Y, parameterized by a number $\lambda$
 
 ```math
-$$y_i^{(\lambda)} =
+y_i^{(\lambda)} =
 \begin{cases}
   \dfrac{y^\lambda-1}{\lambda} , &\text{if } \lambda \neq 0 \\[12pt]
   \log(y) , &\text{if } \lambda = 0
