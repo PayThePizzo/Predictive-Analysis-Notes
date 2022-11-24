@@ -197,7 +197,7 @@ The usual way to do this is through the standardized or studentized residuals
 $$r_{i} \equiv \frac{e_{i}}{\hat{\sigma}\sqrt{1-H_{ii}}}$$
 
 Why “studentized”? Because **we’re dividing by an estimate of the standard error**, just like in “Student’s” t-test for differences in means
-* The distribution here is however not quite a t-distribution, because, while $e_{i}$ has a Gaussian distribution and $\hat{\sigma}$ is the square root of a $\chi^{2} distributed variable, $e_{i}$ is actually used in computing $\hat{\sigma}$, hence they’re not statistically independent. 
+* The distribution here is however not quite a t-distribution, because, while $e_{i}$ has a Gaussian distribution and $\hat{\sigma}$ is the square root of a $\chi^{2}$ distributed variable, $e_{i}$ is actually used in computing $\hat{\sigma}$, hence they’re not statistically independent. 
 * Rather, $\frac{r_{i}^{2}}{n-p-1} \thicksim \beta(\frac{1}{2}, \frac{1}{2}(n-p-2))$ This gives us studentized residuals which all have the same distribution, and that distribution does approach a Gaussian as $n \rightarrow \inf$ with $p$ fixed.
 
 All of the residual plots we’ve done before can also be done with the studentized residuals. In
