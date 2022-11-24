@@ -57,7 +57,7 @@ By definition:
 4. We can use residuals to verify the **independence assumption** - but we should also control for this when designing the data collection
 
 *How do we tell when this is the case?*
-If the model is well specified, the sample of ($r_{1}, ..., r_{n}$) should be i.i.d. normally distributed and with a constant variance.
+If the model is well specified, the sample of ( $r_{1}, ..., r_{n}$ ) should be i.i.d. normally distributed and with a constant variance.
 
 ## Plotting
 Typically we graphically check the residuals to hope an empirical proof of how the errors of the model behave.
