@@ -138,7 +138,7 @@ If the data is negative, this cannot be applied!
 >In statistics, a power transform is a family of functions applied to create a monotonic transformation of data using power functions. It is a data transformation technique used to stabilize variance, make the data more normal distribution-like, improve the validity of measures of association (such as the Pearson correlation between variables), and for other data stabilization procedures.
 
 Definition: 
-> The power transformation is defined as a continuously varying function, with respect to the power parameter $\lambda$, in a piece-wise function form that makes it continuous at the point of singularity ($\lambda = 0$). 
+> The power transformation is defined as a continuously varying function, with respect to the power parameter $\lambda$, in a piece-wise function form that makes it continuous at the point of singularity ( $\lambda = 0$ ). 
 
 For data vectors $y_{1},...,y_{n}$ in which each $y_{i} > 0$, the power transform is
 
@@ -161,11 +161,13 @@ The case for $\lambda =0$ is the limit as $\lambda$ approaches 0.[2]
 ## 1.2 - Box-Cox Transformation
 The great statisticians G. E. P. Box and D. R. Cox introduced a family of transformations which includes powers of Y and taking the logarithm of Y, parameterized by a number $\lambda$
 
+```math
 $$y_i^{(\lambda)} =
 \begin{cases}
-\dfrac{y^\lambda-1}{\lambda} , &\text{if } \lambda \neq 0 \\[12pt]
-\log(y) , &\text{if } \lambda = 0
-\end{cases}$$
+  \dfrac{y^\lambda-1}{\lambda} , &\text{if } \lambda \neq 0 \\[12pt]
+  \log(y) , &\text{if } \lambda = 0
+\end{cases}
+```
 
 > Idea: The transformation is defined for positive data only, so the possible remedy could be translating the data after to the positive domain by adding a constant. 
 
