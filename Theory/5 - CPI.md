@@ -79,7 +79,7 @@ We could achieve the same results by estimating two different models, but this w
 
 
 ### 1.2 - Verifying Hypothesis
-We want to test: $H_{0}:\beta_{2} = 0 vs H_{A}:\beta_{2} \neq 0$, where $H_{0}$ indicates no difference between the two interecepts. 
+We want to test: $H_{0}:\beta_{2} = 0$ vs $H_{A}:\beta_{2} \neq 0$, where $H_{0}$ indicates no difference between the two interecepts. 
 
 ```r
 # Significance of the coefficient relative to sex
