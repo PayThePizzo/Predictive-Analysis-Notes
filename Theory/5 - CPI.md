@@ -259,7 +259,7 @@ predict(fc_mlr_add,newdata=data.frame(body_mass_g=45,sex="unknown"))
 ```
 Obviously this defeats the binary nature of the variables, even though R allows us to estimate absurd instances.
 
-<mark>Under the hood, R has turned the string into a dummy variable </mark>, with female as the baseline ($x_{2} = 0$):
+<mark>Under the hood, R has turned the string into a dummy variable </mark>, with female as the baseline ( $x_{2} = 0$ ):
 
 ```r
 # This returns some consistent values
