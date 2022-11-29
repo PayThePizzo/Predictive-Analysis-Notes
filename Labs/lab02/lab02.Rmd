@@ -1,0 +1,466 @@
+---
+title: "Lab 02 - Multiple Linear Regression"
+output:
+  html_document:
+    fig_caption: yes
+    theme: flatly
+    highlight: pygments
+    code_folding: show
+    toc: yes
+    toc_depth: 2
+    number_sections: yes
+    toc_float:
+      smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+editor_options:
+  chunk_output_type: console
+---
+
+Il dataset che useremo riguarda dati di automobili - per poter usare il dataset rendiamo il dataset più approciabile con alcune manipolazioni:  
+
+```{r, class.source = "fold-hide"}
+# read the data
+fl <- "http://archive.ics.uci.edu/ml/machine-learning-databases/auto-mpg/auto-mpg.data"
+autompg = read.table(fl, quote = "\"",
+comment.char = "", stringsAsFactors = FALSE)
+# give the dataframe headers
+colnames(autompg) <- c("mpg", "cyl", "disp", "hp", "wt",
+"acc", "year", "origin", "name")
+# remove missing data, which is stored as "?"
+autompg <-subset(autompg, autompg$hp != "?")
+# remove the plymouth reliant, as it causes some issues
+autompg <- subset(autompg, autompg$name != "plymouth reliant")
+# give the dataset row names, based on the engine, year and name
+rownames(autompg) <- paste(autompg$cyl, "cylinder",
+autompg$year, autompg$name)
+# remove the variable for name, as well as origin
+autompg <- subset(autompg,
+select = c("mpg", "cyl", "disp", "hp", "wt", "acc", "year"))
+# change horsepower from character to numeric
+autompg$hp <- as.numeric(autompg$hp)
+# write.csv(autompg, "../data/autompg.csv", quote = FALSE)
+```
+
+Desideriamo per ora stimare come le miles per gallon `mpg` varino in funzione del peso `wt`  e dell'anno di produzione `year`. 
+
+
+```{r dataplot}
+par(mfrow=c(1,2), bty="l",pch=16)
+plot(mpg~wt, data= autompg)
+plot(mpg~year, data= autompg)
+```
+
+
+# Specificazione del modello 
+
+Estendiamo il modello di regressione semplice permettendo che più di un predittore spieghi la variabilità di $Y$: 
+
+In generale, il modello di regressione multipla è specificato come segue: 
+\[
+Y_i = \beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \epsilon_i, \qquad i = 1, 2, \ldots, n
+\]
+con $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
+
+
+Avremo dunque:
+
+\[mpg = \beta_0 + \beta_1 wt + \beta_2 year + \varepsilon\]
+
+
+Per ottenere una stima dei coefficenti del modello utilizziamo la funzione `lm`: 
+
+```{r, class.source = "fold-show"}
+fit <- lm(mpg~wt+year, data = autompg)
+```
+
+```{r}
+#Here we find the basic info for fit
+class(fit)
+names(fit)
+```
+
+
+`fit` è un oggetto di classe `lm` e possiamo usare le funzioni che abbiamo già utilizzato per il modello di regressione semplice (con alcuni accorgimenti in alcuni casi):  
+
+```{r}
+#Coefficients comparison
+fit$coef;coef(fit)
+#First estimated values of model
+head(fitted(fit))
+#First residuals 
+head(residuals(fit))
+```
+
+## L'unita' di misura, interpretazione ed i limiti
+
+Un punto focale da affrontare sono le unita' di misura ed limiti delle x ed y.
+
+Quando si aggiungono dati spuri a fine di interpolazione o estrapolazione, bisogna
+capire che il modello si potrebbe comportare in modo bizzaro. Cio' e' una normale
+conseguenza del fatto che certi dati sono inosservabili (es: macchina di un anno
+precedente alla fabbricazione della prima auto, o in un anno ancora lontano) e quindi fuorvianti.
+
+D'altra parte, inserire dati reali mai visti prima, ci permette di capire la flessibilita' del nostro modello, e prendere decisioni per evitare una situazione di overfitting. Bisogna percio' regolare i limiti delle possibili osservazioni.
+
+Allo stesso tempo bisogna capire che l'interpretazione del modello e' strettamente legato alle unita' di misura del nostro dataset e che queste sono una fondamentale base per la stima dei parametri della regressione. 
+
+Dal momento che Beta1 rappresenta la traduzione di quanto varia la y (nelle sue unita' di misura) se si aggiunge 1 quantita' della unita' di misura di x (o delle x). Ad esempio per passare da x=1 ad x=2, secondo l'unita' di misura specificata, il cambio potrebbe essere piu' o meno grande. 
+
+Nel caso in cui andassimo a modificare l'unita' di misura di x, e' opportuno rivedere il calcolo di Beta1, per evitare che la traduzione della variazione si sproporzionata!
+
+Per sintetizzare, bisogna confrontare i coefficienti in base alla variabilita' e 
+con valori sensati.
+
+```{r}
+# Property of residuals, their sum and their exp val, equal 0 [Theoretical]
+sum(residuals(fit))
+cor(residuals(fit), autompg$wt)
+cor(residuals(fit), autompg$year)
+# It is not 0 since there could be an relevant relation between
+# residuals and predictors
+```
+
+Anche se teoricamente questi valori dovrebbero essere a 0, cio' non toglie che vi
+siano potenziali relazioni con altri predittori.
+
+---
+
+# Approccio matriciale
+
+In particolare la funzione `summary` ci permette di fare una prima inferenza sui parametri: 
+
+```{r}
+summary(fit)
+```
+
+## Forma Matriciale
+
+In forma matriciale, estesa per p beta parametri, il modello viene scritto come segue:
+
+\[
+\begin{bmatrix}
+Y_1   \\
+Y_2   \\
+\vdots\\
+Y_n   \\
+\end{bmatrix}
+=
+\begin{bmatrix}
+1      & x_{11}    & x_{12}    & \cdots & x_{1(p-1)} \\
+1      & x_{21}    & x_{22}    & \cdots & x_{2(p-1)} \\
+\vdots & \vdots    & \vdots    &  & \vdots \\
+1      & x_{n1}    & x_{n2}    & \cdots & x_{n(p-1)} \\
+\end{bmatrix}
+\begin{bmatrix}
+\beta_0 \\
+\beta_1 \\
+\beta_2 \\
+\vdots \\
+\beta_{p-1} \\
+\end{bmatrix}
++
+\begin{bmatrix}
+\epsilon_1   \\
+\epsilon_2   \\
+\vdots\\
+\epsilon_n   \\
+\end{bmatrix}
+= X \beta + \epsilon, 
+\]
+
+
+Dove X è la matrice di disegno del modello e $\beta$ il vettore di coefficienti $(\beta_0, \beta_1, \ldots, \beta_{p-1})$. Nel nostro esempio abbiamo $p=2$  e possiamo scrivere il modello come segue: 
+\[
+\texttt{mpg}_i = \beta_0 + \beta_1 \texttt{wt}_{i} + \beta_2 \texttt{year}_{i} + \epsilon_i, \qquad i = 1, 2, \ldots, n
+\]
+con $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
+
+La matrice $X$ è quindi: 
+
+\[ 
+X = \begin{bmatrix}
+1      & wt_{1}     & year_{1} \\
+1      & wt_{2}     & year_{2} \\
+\vdots & \vdots     & \vdots   \\
+1      & wt_{n}    & year_{n} \\
+\end{bmatrix}
+\]
+
+* Prima colonna, valori di `intercept`
+* Seconda colonna, valor di `wt`
+* Terza colonna, valori di `year`
+
+## Inferenza sui parametri 
+
+Iniziamo dal creare la matrice $X$.
+
+```{r}
+# Rows number
+n <- nrow(autompg)
+# Creates the design matrix
+X <- cbind(rep(1,n), autompg$wt, autompg$year)
+```
+
+### La stima di $\beta$
+
+La stima puntuale di $\beta$ viene derivata con: 
+
+\[\hat{\beta} = (X^{T} X)^{-1}X^{T}y\]
+
+```{r}
+# observed y
+y <- autompg$mpg
+
+# beta estimates
+(beta_hat <- as.vector(solve(t(X) %*% X) %*% t(X) %*% y))
+coef(fit)
+```
+
+[Bonus question:  i valori stimati corrispondono ai valori che minimizzano i quadrati dei residui? Si scriva una funzione che valuti il valore dell'errore quadratico medio campionario per diversi valori di $\boldsymbol{\beta}$ e si verifichi se il valori stimati minimizzano l'errore quadratico medio.]
+
+### Inferenza sulla normalita'
+
+Dato che assumiamo che $\varepsilon$ segua una distribuzione normale, di conseguenza assumiamo anche $Y|X$ segua una distribuzione normale e che le osservazioni $(y_i, \ldots, y_n)$ siano una realizzazione della variabile casuale: $(Y|X=x) \sim N(X \beta, \sigma^2 I_n)$ e ne consegue che $\hat{\beta}$ segua una normale con media e varianza:
+
+\[E[\hat{\beta}] = \beta \quad \text{and} \quad V[\hat{\beta}] = \sigma^2 (X^T X)^{-1}  \]
+
+Dato che $\sigma^2$ non è noto viene stimato con: 
+\[s^2_e = \frac{\sum_{i=1}^{n}(y_i - \hat{y}_i)^2}{n-p} = \frac{\sum_{i=1}^{n}e^T e }{n-p} \]
+dove $e$ è il vettore degli errori del modello. 
+
+Troviamo or $s_e$
+
+```{r}
+# Manually
+(est_sigma <- sqrt(sum(fit$residuals^2)/(n-length(fit$coef))))
+# (est_sigma <- sqrt(sum(residuals(fit)^2)/(n-length(beta_hat))))
+
+# lm model
+summary(fit)$sigma
+```
+
+E procediamo a stimare i coefficienti
+
+```{r}
+
+(se_beta_hat <- as.vector(est_sigma * sqrt(diag(solve(t(X) %*% X)))))
+summary(fit)$coef[,2]
+```
+
+Anche questo processo minimizza la somma dei residui
+
+```{r}
+#Resid
+resid <- (autompg$mpg - X %*% beta_hat)
+
+head(residuals(fit))
+head(resid)
+
+# Per qualunque valore di (beta0, beta1, beta2) MSE > MSE(beta_hat)
+sum(resid^2)
+# Se proviamo questo, sara' piu' alto del MSE
+sum(((autompg$mpg - X %*% c(-16, 0.06, 0.67)))^2)
+```
+
+Possiamo derivare anche l'intera matrice di varianza covarianza di $\beta$: 
+
+```{r}
+#variance-covariance matrix
+# The main diagonal represents the Std. Error for each beta_{j}
+(est_sigma^2) * (solve(t(X) %*% X))
+vcov(fit)
+```
+
+I valori della covarianza sono a volte difficili da interpretare e può essere comodo derivare la matrice di correlazione tramite la funzione `cov2cor` per valutare la correlazione tra la stima dei parametri e l'incertezza nella stima: 
+
+```{r}
+cov2cor(vcov(fit))
+
+#SE given by sqrt of the diagonal of the vcov matrix 
+S <- diag(sqrt(diag(vcov(fit))))
+
+S %*% cov2cor(vcov(fit)) %*% S
+```
+
+Desideriamo  avere delle correlazioni piccole tra le stime, ma su questo punto torniamo dopo. 
+
+## Verifica d'ipotesi ed intervalli di confidenza
+
+Per ora ci concentriamo sul capire come sono costruite le ultime due colonne dell'output della tabella dei coefficenti in `summary(fit)$coef`. Queste colonne hanno a che fare con i due sistemi di verifica di ipotesi: 
+\[H_0: \beta_1 = 0 \quad VS \quad H_1: \beta_1 \neq 0 \]
+\[H_0: \beta_2 = 0 \quad VS \quad H_1: \beta_2 \neq 0 \]
+
+la terza colonna mostra il valore del test, la quarta colonna il valore del p-value. Questi sono test relativi ai singoli valori di dei $\beta_j$ e danno una prima indicazione dell'evidenza che il coefficiente relativo ad una variabile $x_j$ possa essere considerato pari a zero e in maniera indiretta un'indicazione dell'opportunità di mantenere la variable $x_j$ nel modello. Si può considerare comunque utile mantenere una variabile nel modello anche se il test formale $H_0: \beta_j = 0$ non può essere  rifiutato ad un determinato livello di significatività: forse questa variabile rappresenta qualcosa che desideriamo sia rappresentato nel modello. 
+
+La statistica test si deriva con: 
+\[\frac{\hat{\beta}_j - 0}{se(\hat{\beta}_j)} \]
+
+```{r tvals}
+beta_hat/se_beta_hat
+summary(fit)$coef[,3]
+```
+
+e il valore del p-value con 
+
+```{r}
+# TS follows t-student distribution with n-p df
+(TS <- (beta_hat[3]-0)/se_beta_hat[3])
+
+2*pt(abs(TS), n-length(beta_hat), lower.tail = FALSE)
+
+summary(fit)$coef[,4]
+``` 
+
+Nel test a due code, un modo per ottenere il p-value e':
+
+* trovare il valore assoluto di TS
+* `pt()` ritorna `Pr(t <= abs(TS))`, mentre con l'opzione `lower.tail=FALSE` ritorna `Pr(t > abs(TS))` (ovvero prende la coda destra).
+* Infine si moltiplica tutto per 2, per prendere il test a due code.
+
+Nel test a due code rifiutiamo l'ipotesi nulla $\hat{\beta}_j = 0$ quando troviamo dei valori molto grandi o molto piccoli di $\hat{\beta}_j$ ed il p-value e' molto piccolo. Infatti, in questo caso la TS si potrebbe trovare oltre gli estremi di entrambe le code, con un alto livello di confidenza.
+
+Altrimenti si possono derivare intervalli di confidenza con la funzione `confint` (o calcolando manualmente): 
+
+```{r cis}
+### 98% confidence intervals 
+cbind(beta_hat+qt(0.01, n-length(fit$coefficients))*se_beta_hat,
+      beta_hat+qt(0.99, n-length(fit$coefficients))*se_beta_hat)
+confint(fit, level = .98)
+```
+
+Infine possiamo derivare dei test per qualunque valore arbitrario del coefficiente. Ad esempio possiamo voler quantificare l'evidenza contro l'ipotesi nulla $\beta_2 = \beta^*$, cioè costruire un test per il sistema di verifica di ipotesi: 
+\[H_0: \beta_2 = \beta^* \quad VS \quad \beta_2 \neq \beta^* \]
+
+Prendiamo ad esempio $\beta^* = 0.86$: 
+
+```{r}
+# TS
+(TS <- (beta_hat[3]-0.86)/se_beta_hat[3])
+# p-value
+2*pt(abs(TS),n-length(beta_hat), lower.tail = FALSE)
+## reject at 5%, do not reject at 2%
+### one can also use the car::linearHypothesis function
+```
+
+In realtà nel momento in cui costruiamo gli intervalli di confidenza abbiamo anche informazioni sui valori $\beta^*$ per cui il test $H_0: \beta_j =  \beta^*$ saranno rifiutati o meno al livello di significatività $\alpha$: 
+
+```{r}
+confint(fit, level = 0.98) 
+## livello di confidenza: 98%
+cbind(beta_hat + qt(0.01, df=387) * se_beta_hat,
+      beta_hat + qt(0.99, df=387) * se_beta_hat)
+## test per H_0: \beta_2 = 0.64
+(TS <- (beta_hat[3]-0.64)/se_beta_hat[3])
+2*pt(abs(TS),n-length(beta_hat), lower.tail = FALSE) # reject at 2% siignificance
+## test per H_0: \beta_2 = 0.65
+(TS <- (beta_hat[3]-0.65)/se_beta_hat[3])
+2*pt(abs(TS),n-length(beta_hat), lower.tail = FALSE) # can not reject at 2% siignificance
+```
+
+Ricapitolando abbiamo tre tipi ipotesi nulle per tre tipi di test diversi:
+
+1. $H_{0}: \beta_{j} = 0$, per un test che ci dice qualcosa riguardo all'importanza della variabile all'interno del modello.
+2. $H_{0}: \beta_{j} = \beta^*$, per un test che ci notifica sulla possibilita' che un parametro prenda un determinato valore arbitrario.
+3. $H_{0}: \beta_{j} > 0$ o $H_{0}: \beta_{j} < 0$ e simili per verificare se un parametro influisca positivamente o negativamente sul target (es: la diminuzione del peso, aumenta l'efficienza)
+
+Ovviamente la cosa migliore e' controllare gli intervalli di confidenza, che sono piu' informativi.
+
+### Intervalli di confidenza bivariati
+
+Infine usiamo la funzione `confidenceEllipse` nel pacchetto `car` per disegnare intervalli di confidenza bivariati, per esempio per $(\beta_0, \beta_1)$ e $(\beta_0, \beta_2)$:
+
+```{r}
+par(bty = "l", mfrow=c(1,2))
+car::confidenceEllipse(fit, which.coef=c(1,2), vcov.=vcov(fit), grid = FALSE)
+car::confidenceEllipse(fit, which.coef=c(1,3), vcov.=vcov(fit), grid = FALSE)
+```
+
+Come viene costruita l'ellissi? La procedura è spiegata estesamente nella Lecture 18 di Cosma Shalizi's [lectures](https://www.stat.cmu.edu/~cshalizi/mreg/15/lectures). In generale dobbiamo usare il fatto che la distribuzione chi-quadro è derivata come il quadrato di una normale  e che la somma di chi-quadro segua una distribuzione chi-quadro. Indichiamo con  $\mathbf{\beta}_q$ il vettore dei parametri per cui vogliamo costruire l'intervallo di confidenza, e con $\mathbf{\Sigma}_q$ la corrispondente matrice di varianza-covarianza. La regione di confidenza per $\mathbf{\beta}_q$ viene trovata come segue: 
+\begin{equation*}
+(\widehat{\mathbf{\beta}}_q - \mathbf{\beta}_q)^T \mathbf{\Sigma}^{-1}_q
+(\widehat{\mathbf{\beta}}_q - \mathbf{\beta}_q) \leq \chi^2_q(1-\alpha)
+\end{equation*}
+I dettagli della teoria sottostante questa derivazione non sono parte del corso.. 
+
+
+# Inferenza sulla funzione stimata 
+
+Per un dato valore di $x_i$, il valore di $y$ stimato è: 
+
+\[\hat{y}_i = \hat{\beta}_0 + \hat{\beta}_1 x_{1i} + \ldots + \hat{\beta}_{(p-1)} x_{(p-1)i}  = X \hat{\beta} = X  (X^T X) ^{-1} X^T y.\]
+La matrice $H = X  (X^T X) ^{-1} X^T$ viene detta la hat matrix, perché è la matrice che permette di trasformare i calori osservati $y_i$ nei corrispondenti valori stimati (hat y) $\hat{y}_i$ (`y_hat`). 
+
+```{r estiamtingY}
+H <- X  %*% solve(t(X) %*% X) %*% t(X)
+y_hat <- as.vector(H %*% y)
+head(y_hat); head(as.vector(fit$fitted.values))
+```
+
+La funzione `predict` ci permette di estrarre gli intervalli di confidenza e predizione: 
+
+```{r predictFun}
+nd <- data.frame(wt = c(1650, 3000, 5000), year = c(72, 75, 82))
+(cint <- predict(fit, nd, interval = "conf"))
+## da dove vengono questi numeri?
+x0 <- cbind(rep(1,3), c(1650, 3000, 5000),c(72, 75, 82)) 
+se_cx0 <- est_sigma * sqrt(diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
+cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_cx0,
+      x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_cx0)
+(pint <- predict(fit, nd, interval = "pred"))
+## da dove vengono questi numeri?
+se_px0 <- est_sigma * sqrt(1+diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
+cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_px0,
+      x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_px0)
+rm(se_px0, se_cx0)
+```
+
+
+Entrambi gli intervalli sono centrati sul valore stimato puntuale, ma gli intervalli di predizione sono sempre più ampi. 
+
+```{r}
+cint[,3] - cint[,2]
+pint[,3] - pint[,2]
+```
+
+Notiamo anche che uno degli intervalli di confidenza è molto più largo degli altri: perché?
+
+```{r}
+plot(autompg$wt, autompg$year,pch=16,col="dodgerblue2")
+points(nd, pch =4, col="orange",lwd=3)
+points(mean(autompg$wt), mean(autompg$year), pch = 15, col="red",cex=1.3)
+```
+
+C'è più incertezza nella stima di punti distanti dal valore $(\bar{x}_1, \bar{x}_2)$ e in generale per i punti lontani dai valori osservati nel dataset. 
+
+
+# Visualizzare la stima
+
+Come possiamo visualizzare i valori stimati di $y_i$? Facciamo un primo tentativo:   
+
+```{r fittedPlotWrong}
+par(mfrow=c(1,2), bty="l",pch=16)
+plot(mpg~wt, data= autompg,col="grey50")
+points(autompg$wt, y_hat, col = 4, pch = 15)
+plot(mpg~year, data= autompg,col="grey50")
+points(autompg$year, y_hat, col = 2, pch = 15)
+```
+
+Non esattamente chiaro... 
+
+I valori stimati dipendono dalla combinazione dei valori osservati di `wt` e `year`, quindi la relazione stimata tra una variabile esplicativa e $Y$ che vediamo è "sporcata" dalla dipendenza con l'altra variabile. Non possiamo più usare semplicemente `abline` per fare un grafico che mostri la relazione: dobbiamo in qualche modo "fissare" il valore dell'altra variabile. Questo si può fare usando la funzione `predict` (o approcci simili). Possiamo quindi mostrare la retta che mostri la relazione tra `wt` e `mpg` *tendendo fisso il valore di `year`* e viceversa. Similmente, possiamo mostrare come `year` impatti `mpg` per determinati valori di `wt`:  
+
+```{r fittedPlot}
+par(mfrow=c(1,2), bty="l",pch=16,col="grey70")
+plot(mpg~wt, data= autompg)
+nd <- data.frame(wt = seq(1500, 5200, length.out = 100), year = mean(autompg$year))
+lines(nd$wt, predict(fit, nd), lwd=2,col=4)
+plot(mpg~year, data= autompg)
+## an "X" matrix but with one column with fixed values 
+Xfix <- cbind(rep(1,n),rep(min(autompg$wt)),autompg$year)
+lines(autompg$year, Xfix %*% coef(fit), lwd = 2 , col = 2)
+Xfix <- cbind(rep(1,n),rep(median(autompg$wt)),autompg$year)
+lines(autompg$year, Xfix %*% coef(fit), lwd = 2 , col = 5)
+```
+

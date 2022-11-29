@@ -1,12 +1,26 @@
 ---
-title: "Lab 02 - Multiple Linear Regression - CLASS"
+title: "Lab 02 - Multiple Linear Regression"
 output:
   html_document:
-    theme: readable
-    toc: yes
+    fig_caption: yes
+    theme: flatly
+    highlight: pygments
     code_folding: show
+    toc: yes
+    toc_depth: 2
+    number_sections: yes
+    toc_float:
+      smooth_scroll: no
+  pdf_document:
+    toc: yes
+    toc_depth: '2'
+editor_options:
+  chunk_output_type: console
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
 
 Il dataset che useremo riguarda dati di automobili - per poter usare il dataset rendiamo il dataset più approcciabile con alcune manipolazioni:  
 
@@ -74,10 +88,12 @@ plot(mpg~year, data= autompg)
 In R usiamo la funzione `lm`: 
 
 
-```{r}
+```{r, class.source = "fold-show"}
 #This time we have 2 predictors!
 fit <- lm(mpg ~ wt + year,  data = autompg)
+```
 
+```{r}
 #Here we find the basic info for fit
 class(fit)
 #Coefficients for the line
@@ -99,7 +115,6 @@ cor(residuals(fit), autompg$year)
 
 ```{r}
 summary(fit)
-
 ```
 
 
@@ -182,7 +197,7 @@ Il t-value nel summary e' il t-value di un test, in cui l'ipotesi nulla sia
 $H_{0}: \beta_{j}=0$. Questo perche' se non possiamo rifiutare l'ipotesi che la variabile sia uguale a 0, la variabile non spiega molto che l'effetto sulla variabile del predittore sia trascurabile e percio' e' possibile rimuovere quella $\beta_{j}$.
 Se il t-value e' vicino a 0, allora e' trascurabile e rimovibile
 
-```{r}
+```{r tvals}
 # (est - valore_0)/se
 #H0: beta_j = valore_0 VS H_1: beta_j \neq valore_0 
 ## per beta2 

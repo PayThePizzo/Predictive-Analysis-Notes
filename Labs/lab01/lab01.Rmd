@@ -29,7 +29,7 @@ knitr::opts_chunk$set(echo = TRUE)
 Setting working directory if needed
 ```{r}
 # Set working directory
-setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01")
+setwd(".../PredictiveAnalysisNotes/Labs/lab01")
 # Get working directory
 getwd()
 ```
@@ -193,22 +193,12 @@ And the standard error $s_{e}$, which allows to get info about the variances of 
 
 ---
 
-# `summary()` function
+# `summary()` function and comparisons
 
 A very useful function is `summary` which simplifies all things we just showed.
 
 ```{r}
 summary(fit)
-```
-
-```{r}
-sse <- sum((pengs$flipper_length_mm - fit$fitted.values)^2)
-
-s2e <- (n/(n-2))*(sse/n)
-se <- sqrt(s2e)
-
-altse <- sqrt((sse/(n-2)))
-
 ```
 
 Which prints out:
@@ -240,7 +230,8 @@ We can find some utils we can call to get our data from
 names(summary(fit))
 ```
 
-# SLR - Uncertainty of the model
+
+## SLR - Uncertainty of the model
 
 We can see that the estimated value of $\sigma^2$, or better $s_{e}$ is present in `Residual Standard Error`, which is the variance of random variable describing the error of the model, $\varepsilon$: 
 
@@ -258,8 +249,8 @@ $\hat{\sigma}$ is used to estimate the uncertainty of the model's coefficient es
 * $Var[\widehat{\beta}_1]$ = `Std. Error` of the $\widehat{\beta}_1$
 
 
-$$Var[\widehat{\beta}_0]= sigma_e^2\left[\frac{1}{n} + \frac{\overline{x}^2}{n s^2_X}\right]$$
-$$Var[\widehat{\beta}_1] = \frac{ sigma_e^2}{n s^2_X}$$
+$$Var[\widehat{\beta}_0]= s_e^2\left[\frac{1}{n} + \frac{\overline{x}^2}{n s^2_X}\right]$$
+$$Var[\widehat{\beta}_1] = \frac{ s_e^2}{n s^2_X}$$
 
 ```{r}
 n <- nrow(pengs)
@@ -270,25 +261,6 @@ s2x <- sum((pengs$body_mass_g - mean(pengs$body_mass_g))^2)/n
 c(se * sqrt(1/n + mean(pengs$body_mass_g)^2/(n * s2x)), se * sqrt(1/(n * s2x)))
 
 summary(fit)$coef[,2]
-```
-
----
-
-**Esercizio**
-
-Cosa succede alla variabilità della stima dei coefficienti se si usa come variabile esplicativa una nuova variabile 
-```{r}
-pengs$mass_minus_4000 <- pengs$body_mass_g - 4000
-```
-
-E cosa succede invece se il peso viene espresso in grammi: 
-```{r}
-pengs$body_mass_Kg <- pengs$body_mass_g/1000
-```
-
-Infine, cosa cambia invece quando si cambia anche la variabile risposta, per esempio esprimendo il valori in cm
-```{r}
-pengs$bill_length_cm <- pengs$bill_length_mm*10
 ```
 
 
@@ -458,6 +430,25 @@ apply(out2,1,sd)
 apply(out2,1,mean)
 ```
 
+
+---
+
+**Esercizio**
+
+Cosa succede alla variabilità della stima dei coefficienti se si usa come variabile esplicativa una nuova variabile 
+```{r}
+pengs$mass_minus_4000 <- pengs$body_mass_g - 4000
+```
+
+E cosa succede invece se il peso viene espresso in grammi: 
+```{r}
+pengs$body_mass_Kg <- pengs$body_mass_g/1000
+```
+
+Infine, cosa cambia invece quando si cambia anche la variabile risposta, per esempio esprimendo il valori in cm
+```{r}
+pengs$bill_length_cm <- pengs$bill_length_mm*10
+```
 
 
 

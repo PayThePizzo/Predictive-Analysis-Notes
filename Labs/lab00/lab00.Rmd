@@ -35,13 +35,14 @@ Per controllare quale è la cartella dove stiamo al momento lavorando si può us
 
 ```{r}
 getwd()
+setwd(".../PredictiveAnalysisNotes/Labs/lab00")
 ```
 
 Andiamo a leggere un file che contiene informazioni sul prezzo degli affitti nella città di Monaco insieme ad altre caratteristiche degli immobili in affitto. 
 Il file è disponibile su Moodle ed è reso disponibile sul [sito](https://www.uni-goettingen.de/de/551625.html) del libro *Regression* di Fahrmeir et al (un ottimo libro che copre aspetti avanzati di regressione lineare e non lineare)
 
 ```{r}
-mrents <- read.table("../data/rent99.raw", header = TRUE)
+mrents <- read.table("rent99.raw", header = TRUE)
 ## rent: net rent per month (euros)
 ## rentsqm: net rent per month  per square meter (euros)
 ## area Living area square meters)
