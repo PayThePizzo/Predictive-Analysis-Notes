@@ -12,14 +12,32 @@ All the credits go to the professor Prosdocimi Ilaria, the creators and owners o
 ## Visualize the labs!
 If you want to visualize the labs without having to download and run the Rmd files each time, click on the links:
 * [Lab 00](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00.html) - R quick revision
+  * [Lab 00 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00_sol.html)
+  * [Lab 00 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00_class.html)
 * [Lab 01](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01.html) - Intro to simple linear models in R
+  * [Lab 01 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01_sol.html)
+  * [Lab 01 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01_class.html)
 * [Lab 02](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab02/lab02.html) - Intro to multiple linear models in R
+  * [Lab 02 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab02/lab02_sol.html)
+  * [Lab 02 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab02/lab02_class.html)
 * [Lab 03](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab03/lab03.html) - Anova lab
+  * [Lab 03 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab03/lab03_sol.html)
+  * [Lab 03 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab03/lab03_class.html)
 * [Lab 04](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab04/lab04.html) - Model selection lab
+  * [Lab 04 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab04/lab04_sol.html)
+  * [Lab 04 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab04/lab04_class.html)
 * [Lab 05](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab05/lab05.html) - Intro to categorical predictors
+  * [Lab 05 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab05/lab05_sol.html)
+  * [Lab 05 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab05/lab05_class.html)
 * [Lab 06](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab06/lab06.html) - Multicollinearity and influential points
+  * [Lab 06 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab06/lab06_sol.html)
+  * [Lab 06 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab06/lab06_class.html)
 * [Lab 07](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07.html) - Transformations and model selection
-
+  * [Lab 07 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07_sol.html)
+  * [Lab 07 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07_class.html)
+* [Lab 08](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08.html) - TBD
+  * [Lab 08 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08_sol.html)
+  * [Lab 08 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08_class.html)
 ---
 ## Resources 
 The course's page and the slides specify the material used already, but I will try to cite it wherever possible.

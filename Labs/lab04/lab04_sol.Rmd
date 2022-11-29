@@ -1,0 +1,256 @@
+---
+title: "Lab 4 - Model selection"
+author: "Ilaria Prosdocimi"
+output: html_document
+---
+  
+Prendiamo in esame il dataset `prostate`: 
+  
+```{r}
+urlLocation <- "https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.data"
+prostate <- read.table(urlLocation, header=TRUE)[,1:9]
+## explanation of the data 
+## https://web.stanford.edu/~hastie/ElemStatLearn/datasets/prostate.info.txt
+# write.csv("../data/prostate.csv")
+```
+
+Le variabili nel dataset sono: 
+
+* lcavol: log cancer volume
+* lweight: log prostate weight
+* age: age of patient
+* lbph: log of the amount of benign prostatic hyperplasia
+* svi: seminal vesicle invasion (binary variable)
+* lcp: log of capsular penetration
+* gleason: Gleason score
+* pgg45: percent of Gleason scores 4 or 5
+* lpsa: log PSA score
+
+
+Desideriamo costruire un modello che abbia `lpsa` come variabile risposta e una o più delle altre variabili come variabili esplicative:  questo può essere utile sia per uno scopo predittivo (cioè stimare il valore di `lpsa` per un nuovo paziente) che per scopo inferenziale (cioè capire quali siano le variabili che  hanno un effetto sul valore di `lpsa`).  
+
+Il grafico mostra la relazione di `lpsa` con tutte le altre variabili nel dataset (NB: questo tipo di analisi esplorativa è possibile solo se ci sono poche variabili nel dataset): 
+
+```{r plotMatrix}
+plot(prostate)
+```
+
+# Model selection tramite algoritmi step-wise 
+
+I due estremi a cui si può pensare sono un modello che non includa nessun predittore  (cioeè un modello con solo l'intercetta) e un modello che includa tutti i predittori. Per poter fare la stima in maniera corretta dobbiamo trasformare la variabile `svi` da numerica ad una variabile `factor`, cioè una variabile categorica. 
+
+
+```{r}
+prostate$svi <- as.factor(prostate$svi)
+fit_int_only <- lm(lpsa~1,data = prostate)
+fit_all_vars <- lm(lpsa~.,data = prostate)
+```
+
+La prima domanda che possiamo porci è se il modello più complesso sia _significativo_
+
+
+```{r}
+anova(fit_int_only, fit_all_vars)
+```
+
+Includere tutti i predittori sembra spiegare una buona parte della variabilità dei dati. 
+Forse però esiste un modello che è una via di mezzo tra i due estremi e spiga una proporzione della variabilità dei dati comparabile con quella spiegata da `fit_all_vars` ma usando meno parametri. Per fare questa valutazione possiamo usare AIC, in cui  la bontà di adattamento (misurata dalla verosimiglianza del modelli) viene penalizzata per il numero di gradi di libertà usati dal modello. Il valore di AIC per il modello con la sola intercetta è `r AIC(fit_int_only)`. Potremmo cercare di trovare il modello con un solo predittore che porta ad il più grande miglioramene in termini di AIC (cioè il valore di AIC minore):
+
+```{r}
+for(i in 1:8) print(c(names(prostate)[i], AIC(lm(prostate$lpsa ~ prostate[,i]))))
+# 
+for(i in 2:8) print(c(names(prostate)[i], AIC(lm(prostate$lpsa ~ prostate$lcavol+prostate[,i]))))
+
+```
+
+Il passo successivo sarebbe quello di controllare se esiste un modello che include due variabili esplicative per cui si riesce ad ottenere un valore di AIC ancora più piccolo. Invece che fare questo procedura manualmente usiamo la funzione `step` per eseguire un algoritmo di ricerca del modello in _forward search_, cioè una ricerca che parte da un modello piccolo e va via via ad aumentare la complessità del modello fino a che non è più possibile migliorare il valore di AIC aggiungendo predittori: 
+
+
+
+```{r}
+step(object = fit_int_only, 
+     direction = "forward", 
+     scope = list(lower = fit_int_only, 
+                  upper = fit_all_vars))
+sel_forward <- step(object = fit_int_only, 
+     direction = "forward", trace = 0, 
+     scope = list(lower = fit_int_only, 
+                  upper = fit_all_vars))
+class(sel_forward)
+coef(sel_forward)
+```
+
+```{r}
+sel_backward <- step(object = fit_all_vars, 
+     direction = "backward", trace = 0, 
+     scope = list(lower = fit_int_only, 
+                  upper = fit_all_vars))
+sel_backward
+```
+
+Step non usa `AIC()` ma comnfornta i modelli usando una diversa definizione:  
+
+```{r}
+97*log(mean(residuals(sel_backward)^2)) + 2*6
+```
+
+
+
+AIC viene calcolato con: 
+\[AIC(M) = - 2 * logLik(M) + 2 * p(M)\]
+dove $p(M)$ è il numero di gradi di libertà del modello $M$. 
+
+Per i modelli lineari, questo è equivalente (a meno di una costante): 
+\[AIC(M) = \text{constant} + n*MSS(M) + 2 * p(M)\]
+
+In R questo si può derivare con: 
+
+Un altro possibile approccio è quello di usare un algoritmo di _backward search_, in cui si parte da un modello complesso e si va via via a togliere un variabile alla volta fino a che si continua a diminuire il valore di AIC: 
+
+
+
+
+L'ultimo approccio possibile è l'approccio _stepwise_ in cui ad ogni iterazione l'algoritmo verifica se aggiungere o togliere una variabile migliora il valore di AIC. L'algoritmo può essere inizializzato con modelli molto semplici, complessi, o intermedi: 
+
+
+```{r}
+sel_both <- step(object = lm(lpsa ~ lcavol + gleason, data = prostate), 
+     direction = "both", trace = 1, 
+     scope = list(lower = fit_int_only, 
+                  upper = fit_all_vars))
+sel_both
+```
+
+Possiamo ora controllare come il modello si adatta ai dati: 
+
+```{r}
+anova(sel_backward, fit_all_vars)
+summary(sel_backward)
+plot(fitted(sel_backward), prostate$lpsa, pch = 16); abline(0,1,col = 2)
+```
+
+
+Fino ad ora abbiamo usato il valore di AIC per decidere quali variabili includere nel modello. Possiamo anche usare il valore di BIC, in cui la penalizzazione della complessità del modello è più forte (specie quando $n$ è grande) dato che la sua forma è: 
+
+\[BIC(M) = - logLik(M) + \log(n) * p(M).\]
+
+Possiamo ancora usare la funzione step `step` per fare model selection cercando modelli che minimizzino il valore di BIC: 
+
+
+```{r}
+sel_forword_bic <- step(object = fit_int_only, 
+     direction = "forward", 
+     k = log(nrow(prostate)), 
+     scope = list(lower = fit_int_only, 
+                  upper = fit_all_vars))
+sel_forword_bic
+
+sel_backward_bic <- step(object = fit_all_vars, 
+     direction = "backward", 
+     k = log(nrow(prostate)), 
+     scope = list(lower = fit_int_only, 
+                  upper = fit_all_vars))
+sel_backward_bic
+
+
+sel_both_bic <- step(object = lm(lpsa ~ lcavol + gleason, data = prostate), 
+     direction = "both", 
+     k = log(nrow(prostate)), 
+     scope = list(lower = fit_int_only, 
+                  upper = fit_all_vars))
+sel_both_bic
+```
+
+
+
+# Validazione incrociata: Leave-one-out cross validation
+
+Un approccio molto diverso alla model selection è quello di usare la validazione incrociata o leave-one-out cross-validation. L'idea è quella di valutare i modelli considerando la loro variabilità quando usati per predire nuove osservazioni (modelli troppo complessi e sovra-parametrizzati tenderanno ad essere poco generalizzabili e a fare predizioni molto variabili). Quindi invece che usare solo misure di bontà di adattamento _in-sample_ (in cui usiamo lo stesso campione per stimare e valutare il modello) si definisce una quantità che misuri la capacità del modello di essere affidabile _out-of-sample_ usando parti diverse del campione per stimare il modello e valutarne la bontà di adattamento. In particolare si quantifica l'errore che possiamo aspettarci di fare  quando si usa un modello stimato per predire una nuova osservazione calcolando il leave-one-out error $e[i] = y_i - \hat{y}[i]$, dove $\hat{y}[i]$ indica il valore per l'osservazione $i$ ottenuta con un modelo stimato senza usare l'osservazione $i$. 
+
+```{r}
+# sel_forword_bic
+# i = 10
+error_i <- rep(NA, nrow(prostate))
+for(i in 1:nrow(prostate)){
+  ##  a lezione avevo provato a scrivere questo 
+  # fit_without_i <- lm(prostate$lpsa[-i] ~
+  #                     prostate$lcavol[-i] + prostate$lweight[-i] + prostate$svi[-i])
+  # predict(fit_without_i, newdata = prostate[i,])
+  ## non funziona per via dei nomi delle variabili esplicative 
+  ## in fit_without_i che sono ad esempio 
+  ## `prostate$lcavol[-i]` e non lcavol 
+  
+  ## questo funziona perché ii nomi sono corretti 
+  fit_without_i <- lm(lpsa ~
+  lcavol + lweight+ svi, data = prostate[-i,])
+  estimated_yi <- predict(fit_without_i, newdata = prostate[i,])
+  error_i[i] <- estimated_yi - prostate[i,"lpsa"]
+}
+sqrt(mean(error_i^2))
+```
+
+Per i modelli lineari tuttavia, si può dimostrare che il valore di $RMSE_{LOOCV}$ può essere derivato senza dover stimare effettivamente il modello $n$ volte usando la seguente formula:
+
+\[
+\text{RMSE}_{\text{LOOCV}} = \sqrt{\frac{1}{n}\sum_{i=1}^n \left(\frac{e_{i}}{1-h_{ii}}\right)^2},
+\]
+
+dove $h_{ii}$ sono gli elementi diagonali della matrice cappello (hat matrix): 
+
+```{r}
+sqrt(mean((residuals(sel_forword_bic)/(1-hatvalues(sel_forword_bic)))^2))
+X <- model.matrix(sel_forword_bic)
+head(hatvalues(sel_forword_bic))
+head(diag(X%*% solve(t(X) %*% X) %*% t(X)))
+
+```
+
+
+```{r}
+calc_loocv_rmse = function(model) {
+  sqrt(mean((resid(model) / (1 - hatvalues(model))) ^ 2))
+}
+calc_loocv_rmse(sel_backward)
+calc_loocv_rmse(sel_backward_bic)
+calc_loocv_rmse(fit_int_only)
+calc_loocv_rmse(fit_all_vars)
+```
+
+
+
+# Verifica delle assunzioni del modello
+
+Abbiamo individuato alcuni modelli ottimali: a seconda dell'approccio usato abbiamo identificato modelli diversi. Questo mostra come sia difficile identificare un modello "giusto" (spesso poi non esiste un modello vero, ma modelli competitivi tra loro). 
+Tuttavia, per qualunque modello che possa essere stato identificato come ottimale da qualche criterio è poi necessario valutare la validità delle assunzioni sotto a cui sono derivate le stime del modello stesso (e su cui si fondano le quantità usate per valutare la bontà di adattamento). 
+Queste assunzioni sono: 
+
+* Linearità (della relazione tra le X e la variabile risposta); 
+* Indipendenza (delle osservazioni/errori tra loro); 
+* Normalità degli errori; 
+* Eguaglianza delle varianze (Omoschedasticità)
+ 
+
+* Linearità ed eguaglianza delle varianze 
+
+```{r}
+par(pch = 16,mfrow = c(2,2))
+plot(prostate$lcavol, residuals(sel_backward_bic)); abline(h = 0)
+plot(prostate$lweight, residuals(sel_backward_bic)); abline(h = 0)
+plot(as.numeric(prostate$svi), residuals(sel_backward_bic)); abline(h = 0)
+```
+
+
+
+* Normalità 
+
+Ora controlliamo la normalità tramite un qqplot: 
+
+\ 
+ 
+## The qqplot
+
+Il qqplot permette di confrontare la distribuzione dei residui contro quella di una normale. Cosa mostra esattamente il grafico? L'idea di base è di confrontare il campione osservato (ordinato) contro il campione teorico di dimensione $n$ che potremmo aspettarci di estrarre  da una distribuzione normale. Che forma ha questo campione teorico/ideale da una normale? Possiamo pensare di estrarre il valore dei quantili di una normale legate alle probabilità $(1,\ldots,n)/(n+1)$, cioè derivare i quantili legati a probabilità distribuite uniformemente tra 0 e 1: 
+
+
+
+

@@ -1,15 +1,15 @@
 ---
 title: "Lab 0 - Revisione di R e predittori ottimali"
 author: "Ilaria Prosdocimi"
-date: "Semestre 1 - AA 2022/23"
 output:
   html_document:
     fig_caption: yes
     theme: flatly #sandstone #spacelab #flatly
     highlight: pygments
     code_folding: show
+    kee_md: TRUE
     toc: TRUE
-    toc_depth: 2
+    toc_depth: 3
     number_sections: TRUE
     toc_float:
       smooth_scroll: FALSE
@@ -35,7 +35,7 @@ Per controllare quale è la cartella dove stiamo al momento lavorando si può us
 
 ```{r}
 getwd()
-setwd(".../PredictiveAnalysisNotes/Labs/lab00")
+setwd("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab00")
 ```
 
 Andiamo a leggere un file che contiene informazioni sul prezzo degli affitti nella città di Monaco insieme ad altre caratteristiche degli immobili in affitto. 

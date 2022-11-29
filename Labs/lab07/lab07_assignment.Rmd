@@ -1,0 +1,113 @@
+---
+title: "Lab 8 - transformation, model selection and estimation"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Dati, prime analisi esplorative e modello iniziale 
+
+Si prenda in esame il dataset `ukrivers`: il dataset contiene osservazioni riguardanti caratteristiche di diversi fiumi nel Regno Unito. Per ogni stazione di misurazione delle portate fluviali sono presenti alcune caratteristiche riguardanti il bacino del fiume e la variabile `QMED` che è una misura della portata mediana della piena del fiume. La variabile `QMED` è una delle variabili usate per stimare il rischio di alluvione in siti in cui non sono presenti stazioni di misurazione, ed è quindi necessario predire valori di `QMED` basati su modelli di regressione derivati usando le stazioni per cui esistono dati misurati. 
+
+Le variabili incluse nel dataset sono:  
+
+* Station: in numero della stazione di misurazione 
+* River: il nome del fiume 
+* Location: il luogo dove si trova la stazione 
+* Easting: Coordinate (est) della stazione
+* Northing: Coordinate (nord) della stazione
+* Area: area del bacino del fiume (in $km^2$)
+* ALTBAR: quota/altitudine media del bacino  
+* BFI: Baseflow index - un indice della permeabilità del bacino 
+* PROPWET: indice di propensione alla saturazione del suolo. Un indice che indica quanto il il suolo sia prono ad essere saturo di acqua.  
+* SAAR: precipitazione media annuale sul bacino (calcolata sul periodo 1961-1990)
+* QMED: mediana del massimo annuale della portata misurate alla stazione ($m^3/s$)
+* Ireland: in indicatore che indica se il bacino si trova in Irlanda o no (i.e. in Gran Bretagna). Variabile da non considerarsi predittiva. 
+
+
+Tutte le informazioni sui dati e sulle loro misurazioni sono disponibili sul sito del  [https://nrfa.ceh.ac.uk/](National River Flow Archive). 
+
+```{r dataRead}
+ukrivers <- read.csv("ukrivers.csv",header=TRUE)
+plot(ukrivers[,6:12])
+```
+
+La prima variabile che si può pensare essere importante per spiegare `QMED` è `Area`: fiumi che drenano aree molto grandi tenderanno ad avere portate più grandi: 
+
+```{r}
+plot(QMED~Area, data = ukrivers)
+```
+
+La relazione sembra essere positiva ma si nota un forte variabilità per entrambe le variabili. Inoltre i residui di un modello lineare semplice in cui si usa `Area` come predittore per `QMED` presentano una forte asimmetricità:  
+
+```{r}
+par(mfrow=c(1,2))
+hist(ukrivers$QMED, main = "QMED",xlab = "QMED")
+hist(residuals(lm(QMED~Area, data = ukrivers)), xlab = "Residuals - QMED~Area", main = "Residuals - QMED~Area")
+```
+
+Potrebbe essere possibile aggiungere variabili esplicative al modello che riducano la asimmetricità dei residui, vediamo cosa succede se aggiungiamo tutte le variabili predittive (sensate) al modello: 
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm(QMED~Area+BFI+PROPWET+SAAR, data = ukrivers))
+```
+
+I residui presentano forti problematiche legate alla non-linearità della relazione tra le variabili predittive e `QMED` e di eteroschedasticità e in generale la variabile `QMED` presenta valori molto grandi per alcune osservazioni. Invece che modellare la variabile così com'è useremo quindi il suo logaritmo:
+
+```{r}
+tukrivers <- ukrivers
+tukrivers$lqmed <- log(tukrivers$QMED)
+plot(lqmed~Area, data = tukrivers,pch=16)
+```
+
+La relazione tra Area e `lqmed` sembra essere non-lineare - usiamo quindi la trasformazione logaritmica anche sulla variabile `Area`: 
+
+```{r}
+tukrivers$larea <- log(tukrivers$Area)
+plot(lqmed~larea, data = tukrivers,pch=16)
+```
+
+e notiamo che ora la relazione sembra essere lineare e più regolare. Il modello di partenza è 
+\[\text{lqmed}_i = \beta_0 + \beta_1 \text{larea} + \epsilon_i\]
+
+Una prima occhiata ai residui sembra indicare che vi è ancora abbastanza asimmetria nei residui: 
+
+```{r}
+lfit0 <- lm(lqmed ~ larea, data = tukrivers)
+summary(lfit0)
+par(mfrow=c(2,2))
+plot(lfit0)
+par(mfrow=c(1,2))
+plot(fitted(lfit0), residuals(lfit0))
+hist(residuals(lfit0))
+```
+
+## Che trasformazione per la variabile risposta? 
+
+Si noti che usando la trasformazione di boxcox si sarebbe scelta un'altra trasformazione, rispetto alla trasformazione logaritmica. 
+
+```{r}
+par(mfrow=c(1,2))
+bc0 <- MASS::boxcox(lm(QMED~Area, data = ukrivers), lambda = seq(0.12,0.25,by=0.025))
+## potremmo ad esempio scegliere lambda = 0.18
+tukrivers$bcqmed <- (ukrivers$QMED^0.18-1)/0.18
+hist(residuals(lm(bcqmed ~ Area, data = tukrivers)))
+par(mfrow=c(2,2))
+plot(lm(bcqmed ~ Area, data = tukrivers))
+```
+
+La trasformazione logaritmica ha il vantaggio di permettere di predire valori della variabile originale usando un modello moltiplicativo facile da implementare e da comunicare agli utenti del modello. Una volta finita la fase di costruzione del modello si potrebbe tornare a valutare la scelta della trasformazione usata per la variabile risposta. 
+
+## Ora tocca a voi! 
+
+Si desidera ora verificare se inserire altre variabili nel modello può aumentare la capacità del modello di spiegare la variabilità dei dati. Il vostro compito è costruire un modello soddisfacente. I punti qua sotto possono essere utili per pensare a quali possono essere possibili strategie per costruire un modello:  
+
+* Si verifichi la relazione tra le variabili esplicative presenti nel dataset e la variabile risposta `lqmed`: Si consideri se potrebbe essere utile trasformare le variabili esplicative (se si, perché è necessario trasformarle?) 
+* Si usi un algoritmo (o più di un algoritmo) per selezionare in maniera automatica quali variabili inserire nel modello (ad esempio confrontando se modelli diversi vengono proposti usando le variabili originali o le variabili trasformate)
+* Si verifichi se le assunzioni fatte per stimare il modello sono valide
+* Si valuti la bontà di adattamento del modello
+
+
+Importante: non c'è una sola soluzione corretta, ognuno di voi può provare strategie diverse, tutte ugualmente valide che però risulteranno in valutazioni diverse sul modello finale. L'importante è riflettere e giustificare in maniera valida il perché delle scelte (magari andando poi a controllare l'impatto che certe scelte possono avere sul modello finale). 

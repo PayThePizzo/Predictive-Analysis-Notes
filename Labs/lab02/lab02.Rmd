@@ -1,5 +1,6 @@
 ---
 title: "Lab 02 - Multiple Linear Regression"
+author: "Ilaria Prosdocimi"
 output:
   html_document:
     fig_caption: yes
@@ -11,9 +12,6 @@ output:
     number_sections: yes
     toc_float:
       smooth_scroll: no
-  pdf_document:
-    toc: yes
-    toc_depth: '2'
 editor_options:
   chunk_output_type: console
 ---
@@ -286,7 +284,7 @@ S %*% cov2cor(vcov(fit)) %*% S
 
 Desideriamo  avere delle correlazioni piccole tra le stime, ma su questo punto torniamo dopo. 
 
-## Verifica d'ipotesi ed intervalli di confidenza
+## Verifica d'ipotesi
 
 Per ora ci concentriamo sul capire come sono costruite le ultime due colonne dell'output della tabella dei coefficenti in `summary(fit)$coef`. Queste colonne hanno a che fare con i due sistemi di verifica di ipotesi: 
 \[H_0: \beta_1 = 0 \quad VS \quad H_1: \beta_1 \neq 0 \]
@@ -367,7 +365,7 @@ Ricapitolando abbiamo tre tipi ipotesi nulle per tre tipi di test diversi:
 
 Ovviamente la cosa migliore e' controllare gli intervalli di confidenza, che sono piu' informativi.
 
-### Intervalli di confidenza bivariati
+## Intervalli di confidenza bivariati
 
 Infine usiamo la funzione `confidenceEllipse` nel pacchetto `car` per disegnare intervalli di confidenza bivariati, per esempio per $(\beta_0, \beta_1)$ e $(\beta_0, \beta_2)$:
 
@@ -384,8 +382,10 @@ Come viene costruita l'ellissi? La procedura è spiegata estesamente nella Lectu
 \end{equation*}
 I dettagli della teoria sottostante questa derivazione non sono parte del corso.. 
 
+Cio' evidenzia pero' che facendo una stima su un solo parametro, non si tiene conto dell'influenza della stima degli altri parametri.
 
-# Inferenza sulla funzione stimata 
+# Inferenza sulla funzione stimata
+Confidence Intervals & Prediction Intervals
 
 Per un dato valore di $x_i$, il valore di $y$ stimato è: 
 
@@ -403,12 +403,14 @@ La funzione `predict` ci permette di estrarre gli intervalli di confidenza e pre
 ```{r predictFun}
 nd <- data.frame(wt = c(1650, 3000, 5000), year = c(72, 75, 82))
 (cint <- predict(fit, nd, interval = "conf"))
+
 ## da dove vengono questi numeri?
 x0 <- cbind(rep(1,3), c(1650, 3000, 5000),c(72, 75, 82)) 
 se_cx0 <- est_sigma * sqrt(diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_cx0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_cx0)
 (pint <- predict(fit, nd, interval = "pred"))
+
 ## da dove vengono questi numeri?
 se_px0 <- est_sigma * sqrt(1+diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_px0,
@@ -417,14 +419,14 @@ rm(se_px0, se_cx0)
 ```
 
 
-Entrambi gli intervalli sono centrati sul valore stimato puntuale, ma gli intervalli di predizione sono sempre più ampi. 
+Entrambi gli intervalli sono centrati sul valore stimato puntuale, ma gli intervalli di predizione sono sempre più ampi (c'e' piu' variabilita'). 
 
 ```{r}
 cint[,3] - cint[,2]
 pint[,3] - pint[,2]
 ```
 
-Notiamo anche che uno degli intervalli di confidenza è molto più largo degli altri: perché?
+Notiamo anche che uno degli intervalli di confidenza è molto più largo degli altri: perché? 
 
 ```{r}
 plot(autompg$wt, autompg$year,pch=16,col="dodgerblue2")
@@ -432,7 +434,11 @@ points(nd, pch =4, col="orange",lwd=3)
 points(mean(autompg$wt), mean(autompg$year), pch = 15, col="red",cex=1.3)
 ```
 
-C'è più incertezza nella stima di punti distanti dal valore $(\bar{x}_1, \bar{x}_2)$ e in generale per i punti lontani dai valori osservati nel dataset. 
+C'è più incertezza nella stima di punti distanti dal valore $(\bar{x}_1, \bar{x}_2)$ e in generale per i punti lontani dai valori osservati nel dataset. Infatti, il grafico evidenzia che:
+
+* Il punto estrapolato in alto a destra e' ha una varianza altissima
+* Il punto vicino alla media, ha la varianza piu' bassa
+* Il punto in basso a sinistra, e' un po' estremo sebbene abbia come supporto delle osservazioni. Infatti, ha comunque una varianza relativamente alta.
 
 
 # Visualizzare la stima
