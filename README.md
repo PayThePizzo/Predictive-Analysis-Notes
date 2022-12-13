@@ -10,7 +10,7 @@ All the credits go to the professor Prosdocimi Ilaria, the creators and owners o
 
 ---
 ## Visualize the labs!
-The labs are organized with the following hierarchy
+The labs are organized with the following hierarchy, if possible:
 * Lab X, the version of the document with additional notes, which are added to the professor's solution (I suggest to follow this)
   * The professor's solution for the Lab X
   * The class notes from the professor's Lab X
@@ -21,8 +21,6 @@ If you want to visualize the labs without having to download and run the Rmd fil
   * [Lab 01 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01_sol.html)
   * [Lab 01 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01_class.html)
 * [Lab 02](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab02/lab02.html) - Intro to multiple linear models in R
-  * [Lab 02 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab02/lab02_sol.html)
-  * [Lab 02 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab02/lab02_class.html)
 * [Lab 03](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab03/lab03.html) - Anova lab
   * [Lab 03 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab03/lab03_sol.html)
   * [Lab 03 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab03/lab03_class.html)
