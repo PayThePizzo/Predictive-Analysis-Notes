@@ -10,6 +10,11 @@ All the credits go to the professor Prosdocimi Ilaria, the creators and owners o
 
 ---
 ## Visualize the labs!
+The labs are organized with the following hierarchy
+* Lab X, the version of the document with additional notes, which are added to the professor's solution (I suggest to follow this)
+  * The professor's solution for the Lab X
+  * The class notes from the professor's Lab X
+
 If you want to visualize the labs without having to download and run the Rmd files each time, click on the links:
 * [Lab 00](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00.html) - R quick revision
 * [Lab 01](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01.html) - Intro to simple linear models in R
