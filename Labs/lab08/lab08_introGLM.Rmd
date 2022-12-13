@@ -1,0 +1,795 @@
+---
+title: "Lab 08 - GLMs in R: an introduction"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+Il dataset `patents.txt` contiene informazioni raccolte dall'ufficio brevetti dell'UE su alcune caratteristiche dei brevetti, tra cui il numero di citazioni, se è stata presentata un'opposizione al brevetto, l'anno in cui il brevetto è stato depositato e l'informazione se il brevetto è nel settore bio-farmaceutico. (Il dataset è stato derivato dal dataset sulle patenti utilizzato nel libro [*Regression* di Fahrmeir et al.](https://www.uni-goettingen.de/de/regression+-+models%2c+methods+and+applications/550514.html). 
+
+```{r}
+dat <- read.table("../data/patents.txt")
+dat$biopharm <- factor(dat$biopharm)
+summary(dat)
+```
+
+
+# La modellazione di dati binari 
+
+Ci concentriamo ora sulla variabile `opposed`, un indicatore che ha valore "opposed" e "not-opposed". Diamo un'occhiata alle caratteristiche della variabile: 
+
+
+```{r}
+summary(dat$opposed)
+table(dat$opposed)
+```
+
+vediamo che nella maggior parte dei casi il brevetto è non opposto.  Vogliamo valutare se c'è un effetto dell'anno in cui il brevetto è stato presentato sulla probabilità che venga presentata un'opposizione al brevetto: 
+
+```{r,eval=FALSE}
+plot(opposed~year, data = dat)
+## this doesn't work 
+```
+
+
+```{r,eval=TRUE}
+plot((opposed == "opposed") ~year, data = dat)
+```
+
+Non si capisce granché, possiamo "sparpagliare" i valori di 0/1 con la funzione `jitter`
+
+
+```{r,eval=FALSE}
+plot(jitter(opposed == "opposed") ~year, data = dat)
+## this doesn't work
+```
+
+
+```{r}
+plot(jitter(ifelse(opposed == "opposed", 1,0), amount = 0.1) ~year, data = dat)
+```
+
+```{r}
+plot(jitter(ifelse(opposed == "opposed", 1,0), amount = 0.1) ~
+       jitter(year, amount = 0.2), data = dat)
+```
+
+Non un effetto così chiaro. Per stimare come varia la probabilità che ci sia un'opposizione ad un brevetto possiamo usare un glm: come specificare un glm in R? Abbiamo bisogno dei seguenti elementi 
+
+* la distribuzione che si assume per la variabile risposta $Y$ (in questo caso una binomiale, in particolare un Bernoulli, cioè una binomiale in cui vi è un solo "tentativo"): $Y \sim Bin(1, p(x))$, con $\mu(x) = E[Y|X=x] = p(x)$
+* la funzione legame tra $\mu(x)$ e il predittore lineare $\eta(x)$: usiamo in questo caso il legame canonico, cioè la trasformazione logistica: $logit(\mu(x)) = \beta_1 + \beta_1 x$
+* la specificazione del predittore lineare: in questo modello usiamo un solo predittore, `year` 
+
+
+La funzione che possiamo usare in R è la funzione `glm` dove è possibile specificare la distribuzione che si assume per la variabile risposta usando l'argomento `family`: 
+
+```{r, eval=FALSE}
+fit_bin <- glm(opposed ~ year, data = dat, family = binomial)
+## this doesn't work 
+```
+
+Guardando le indicazioni in `?binomial` (che rimanda a `?family`) vediamo che non possiamo fornire una stringa come variabile risposta, ma dobbiamo usare: 
+* un fattore 
+* un valore numerico tra 0 e 1 (usando eventualmente anche l'opzione `weights`)
+* una matrice di due colonne 
+
+
+```{r}
+dat$fopp <- as.factor(dat$opposed)
+levels(dat$fopp) ## first level is the "failure", that's what we wanted 
+```
+
+```{r}
+fit_bin <- glm(fopp ~ year, data = dat, family = binomial)
+summary(fit_bin)
+```
+
+```{r}
+## alternative 
+dat$numopp <- as.numeric(dat$opposed == "opposed")
+summary(glm(numopp ~ year, data = dat, family = binomial, weights = rep(1, nrow(dat))))
+dat$ntrial <- rep(1, nrow(dat))
+summary(glm(cbind(dat$numopp,dat$ntrial-dat$numopp) ~ dat$year, family = binomial))
+```
+
+Il valore stimato del parametro legato a `year` è negativo, col passare degli anni è diminuita la probabilità che venga depositata un'opposizione ad un brevetto. Notiamo anche un valore di intercetta molto grande - per facilitare l'interpretazione del modello trasformiamo `year`, senza che questo cambi la stima finale del modello: 
+
+
+```{r}
+dat$yearSince1979 <- dat$year - 1979
+fit_bin <- glm(fopp ~ yearSince1979, data = dat, family = binomial)
+summary(fit_bin)
+```
+
+Come per il modello lineare R ci presenta varie informazioni sul modello: innanzi tutto ci indica una valutazione dell'incertezza della stima dei parametri. Da dove arrivano questi valori? 
+
+
+```{r}
+X <- model.matrix(fit_bin) # design matrix 
+# b''(\theta) = exp(theta)/((1+exp(theta))^2) 
+# theta = beta_0 + beta_1 x
+V <- diag(exp(fit_bin$coefficients[1]+fit_bin$coefficients[2]*dat$yearSince1979)/((1+exp(fit_bin$coefficients[1]+fit_bin$coefficients[2]*dat$yearSince1979))^2))
+solve(t(X) %*% V %*% X)
+vcov(fit_bin)
+```
+
+L'incertezza si deriva usando la matrice di disegno e la varianza (stimata) di $Y_i$, che è diversa per ogni osservazione dato che dipende da $\theta_i$. 
+
+Con gli standard errros possiamo fare dell'inferenza, ad esempio costruire intervalli di confidenza, o "a mano" o usando la funzione `confint.default`: 
+
+
+```{r}
+confint.default(fit_bin)
+confint.default(fit_bin, parm = "yearSince1979")
+coef(fit_bin)[2] + qnorm(c(0.025,0.975))*sqrt(vcov(fit_bin)[2,2])
+```
+
+Nota: a differenza di quanto fatto per il modelli lineari, per costruire l'intervallo di confidenza usiamo un normale (e non una T di Student) dato che stiamo utilizzando il fatto che le stime dei coefficienti di regressione nei GLM sono ottenute tramite massima verosimiglianza per cui possiamo sfruttare il fatto che per gli stimatori di massima verosimiglianza si ha una distribuzione approssimativamente normale. Di conseguenza l'intervallo di confidenza è approssimato e l'approssimazione sarà tanto migliore quanto più è grande il campione.
+
+Cerchiamo adesso di capire un po' meglio la stima ottenuta del modello  
+
+
+Come possiamo interpretare i coefficienti? [Video che spiega come non sia banale la cosa!](https://twitter.com/ChelseaParlett/status/1304436259926896640).  
+
+```{r}
+nd <- data.frame(yearSince1979 = c(1, 2, 17, 18))
+# the linear predictor fit 
+coef(fit_bin)[1] + coef(fit_bin)[2] * nd$yearSince1979
+# alternatively use predicct
+(lpred <- predict(fit_bin, newdata = nd))
+# by default it predicts the linear predictor
+(lpred <- predict(fit_bin, newdata = nd, 
+                  type = "link"))
+
+diff(lpred) # these change by beta1 for a change of unit
+
+## We can use predict to ask for E[Y]
+## ie make a prediction on the response scale 
+(rpred <- predict(fit_bin, newdata = nd, 
+                  type="response"))
+## transform the linear predictor 
+exp(lpred)/(1+exp(lpred))
+# this is the odds ratio 
+rpred/(1-rpred) 
+exp(lpred)
+# ratio of odds ratio is the same for 
+# a change of one unit in x
+(rpred/(1-rpred))[2]/(rpred/(1-rpred))[1]
+(rpred/(1-rpred))[4]/(rpred/(1-rpred))[3]
+# its value is beta1
+exp(fit_bin$coefficients[2])
+```
+
+Il coefficiente $\beta_1$ rappresenta l'effetto (su scale logaritmica) del predittore sull'odds ratio: un coefficiente positivo indica che al crescere di X cresce la probabilità che $Y =1$. Tuttavia quanto sia forte questo effetto dipende dal valore di X, non è costante. Possiamo visualizzare l'effetto che ha il predittore sul valore atteso della varaibile risposta:  
+
+
+```{r}
+par(pch = 16, bty = "l", mfrow=c(1,2))
+nd <- data.frame(yearSince1979 = seq(1, 18, by = 1))
+### we can not plot the inverse-link transformed data
+### they take values -inf or + inf 
+plot(nd$yearSince1979, 
+     predict(fit_bin, newdata = nd),
+     type="l", main = "The linear predictor")
+plot(nd$yearSince1979,
+     predict(fit_bin, newdata = nd, type="response"),
+     type="l", ylim = c(-0.25,1.25), main = "The estimated probability")
+### we can plot the original data
+points(dat$yearSince1979, jitter(dat$numfopp), col = "grey70")
+```
+
+
+In questo esempio la stima della probabilità è piuttosto lineare nell'intervallo di tempo osservato. Se pensassimo di estendere (di molto) l'intervallo in cui valutiamo la funzione troveremmo la classica forma sigmoide della regressione logistica: 
+
+```{r}
+# binomial()$linkfun
+# binomial()$linkinv
+par(pch = 16, bty = "l", mfrow=c(1,1))
+nd <- data.frame(yearSince1979 = seq(-100, 100, by = 2))
+### we can not plot the inverse-link transformed data
+### they take values -inf or + inf 
+plot(nd$yearSince1979,
+     predict(fit_bin, newdata = nd, type="response"),
+     type="l",  main = "The estimated probability")
+## one can alsi directly use the binomial()$linkinv function 
+lines(nd$yearSince1979,
+     binomial()$linkinv(fit_bin$coef[1] + fit_bin$coef[2]*nd$yearSince1979),
+     type="l",  col = 2)
+```
+
+Per una applicazione vagamente sensata non avrebbe molto senso estrapolare così avanti o indietro nel tempo: questo grafico ha solo lo scopo di far vedere la forma classica della regressione logistica. 
+
+Vogliamo ora indagare se l'essere o meno un brevetto che ha a che fare con l'ambito bio-farmaceutico incide sulla probabilità che  vi sia una opposizione al brevetto. Possiamo provare a dare un'occhiata ai dati
+
+
+```{r}
+plot(jitter(ifelse(opposed == "opposed", 1,0), amount = 0.1) ~
+       jitter(year, amount = 0.2), data = dat, col = ifelse(dat$biopharm == "1", 2, 1))
+```
+
+Sembrano esserci molti punti rossi (brevetti in ambito bio-farmaceutico) per cui è stata presentata un'opposizione. 
+
+Aggiungiamo il predittore al modello già stimato: 
+
+```{r}
+fit_bin2 <- glm(fopp ~ yearSince1979+biopharm, family = binomial, data = dat)
+summary(fit_bin2)
+```
+
+
+Quando un brevetto ha a che fare con l'ambito bio-farmaceutico, tendono ad esserci più opposizioni. Possiamo anche verificare se vi è un'interazione tra l'anno di presentazione della richiesta e il tipo di brevetto: 
+
+```{r}
+fit_bin3 <- glm(fopp ~ yearSince1979*biopharm, family = binomial, data = dat)
+summary(fit_bin3)
+```
+
+Un effetto che appare essere significativo. Possiamo visualizzare il modello stimato (anche qui estrapoliamo la funzione a dismisura per visualizzare bene le differenze): 
+
+```{r}
+# binomial()$linkfun
+# binomial()$linkinv
+par(pch = 16, bty = "l", mfrow=c(1,1))
+nd <- data.frame(yearSince1979 = seq(-100, 100, by = 2), biopharm = 0)
+plot(nd$yearSince1979,
+     binomial()$linkinv(fit_bin3$coef[1] + fit_bin3$coef[2]*nd$yearSince1979 + 
+                          fit_bin3$coef[3]*nd$biopharm+ fit_bin3$coef[4]*nd$biopharm*nd$yearSince1979),
+     type="l",  col = 2)
+nd <- data.frame(yearSince1979 = seq(-100, 100, by = 2), biopharm = 1)
+lines(nd$yearSince1979,
+     binomial()$linkinv(fit_bin3$coef[1] + fit_bin3$coef[2]*nd$yearSince1979 + 
+                          fit_bin3$coef[3]*nd$biopharm+ fit_bin3$coef[4]*nd$biopharm*nd$yearSince1979),
+     col = 4)
+abline(v = range(dat$yearSince1979), col = "grey", lty = 2)
+```
+
+Per i brevetti in ambito bio-farmaceutico c'è una probabilità più alta che si registri un'opposizione e questa probabilità è diminuta in maniera meno forte rispetto agli altri ambiti. 
+
+# Un modello per il numero di citazioni 
+
+Ci concentriamo ora sulla variabile `ncit`, il numero di citazioni ricevute da un brevetto. Le citazioni sono in qualche modo una misura del successo di un brevetto: desideriamo verficare se i brevetti depositati recentemente hanno più successo. 
+`ncit` è una variabile che misura dei conteggi: possiamo assumere che segua una distribuzione di Poisson. Diamo un'occhiata ai dati: 
+```{r}
+# notice we already use yearSince1979
+plot(ncit~yearSince1979, data = dat) 
+```
+
+Difficile sapere quanti punti ci sono in ogni combinazione - usiamo jitter
+
+```{r}
+plot(jitter(ncit, amount = 0.2)~jitter(yearSince1979, amount = 0.2), 
+     data = dat) 
+```
+
+Non un effetto chiarissimo, ma forse le citazioni di brevetti presentati di recente sono relativamente meno (hanno avuto meno tempo per essere citate). Iniziamo comunque con un modello semplice per capire come lavorare con modelli con dati di conteggio: 
+
+
+```{r}
+fit_pois <- glm(ncit~yearSince1979, data = dat, family = poisson)
+summary(fit_pois)
+```
+
+Un effetto significativo e negativo del tempo: brevetti presentati in anni più recenti hanno meno citazioni. Vediamo che ci sono degli errori standard e dei test: deriviamo questi numeri: 
+
+```{r}
+X <- model.matrix(fit_pois)
+V <- diag(exp(fit_pois$coefficients[1]+fit_pois$coefficients[2]*dat$yearSince1979))
+solve(t(X) %*% V %*% X)
+vcov(fit_pois)
+```
+
+Possiamo anche derivare intervalli di confidenza (basati sulla normale, cioè la distribuzione approssimata degli stimatori di massima verosimiglianza): 
+
+```{r}
+confint.default(fit_pois, "yearSince1979")
+coef(fit_pois)[2] + qnorm(c(.025, .975)) * sqrt(vcov(fit_pois)[2,2])
+```
+
+Andiamo adesso a capire più in dettaglio che modello abbiamo stimato. Si assume che 
+
+\[Y_i = (Y|X = x_i) \sim Pois(\lambda(yearSince1979_i)) \]
+dove 
+\[\lambda(yearSince1979_i) = \exp\{\beta_0 + \beta_1 yearSince1979_i \} \]
+con il predittore lineare $\eta(yearSince1979_i) = \log(\lambda(yearSince1979_i))$:
+\[\eta(yearSince1979_i) = \beta_0 + \beta_1 yearSince1979_i\]
+Dato che $Y_i$ segue una Poisson si ha che $E[Y_i] (= Var(Y_i)) = \lambda_i$. Quindi `yearSince1979` ha un effetto sul valore atteso della distribuzione tramite la funzione legame. Due brevetti presentati in due anni distanti tra loro $c$ anni avranno come valore predetto: 
+
+\[\lambda(x_0) = \exp\{\beta_0 + \beta_1 x_0 \} \quad \lambda(x_0 + c) = \exp\{\beta_0 + \beta_1 (x_0 + c) \}\]
+
+e si ha che $\lambda(x_0 + c)  = \lambda(x_0) \exp\{c\}$: l'effetto della differenza di $c$ unità nella variabile esplicativa ha un effetto moltiplicativo sul valore atteso. 
+
+Possiamo verificare la cosa usando la funzione `predict`: 
+
+```{r}
+nd <- data.frame(yearSince1979 = c(1,2, 17, 18))
+# linear predictor  
+(lpred <- predict(fit_pois, newdata = nd,type = "link"))
+diff(lpred) # linear scale
+# response 
+(rpred <- predict(fit_pois, newdata = nd,type = "response"))
+exp(lpred) # response scale 
+rpred[2]/rpred[1]; rpred[4]/rpred[3]; exp(-0.07003)   
+rpred[3]/rpred[2]; exp(-0.07003*15)
+# response is exp(linear predictor)
+log(rpred[2])-log(rpred[1]); log(rpred[4])-log(rpred[3])
+rpred[1]* exp(fit_pois$coefficients[2]); rpred[2]
+rpred[3]* exp(fit_pois$coefficients[2]); rpred[4]
+rpred[1]* exp(fit_pois$coefficients[2]*17); rpred[4]
+```
+
+Per visualizzare l'effetto di una variabile esplicativa sulla variabile risposta si possono usare i predittori lineari (sulla scala logaritmica) o delle trasformazioni dei predittori lineari sulla scala della variabile risposta: 
+
+```{r}
+par(mfrow=c(1,2), pch = 16, col = "grey40")
+plot(dat$yearSince1979, log(dat$ncit))
+## but careful about any(dat$ncit == 0)
+nd <- data.frame(yearSince1979=seq(1, 18, by=1))
+lines(nd$yearSince1979, predict(fit_pois, newdata = nd),
+      col = 2, lwd = 2)
+plot(dat$yearSince1979, dat$ncit)
+lines(nd$yearSince1979, 
+      predict(fit_pois, newdata = nd, type="response"),
+      col = 4, lwd = 2)
+```
+
+In questo grafico i brevetti con 0 citazioni non bengono mostrati ($log(0) = -\infty$). Per mostrare i valori pari a 0 a volte vengono mostrati con dei valori piccoli ma maggiori di 0: 
+
+```{r}
+par(mfrow=c(1,1), pch = 16, col = "grey40")
+plot(dat$yearSince1979, jitter(log(pmax(dat$ncit, 0.5)),amount = 0.05)) 
+# a fixed amount is not great here 
+nd <- data.frame(yearSince1979=seq(1, 18, by=1))
+lines(nd$yearSince1979, predict(fit_pois, newdata = nd),
+      col = 2, lwd = 2)
+```
+
+E se invece guardiamo il valore sulla scale della variabile risposta? 
+
+
+```{r}
+par(mfrow=c(1,1), pch = 16, col = "grey40")
+plot(dat$yearSince1979, jitter(dat$ncit, amount = 0.2)) 
+nd <- data.frame(yearSince1979=seq(1, 18, by=1))
+lines(nd$yearSince1979, predict(fit_pois, newdata = nd, type = "response"),
+      col = 6, lwd = 2)
+```
+
+La forma stimata ora è quella di un'esponenziale: la stima del valore atteso della funzione è non lineare in `yearSince1979`. 
+
+Il termine lineare forse non cattura del tutto la forma funzionale della relazione. Inoltre potrebbero esserci degli effetti legati al tipo brevetto e all'opposizione allo stesso: brevetti per cui c'è stata un'opposizione forse sono legati a temi di interesse generale e risultano quindi più interessanti. Oltre ad usare un termine quadratico per il tempo, aggiungiamo anche `fopp` e `biopharm` al modello: 
+
+```{r}
+# we can use poly like in linear models 
+fit_pois_quad <- glm(formula = ncit ~ poly(yearSince1979,2)+biopharm+fopp, 
+                     family = poisson, data = dat)
+summary(fit_pois_quad)
+```
+
+Che modello abbiamo stimato? Guardiamo sia i predittori lineari che l'effetto sulla scala della variabile risposta 
+
+```{r}
+par(mfrow=c(1,2), pch = 16, col = "grey40")
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "1", fopp = "opposed")
+plot(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "link"),
+      col = 2, lwd = 2, type = "l")
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "1", fopp = "not-opposed")
+lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "link"),
+      col = 2, lwd = 2, lty = 2)
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "0", fopp = "opposed")
+lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "link"),
+      col = 1, lwd = 2)
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "0", fopp = "not-opposed")
+lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "link"),
+      col = 1, lwd = 2, lty = 2)
+# paralle parabolas 
+# on the orginal scale 
+plot(dat$yearSince1979, jitter(dat$ncit, amount = 0.2), 
+     ## add transparency 
+     col = ifelse(dat$biopharm == "1", rgb(1,0,0,0.4),rgb(0,0,0,0.4)), 
+     pch = ifelse(dat$fopp == "opposed", 16,15)) 
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "1", fopp = "opposed")
+lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "response"),
+      col = 2, lwd = 2)
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "1", fopp = "not-opposed")
+lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "response"),
+      col = 2, lwd = 2, lty = 2)
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "0", fopp = "opposed")
+lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "response"),
+      col = 1, lwd = 2)
+nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "0", fopp = "not-opposed")
+lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "response"),
+      col = 1, lwd = 2, lty = 2)
+```
+
+I brevetti in ambito bio-farmaceutico e che hanno avuto un'opposizione sono i brevetti che hanno più citazioni. 
+
+I singoli predittori sono significativi. Il modello `fit_pois` è annidato in questo modello e possiamo quindi chiederci come confrontare modelli annidati. Usiamo l'analisi della devianza. 
+
+## La devianza 
+
+Nel `summary` R stampa l'informazione su devianza nulla e devianza residua, che una misura della bontà di adattamento   di un modello ai dati, in qualche modo simile alla somma dei quadrati dei residui del modello (e è anche la devizna qualcosa che si cerca di minimizzare): 
+
+```{r}
+fit_pois$deviance
+fit_pois_quad$deviance
+```
+
+Modelli più complessi tendono a far diminuire la devianza. La devianza nulla è la devianza per un modello in cui non vengono usati predittori: 
+
+```{r}
+fit_pois_quad$null.deviance
+glm(ncit ~1,family = poisson, data = dat)$null.deviance
+```
+
+Da dove arrivano questi numeri? La devianza è definita con: 
+
+\[D = 2 \sum_{i=1}^{n} d_i =  \sum_{i=1}^{n}(l^{sat} -  l(\hat{\beta}))  \]
+
+dove $l^{sat}$ è il massimo valore possibile per la log-verosimiglianza che si ottiene con $\mu^{sat} = y_i$. 
+
+La log-verosimiglianza per il modello di Poisson è: 
+
+\[l(\mu_i, y_i) =  y_i log \mu_i  - \mu_i \]
+
+quindi $l^{sat} = y_i \log y_i - y_i$. Ne risulta che la devianza ha la seguente forma: 
+
+\[D = \sum_{i=1}^{n}\left( (y_i \log y_i - y_i) - (y_i \log \hat{\mu}_i  - \hat{\mu}_i)  \right)  \]
+con $\hat{\mu}_i = \exp\{ \beta_0 + \beta_1 x_{i,1} + \ldots + \beta_{p-1} x_{i, p-1} \}$
+
+Per il modello `fit_pois`, in cui solo `yearSince1979` è inserito come predittore, deriviamo: 
+
+```{r}
+2 * sum( (dat$ncit * log(pmax(dat$ncit,1)) - dat$ncit) - 
+       (dat$ncit* log(fit_pois$fitted.values) - fit_pois$fitted.values))
+## notice the convention that when y=0, y*log(y) = 0
+fit_pois$deviance
+```
+
+Per calcolare la devianza nulla invece pensiamo che la stima per ogni punto del campione si derivi usando $\hat{\mu} = \bar{y}$:  
+
+```{r}
+2 * sum( (dat$ncit * log(pmax(dat$ncit,1)) - dat$ncit) - 
+       (dat$ncit* log(mean(dat$ncit)) - dat$ncit))
+fit_pois_null <- glm(ncit ~ 1, data = dat, family = poisson)
+fit_pois$null.deviance
+fit_pois_null$deviance
+```
+
+Sotto certe assunzioni generali (che tipicamente sono valide per i GLM non patologici), si ha che:
+
+\[D \sim \chi^2_{n-p} \]
+
+Usiamo questo fatto per creare un test sulla significatività del modello (un test quindi simile al test F): vale la pena includere dei predittori o usare un modello più semplice porta comunque ad una devianza non poi così diversa? R permette di fare questo test con la funzione `anova`:
+
+```{r}
+anova(fit_pois_null, fit_pois, test = "LRT")
+(lrt_stats <- fit_pois_null$deviance - fit_pois$deviance)
+pchisq(lrt_stats, 
+        df = fit_pois_null$df.residual - fit_pois$df.residual, 
+        lower.tail = FALSE)
+```
+
+Vediamo che il modello è altamente significativo. Sebbene `summary` non stampi il valore della statistica test, possiamo avere un'idea della bontà di adattamento del modello confrontando la devianza nulla e residua: se abbiamo diminuto di poco la devianza inserendo dei predittori nel modello forse non vale la pena di costruire un modello predittivo basato sulle variabili esplicative che abbiamo usato. 
+
+Possiamo usare la devianza e il test LRT anche per fare confronti tra modelli annidati, per esempio il modello con `yearSince1979`  in forma lineare o in modello con più predittori e `yearSince1979` in forma quadratica: 
+
+
+```{r}
+anova(fit_pois_null, fit_pois_quad, test = "LRT")
+anova(fit_pois, fit_pois_quad, test = "LRT")
+```
+
+Rigettiamo l'ipotesi nulla che i coefficienti di regressione per il termina quadratico, per `biopharm` e `fopp` siano tutti pari a zero ($H_0: \beta_2 = \beta_3 = \beta_4 = 0$ VS $H_1: \text{any of } \beta_2 or \beta_3 or \beta_4 \neq 0$).
+
+Perché usiamo la devianza quando facciamo un Likelihood ratio test (che come dice il nome dovrebbe essere un test basato sul rapporto delle verosimiglianze?)
+
+\[LR = 2log\frac{L(\mathcal{M_{full}})}{L(\mathcal{M_{null}})} = 2 (l(\mathcal{M_{full}}) - l(\mathcal{M_{null}})) = 2 (l(\mathcal{M_{full}}) - l(\mathcal{M_{null}}) + l^{sat} - l^{sat})  = D(M_{null}) - D(M_{full})\]
+
+
+# La modellazione del numero di successi (proporzioni)  
+
+La distribuzione binomiale che viene usata quando si specifica  `family = binomial` può essere usata non solo per dati binari ma anche per dati in cui il dato discreto che si modella è il numero di successi ($y$) su un totale di $k$ tentativi, assumendo che $Y|X=x \sim Bin(k, p(x))$. Come specificato in ?family possiamo specificare il modello per questo tipo di dati in due modi: 
+
+* As a numerical vector with values between 0 and 1, interpreted as the proportion of successful cases (with the total number of cases given by the weights).
+* As a two-column integer matrix: the first column gives the number of successes and the second the number of failures.
+
+Come primo esempio deriviamo dal dataset `patents` l'informazione di quanti brevetti sono stati depositati e di quanti hanno avuto un'opposizione per ogni anno. Da questa informazione (molto più sintetica di quella disponibile in prima istanza), possiamo modellare la proporzione dei brevetti per cui vi è un'opposizione: 
+
+```{r}
+# dat <- dat[order(dat$year),]
+byYear <- data.frame(year = tapply(dat$year, factor(dat$year), unique), 
+                     numopp = tapply(dat$numopp, factor(dat$year), sum), 
+                     tpat = tapply(dat$numopp, factor(dat$year), length)) 
+byYear$n_notopp <- byYear$tpat - byYear$numopp
+byYear$propOpp <- byYear$numopp/byYear$tpat
+head(byYear)
+##first specification
+fit_t1_bin <- glm(cbind(numopp, n_notopp)~year, family = binomial, data = byYear)             
+summary(fit_t1_bin)
+## second specification
+fit_t2_bin <- glm(propOpp~year, family = binomial, weights = tpat, data = byYear)             
+summary(fit_t2_bin)
+summary(fit_bin)
+```
+
+In questo caso notiamo che la stima che otteniamo è identica alla stima ottenuta quando usavamo l'informazione individuale di ogni brevetto (il modello `fit_bin`): questo è vero solo perché `year`, la variabile esplicativa, ha lo stesso valore per tutte le osservazioni di un anno. Non potremmo per esempio usando questi dati più "compatti" valutare l'effetto che ha la variabile `biopharm` sulla probabilità che venga registrata un'opposizione al brevetto. In generale però ci sono delle somiglianze nella modellazione di dati binari e nei dati che hanno a che fare con proporzioni.
+
+
+Vediamo un altro esempio molto famoso che ha avuto conseguenze molto rilevanti legate al disastro dello [https://it.wikipedia.org/wiki/Disastro_dello_Space_Shuttle_Challenger](Shuttle Challenger). L'esplosione del razzo fu imputata al fatto che delle guarnizioni di sicurezza (O-rings) ebbero un guasto causando una perdita nel serbatoio e l'esplosione. Ex-post la causa del guasto agli O-rings fu identificata nella bassa temperatura a cui venne effettuato il lancio. La sera prima del lancio, sebbene le previsioni meteo indicavano che la temperatura il giorno successivo sarebbe stata bassa (tra i 25 e i 27 gradi Fahrenheit), si decise di andare avanti con il lancio sulla base delle informazioni disponibili sui lanci precedenti in cui erano stati riscontrati danni agli O-rings, in cui non si era rilevato un effetto della temperatura sulla probabilità di riscontrare danni agli O-rings. I dati sono contenuti nel dataset `shuttles1`: ogni shuttle aveva un totale di 6 O-rings e la variabile `Damaged` indica quanti degli O-rings siano risultati danneggiati mentre `Temp` indica la temperatura a cui erano avvenuti i lanci. 
+
+```{r}
+shuttles1 <- read.table("shuttles1.txt", header = TRUE)
+plot(shuttles1, ylim = c(0,3))
+shuttles1$prop <- shuttles1$Damaged / 6
+shuttles1$NotDamaged <- 6 - shuttles1$Damaged
+plot(shuttles1$Temp, shuttles1$prop, ylim = c(0,1))
+```
+
+
+Stimiamo la probabilità che avvenga un danneggiamento agli O-rings in funzione della temperatura: 
+
+```{r}
+# option with matrix
+fit_shuttle1_mat <- glm(cbind(Damaged, NotDamaged) ~ Temp, data = shuttles1, family = binomial)
+summary(fit_shuttle1_mat)
+# options with proportion 
+fit_shuttle1_prop <- glm(prop ~ Temp, data = shuttles1, weights = rep(6, nrow(shuttles1)), family = binomial)
+summary(fit_shuttle1_prop)
+```
+
+
+La stima è equivalente e si trova un effetto non significativo della temperatura: 
+
+
+```{r}
+plot(shuttles1$Temp, shuttles1$prop, ylim = c(0,1), xlim = c(20, 75))
+nd <- data.frame(Temp = seq(10, 85))
+lines(nd$Temp, predict(fit_shuttle1_prop, type = "r", newdata = nd),
+      ylim = c(0,1))
+abline(v = 25)
+```
+
+Tuttavia nell'analisi manca l'informazione sui lanci in cui non erano stati registrati errori: le informazioni su tutti i lanci precedenti all'incidente sono contentui nel dataset `shuttles2`: 
+
+```{r}
+shuttles2 <- read.table("shuttles2.txt", header = TRUE)
+plot(shuttles2, ylim = c(0,3))
+shuttles2$prop <- shuttles2$Damaged / 6
+shuttles2$NotDamaged <- 6 - shuttles2$Damaged
+plot(shuttles2$Temp, shuttles2$prop, ylim = c(0,1))
+```
+
+
+Stimiamo un modello in cui le informazioni di tutti i lanci sono utilizzate: 
+
+
+```{r}
+# options with proportion 
+fit_shuttle2_prop <- glm(prop ~ Temp, data = shuttles2, weights = rep(6, nrow(shuttles2)), family = binomial)
+summary(fit_shuttle2_prop)
+```
+
+`Temp` ora ha un effetto ed è molto significativa
+
+```{r}
+plot(shuttles2$Temp, jitter(shuttles2$prop,amount = 0.01), ylim = c(0,1), xlim = c(20, 75))
+nd <- data.frame(Temp = seq(10, 85))
+lines(nd$Temp, predict(fit_shuttle2_prop, type = "r", newdata = nd),
+      col = 2)
+abline(v = 25)
+```
+
+
+La probabilità di un problema con gli O-rings in un lancio a temperature molto basse viene stimata molto alta, ma stiamo estrapolando molto al di fuori delle temperature per cui sono già stati fatti lanci: la stima sarà molto imprecisa, ma forse era alta abbastanza da motivare uno stop al lancio del razzo. 
+
+
+# Verifica della teoria tramite simulazione 
+
+Abbiamo detto che l'inferenza nei modelli lineari generalizzati si basa sulla distribuzione approssimata di $\hat{\beta}$. Dato che $\hat{\beta}$ viene stimato tramite il metodo della massima verosimiglianza si ha che il seguente risutalto approssimato:  
+
+\[\hat{\beta} \sim N(\beta, (X^TVX)^{-1})\]
+
+Andiamo a verificare tramite uno studio di simulazione se questo risultato sia valido (e nel caso andiamo a vedere se ci sono situazioni in cui è più o meno robusto). 
+
+Andiamo quindi a generare dei dati usando un modello noto per poi andare a vedere cosa succede quando stimiamo il modello usando i dati generati dal modello noto. Dobbiamo generare dati da una distribuzione che appartiene alla famiglia esponenziale e usare una funzione legame per legare il valore atteso della distribuzione al predittore lineare. Iniziamo con un modello in cui la variabile risposta segue una distribuzione di Poisson il cui valore atteso dipende da una variabile esplicativa (che prendiamo essere un campione da una uniforme in (-4.5, 4.5)) e due parametri ($\beta_0$, $\beta_1$) (che prendiamo avere valore (3,0.05) ): 
+
+```{r}
+n <- 60 ## what happens if this decreases? 
+x_vals <- sort(runif(n, -4.5, 4.5))
+beta_vals <- c(3,0.05)
+Xmat <- cbind(rep(1, n), x_vals)
+set.seed(76)
+y_sim <- rpois(n, poisson()$linkinv(Xmat %*% beta_vals))
+plot(Xmat[,2], y_sim)
+```
+
+I dati mostrano una relazione tra predittore e risposta: possiamo stimare questa relazione: 
+
+```{r}
+fit_sim <- glm(y_sim ~ x_vals, family = poisson)
+fit_sim$coefficients
+## compared to 
+beta_vals
+```   
+
+La stima dei parametri è abbastanza vicina aio veri valori dei parametri usati per generare i dati e la funzione stimata infatti assomiglia abbastanza alla vera relazione tra predittore e risposta: 
+```{r}
+par(mfrow=c(1,2))
+plot(x_vals, Xmat %*% beta_vals, type="l", main = "Linear predictor")
+lines(x_vals, Xmat %*% fit_sim$coefficients, col = 4)
+plot(x_vals, exp(Xmat %*% beta_vals), type="l",  main = "Response")
+lines(x_vals, exp(Xmat %*% fit_sim$coefficients), col = 4)
+```
+
+Ripetiamo quest'esperimento 50 volte: 
+
+```{r}
+sim_fit_coef <- function(n, X, pars){
+  y_sim <- rpois(n, exp(X %*% pars))
+  glm(y_sim ~ x_vals, family = poisson)$coefficients
+}
+NSIM <- 50; set.seed(5454)
+rep_sim <- t(replicate(NSIM, sim_fit_coef(n=n, X = Xmat, pars = beta_vals)))
+par(mfrow=c(1,2))
+plot(x_vals, Xmat %*% beta_vals, type="n", ylab ="linear predictor scale")
+for(j in 1:NSIM) lines(x_vals, Xmat %*% rep_sim[j,], col = "grey90")
+lines(x_vals, Xmat %*% beta_vals, col = 2)
+plot(x_vals, exp(Xmat %*% beta_vals), type="n", ylab ="original scale")
+for(j in 1:NSIM) lines(x_vals, exp(Xmat %*% rep_sim[j,]), col = "grey90")
+lines(x_vals, exp(Xmat %*% beta_vals), col = 2)
+```
+
+In generale abbiamo una buona corrispondenza tra la stima e la vera relazione tra predittore e risposta. Le stime dei paramteri $(\beta_0, \beta_1)$ sono effettivamente non-distrorte? 
+
+
+```{r}
+colMeans(rep_sim)
+beta_vals
+```
+
+Sì, i valori stimati sono molto vicini in media ai veri valori dei parametri. La cosa diventa più chiara quando usiamo più camioni simulati:  
+
+```{r}
+NSIM <- 1000; set.seed(4567)
+rep_sim <- t(replicate(NSIM, sim_fit_coef(n=n, X = Xmat, pars = beta_vals)))
+colMeans(rep_sim)
+beta_vals
+```
+
+E cosa succede alla varianza? Abbiamo detto che la matrice di varianza covarianza delle stime è: 
+
+\[(X^T V X)^{-1}\]
+
+dove V è la matrice diagonale con elementi 
+$$V_{ii} = \frac{1}{V(Y_i)}\left( \frac{d \mu}{d \eta}\right)^{2}.$$ 
+Per la distribuzione di Poisson con un legame logaritmico ($\mu = \exp(\eta)$) si ha che: 
+\[V(Y_i) = \mu_i \quad e  \quad \frac{d \mu}{d \eta} = \frac{d exp(\eta)}{d \eta}\]
+quindi si ha: 
+\[V_{ii} = \exp\{\beta_0 + \beta_{i,1}  x_{i,1} + \ldots + \beta_p  x_{i,p}\}.\]
+Se i valori di $\beta_j$ sono noti la matrice di vera varianza-covarianza per il modello risulta quindi essere:
+
+```{r}
+V <- diag(as.vector(exp(Xmat %*%beta_vals)))
+(var_betas <- solve(t(Xmat) %*% V %*%Xmat))
+```
+
+Cosa succede invece alle stime derivate dai dati simulati?
+
+```{r}
+var(rep_sim)
+```
+
+I valori derivati dalla simulazione risultano molto simili a quelli che ci si aspetta di trovare dai valori teorici. 
+
+L'ultima cosa da verificare è che la distribuzione degli stimatori sia normale (con media e varianza che abbiamo già visto essere quelli vicini a quelli che ci sti aseptta dai risultati teorici): 
+
+```{r}
+par(mfrow=c(1,2))
+hist(rep_sim[,1], freq = FALSE, col = NA, main = "Intercept")
+lines(seq(2,4,by=0.0025),
+      dnorm(seq(2,4,by=0.0025), beta_vals[1], sqrt(var_betas[1,1])), 
+      col="orange", lwd = 2)
+hist(rep_sim[,2], freq = FALSE, col = NA, main = "Slope")
+lines(seq(0,1,by=0.00025),
+      dnorm(seq(0,1,by=0.00025), beta_vals[2], sqrt(var_betas[2,2])), 
+      col="orange", lwd = 2)
+```
+
+Gli istogrammi risultano simili alla distribuzione normali che ci si aspetta secondo i risultati teorici. 
+
+
+*Esercizio*: si può provare a vedere cosa succede quando cambia la numerosità campionaria; oppure quando cambia la vera funzione $\mu(x)$, in particolare quando prende valori abbastanza piccoli (ad esempio in un intervallo tra 0 e 4) o abbastanza grandi (ad esempio in un intervallo tra 70 e 90)
+
+
+## Distribuzione Binomiale 
+
+Abbiamo visto cosa succede quando la distribuzione che genera i dati è una Poisson. Cosa succede quando usiamo una distribuzione binomiale? Possiamo innanzi tutto generare una vera funzione $p(x)$ usando la una funzione logistica:
+
+```{r}
+n <- 60
+x_vals <- runif(n,0, 4)
+true_coefs <- c(-1.5,2)
+Xmat <- cbind(rep(1, n), x_vals)
+range(Xmat %*% true_coefs)
+range(exp(Xmat %*% true_coefs)/(1+exp(Xmat %*% true_coefs)))
+```
+
+Possiamo ora generare dei dati da una variabile binomiale. Per ora ci concentriamo su delle distribuzioni in cui il numero di tentativi fatti per l'evento siano 200: 
+
+```{r}
+sim_fit_coef <- function(n, X, size, pars){
+  y_sim <- rbinom(n, size = size, exp(X %*% pars)/(1+exp(X %*% pars)))
+  y_fail <- size - y_sim
+  glm(cbind(y_sim, y_fail) ~ x_vals, family = binomial)$coefficients
+}
+sim_fit_coef(n=n, X = Xmat, size = 200, pars = true_coefs)
+NSIM <- 500; set.seed(5454)
+rep_sim <- t(replicate(NSIM, 
+          sim_fit_coef(n=n, X = Xmat, size = 200, pars = true_coefs)))
+colMeans(rep_sim)
+true_coefs
+```
+
+Deriviamo delle stime non distorte, cioè recuperiamo in media il vero valore del parametro. Che variabilità c'è in questa stima? Dalla teoria ci si aspetterebbe di trovare una variabilità data da: 
+
+```{r}
+V <- diag(as.vector(exp(Xmat %*% true_coefs)/((1+exp(Xmat %*% true_coefs))^2))*200)
+(true_vcov <- solve(t(Xmat) %*% V %*% Xmat))
+```
+
+mentre per le simulazioni troviamo: 
+
+```{r}
+var(rep_sim)
+```
+
+Troviamo una buona corrispondenza tra i valori. 
+
+In generale, possiamo verificare che la distribuzione delle stime derivate dai dati simulati, corrisponde abbastanza bene alla disitrbuzione derivata dalla teoria: 
+
+```{r}
+par(mfrow=c(1,2))
+hist(rep_sim[,1], freq = FALSE, col = NA)
+lines(seq(-2,-1,by=0.0025),
+      dnorm(seq(-2,-1,by=0.0025), true_coefs[1], sqrt(true_vcov[1,1])), 
+      col="orange", lwd = 2)
+hist(rep_sim[,2], freq = FALSE, col = NA)
+lines(seq(1.8,2.2,by=0.00025),
+      dnorm(seq(1.8,2.2,by=0.00025),  true_coefs[2], sqrt(true_vcov[2,2])), 
+      col="orange", lwd = 2)
+```
+
+Cosa succede però se il numero di tentativi su cui si calcola il numero di successi diminuisce, per esempio a 5: 
+
+```{r}
+NSIM <- 500; set.seed(5454)
+rep_sim <- t(replicate(NSIM, 
+          sim_fit_coef(n=n, X = Xmat, size = 5, pars = true_coefs)))
+colMeans(rep_sim)
+true_coefs
+```
+
+
+```{r}
+V <- diag(as.vector(exp(Xmat %*% true_coefs)/((1+exp(Xmat %*% true_coefs))^2))*5)
+(true_vcov <- solve(t(Xmat) %*% V %*% Xmat))
+```
+
+```{r}
+par(mfrow=c(1,2))
+hist(rep_sim[,1], freq = FALSE, col = NA)
+lines(seq(-5,2,by=0.0025),
+      dnorm(seq(-5,2,by=0.0025), true_coefs[1], sqrt(true_vcov[1,1])), 
+      col="orange", lwd = 2)
+hist(rep_sim[,2], freq = FALSE, col = NA)
+lines(seq(0,4,by=0.00025),
+      dnorm(seq(0,4,by=0.00025),  true_coefs[2], sqrt(true_vcov[2,2])), 
+      col="orange", lwd = 2)
+```
+
+La precisione dell'approssimazione della normale diminuisce, gli istogrammi risultano un po' asimmetrici (cosa succede quando i dati seguono una Bernoulli, cioè un Binomiale con un solo tentativo?). 
+Una binomiale basata su molti tentativi viene approssimata abbastanza bene da una gaussiana. In generale, più la vera distribuzione dei dati è simmetrica, meglio la distribuzione degli stimatori viene approssimato dalla normale. 
+
+

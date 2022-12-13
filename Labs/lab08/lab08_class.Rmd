@@ -1,0 +1,42 @@
+---
+title: " GLMs in R: an introduction"
+author: "Ilaria Prosdocimi"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+Il dataset `patents.txt` contiene informazioni raccolte dall'ufficio brevetti dell'UE su alcune caratteristiche dei brevetti, tra cui il numero di citazioni, se è stata presentata un'opposizione al brevetto, l'anno in cui il brevetto è stato depositato e l'informazione se il brevetto è nel settore bio-farmaceutico. (Il dataset è stato derivato dal dataset sulle patenti utilizzato nel libro [*Regression* di Fahrmeir et al.](https://www.uni-goettingen.de/de/regression+-+models%2c+methods+and+applications/550514.html). 
+
+```{r}
+dat <- read.table("../data/patents.txt")
+dat$biopharm <- factor(dat$biopharm)
+summary(dat)
+```
+
+
+# La modellazione di dati binari 
+
+Ci concentriamo ora sulla variabile `opposed`, un indicatore che ha valore "opposed" e "not-opposed". Diamo un'occhiata alle caratteristiche della variabile: 
+
+
+
+# Un modello per il numero di citazioni 
+
+Ci concentriamo ora sulla variabile `ncit`, il numero di citazioni ricevute da un brevetto. Le citazioni sono in qualche modo una misura del successo di un brevetto: desideriamo verficare se i brevetti depositati recentemente hanno più successo. 
+`ncit` è una variabile che misura dei conteggi: possiamo assumere che segua una distribuzione di Poisson. Diamo un'occhiata ai dati: 
+```{r}
+# notice we already use yearSince1979
+plot(ncit~yearSince1979, data = dat) 
+```
+
+Difficile sapere quanti punti ci sono in ogni combinazione - usiamo jitter
+
+```{r}
+plot(jitter(ncit, amount = 0.2)~jitter(yearSince1979, amount = 0.2), 
+     data = dat) 
+```
+
+Non un effetto chiarissimo, ma forse le citazioni di brevetti presentati di recente sono relativamente meno (hanno avuto meno tempo per essere citate). Iniziamo comunque con un modello semplice per capire come lavorare con modelli con dati di conteggio: 
+

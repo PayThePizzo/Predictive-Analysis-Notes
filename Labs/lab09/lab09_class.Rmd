@@ -1,0 +1,196 @@
+---
+title: "Lab 09 - more about GLMs"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+# Model selection per i GLMs - Binomial 
+
+I dati nel file `SAheart.csv` sono stati raccolti in uno studio osservazionale retrospettivo su un campione di uomini residenti in una zona ad alto rischio di malattie cardiache a Città del Capo in Sud Africa. La variabile `chd` (coronary heart disease), che useremo come variabile risposta, è una variabile binaria (codificata con valori 0/1) che indica se un individuo presenta malattie alle coronarie. Le altre variabili presenti nel dataset sono: 
+
+* sbp: systolic blood pressure
+* tobacco: cumulative tobacco (kg)
+* ldl: low densiity lipoprotein cholesterol
+* adiposity
+* famhist: family history of heart disease (Present, Absent)
+* typea: type-A behavior
+* obesity
+* alcohol: current alcohol consumption
+* age: age at onset
+
+[Qui](https://hastie.su.domains/ElemStatLearn/) potete trovare più informazioni sul dataset. 
+
+
+
+```{r, eval=TRUE}
+SAheart <- read.table("SAheart.csv",sep=",",head=TRUE)
+```
+
+Desideriamo costruire un modello che predica la probabilità di avere una malattia alle coronarie dati i valori delle altre caratteristiche. Possiamo fare una prima analisi esplorativa per vedere le caratteristiche delle diverse variabili esplicative nei gruppi di persone malate e non malate (escludiamo dai grafici :  
+
+```{r}
+par(mfrow=c(2,2))
+for(j in 1:4) plot(jitter(SAheart$chd, amount = 0.2)~SAheart[,j], main = names(SAheart)[j])
+```
+
+```{r}
+par(mfrow=c(2,2))
+for(j in 6:9) plot(jitter(SAheart$chd, amount = 0.2)~SAheart[,j], main = names(SAheart)[j])
+```
+
+
+Per `famhist`, che è una variabile categoriale, possiamo utilizzare un cosiddetto mosaicplot: 
+
+
+```{r}
+table(SAheart$famhist, SAheart$chd)
+mosaicplot(table(SAheart$famhist, SAheart$chd))
+```
+
+```{r}
+chd_mod_ldl <- glm(chd ~ ldl, family = binomial, data = SAheart)
+summary(chd_mod_ldl)
+par(mfrow=c(1,1))
+plot(SAheart$ldl, jitter(SAheart$chd, amount = 0.14), pch = 16)
+lines(sort(SAheart$ldl), 
+      predict(chd_mod_ldl, newdata = data.frame(ldl = sort(SAheart$ldl)),
+             type = "response"), col = "red")
+confint.default(chd_mod_ldl, level = 0.99, parm = "ldl")
+```
+
+
+```{r}
+chd_mod_additive <- glm(chd ~ ., family = binomial, data = SAheart)
+summary(chd_mod_additive)
+```
+
+```{r}
+anova(chd_mod_ldl, chd_mod_additive, test = "LRT")
+```
+
+```{r}
+chd_mod_select <- step(chd_mod_additive, 
+                       k = 2 # use AIC
+                       )
+step(chd_mod_ldl, direction = "forward", scope = list(lower = chd_mod_ldl, 
+                                                    upper = chd_mod_additive))
+step(chd_mod_ldl, direction = "both", scope = list(lower = chd_mod_ldl, 
+                                                    upper = chd_mod_additive))
+
+```
+
+```{r}
+plot(SAheart$ldl, jitter(SAheart$chd, amount = 0.14), pch = 16)
+lines(sort(SAheart$ldl), 
+      predict(chd_mod_ldl, newdata = data.frame(ldl = sort(SAheart$ldl)),
+             type = "response"), col = "red")
+nd <- data.frame(ldl = seq(0,16), age = median(SAheart$age), 
+                 tobacco = median(SAheart$tobacco), 
+                 famhist = "Absent", typea = median(SAheart$typea))
+lines(sort(nd$ldl), 
+      predict(chd_mod_select, newdata = nd,
+             type = "response"), col = "orange")
+linpred <- predict(chd_mod_select, newdata = nd,
+             type = "link", se.fit = TRUE)
+cint <- cbind(linpred$fit - qnorm(.995) * linpred$se.fit,
+              linpred$fit + qnorm(.995) * linpred$se.fit)
+cint_response <- 
+  binomial()$linkinv(cbind(linpred$fit - qnorm(.995) * linpred$se.fit,
+              linpred$fit + qnorm(.995) * linpred$se.fit))
+lines(sort(nd$ldl), cint_response[,1], lty = 2, col = "darkorange")
+lines(sort(nd$ldl), cint_response[,2], lty = 2, col = "darkorange")
+  
+```
+
+
+
+# Model selection per GLMs - Poisson 
+
+Ci concentriamo ora sul dataset `hcrabs` in cui la variabile di interesse è il numero di satelliti attorno ad un granchio femmina. Desideriamo individuare i predittori che possono risultare utili nello spiegare la variabilità della variabile risposta. Innanzitutto leggiamo il dataset ed esploriamo le relazioni tra predittori e risposta: 
+
+
+```{r}
+hcrabs <- read.csv("hcrabs.csv", header = TRUE)
+plot(hcrabs)
+```
+
+
+`Spine` e `Col` sono dei fattori ordinati: 
+
+```{r}
+hcrabs$Spine <- factor(hcrabs$Spine, levels = c("NoneOK", "OneOK", "BothOK"))
+hcrabs$Col <- factor(hcrabs$Col, levels = c("LM", "M", "DM", "D"))
+
+```
+
+`Sat` (la variabile risposta) sembra essere legata a `Width` e `Wt`, le quali però sono anche legate tra loro. Le altre variabili nel dataset sono variabili categoriali Inoltre ci sono alcune variabili categoriali per cui lo scatterplot non facilita la comprensione delle relazioni tra i predittori ma che sembrano avere forse qualche effetto su `Sat`: 
+
+```{r}
+par(mfrow=c(1,2))
+plot(Sat~Col, data =hcrabs)
+plot(Sat~Spine, data =hcrabs)
+```
+
+Iniziamo la procedura di selezione del modello specificando i due modelli additivi più semplice e più complesso possibile: utilizzeremo poi la funzione `step` per verificare se esiste un modello con complessità intermedia tra i due che spieghi sufficientemente bene i dati. 
+
+```{r}
+model0<-glm(Sat~1, family=poisson(link=log),data=hcrabs)
+modelFull<-glm(Sat~., family=poisson(link=log),data=hcrabs)
+anova(model0, modelFull, test = "LRT") ## at least some variables are significant
+```
+Come criterio di valutazione della bontà di adattamento possiamo usare AIC or BIC (quindi prendiamo $k=log(n)$ nella penalizzazione): 
+
+```{r}
+selAIC <-  step(model0, direction = "forward", 
+    scope = list(lower = model0, upper = modelFull))
+```
+
+
+```{r}
+modelInteract <- glm(Sat~Wt*Col, family=poisson(link=log),data=hcrabs)
+summary(selAIC)
+summary(modelInteract)
+AIC(selAIC, modelInteract)
+anova(selAIC, modelInteract, test = "LRT")
+```
+
+
+```{r}
+hcrabs <-hcrabs[order(hcrabs$Wt),]
+plot(hcrabs$Wt, hcrabs$Sat, col = as.numeric(hcrabs$Col), pch = 16)
+lines(hcrabs$Wt[hcrabs$Col =="LM"], 
+       predict(selAIC, type = "response")[hcrabs$Col =="LM"], col = 1, lwd = 2)
+lines(hcrabs$Wt[hcrabs$Col =="M"], 
+       predict(selAIC, type = "response")[hcrabs$Col =="M"], col = 2, lwd = 2)
+lines(hcrabs$Wt[hcrabs$Col =="DM"], 
+       predict(selAIC, type = "response")[hcrabs$Col =="DM"], col = 3, lwd = 2)
+lines(hcrabs$Wt[hcrabs$Col =="D"], 
+       predict(selAIC, type = "response")[hcrabs$Col =="D"], col = 4, lwd = 2)
+
+plot(hcrabs$Wt, hcrabs$Sat, col = as.numeric(hcrabs$Col), pch = 16)
+lines(hcrabs$Wt[hcrabs$Col =="LM"], 
+       predict(modelInteract, type = "response")[hcrabs$Col =="LM"], col = 1, lwd = 2)
+lines(hcrabs$Wt[hcrabs$Col =="M"], 
+       predict(modelInteract, type = "response")[hcrabs$Col =="M"], col = 2, lwd = 2)
+lines(hcrabs$Wt[hcrabs$Col =="DM"], 
+       predict(modelInteract, type = "response")[hcrabs$Col =="DM"], col = 3, lwd = 2)
+lines(hcrabs$Wt[hcrabs$Col =="D"], 
+       predict(modelInteract, type = "response")[hcrabs$Col =="D"], col = 4, lwd = 2)
+```
+
+Intevallo di confidenza per un granchio di peso 3000 nelle 4 categorie di colore: 
+
+```{r}
+nd <- data.frame(Wt = 3000, Col = c("LM","M","D","DM"))
+cint <- predict(modelInteract, newdata = nd, type = "link", se.fit = TRUE)
+
+  exp(cbind(cint$fit - qnorm(.995)*cint$se.fit, 
+      cint$fit + qnorm(.995)*cint$se.fit) )    
+
+```
+
+
+
+
