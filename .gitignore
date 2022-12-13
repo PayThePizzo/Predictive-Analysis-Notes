@@ -1,6 +1,4 @@
-*.html
-*_classe.Rmd
-*_classe.html
+
 *.tex
 *.RData
 *R.history

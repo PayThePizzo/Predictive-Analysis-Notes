@@ -12,8 +12,6 @@ All the credits go to the professor Prosdocimi Ilaria, the creators and owners o
 ## Visualize the labs!
 If you want to visualize the labs without having to download and run the Rmd files each time, click on the links:
 * [Lab 00](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00.html) - R quick revision
-  * [Lab 00 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00_sol.html)
-  * [Lab 00 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00_class.html)
 * [Lab 01](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01.html) - Intro to simple linear models in R
   * [Lab 01 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01_sol.html)
   * [Lab 01 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab01/lab01_class.html)

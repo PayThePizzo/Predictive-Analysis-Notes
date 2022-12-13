@@ -7,7 +7,6 @@ output:
     code_folding: show
 ---
 
-
 # The data 
 
 Usiamo i dati di automobili visti nel lab precedente: leggiamo direttamente i dati usando il file in Moodle: 
@@ -25,7 +24,7 @@ par(col= rgb(0.4,0.4,0.9,0.8),pch=16)
 plot(autompg)
 ```
 
-Presi individualemnte alcuni predittori sembrano essere più o meno correlati con la variabile risposta:
+Presi individualemente alcuni predittori sembrano essere più o meno correlati con la variabile risposta e cio' risulta in una predizione che non tiene conto di una corretta valutazione dell'incertezza.
 
 ```{r}
 signif(cor(autompg),3)
@@ -44,7 +43,11 @@ con $\varepsilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti).
 
 # Significatvita' del modello
 
-La prima domanda a cui vogliamo dare risposta e' se questo modello e' significativo, ovvero che e' significativo contro il modello nullo. Formalmente dovremo dire che possiamo rifiutare, ad un livello di significativita' del 5%, che i coefficienti del modello siano pari a 0.
+La prima domanda a cui vogliamo dare risposta e': questo modello e' significativo?
+
+Dobbiamo testare che il modello sia significativo contro il modello nullo.
+
+Formalmente dovremo dire se possiamo rifiutare l'ipotesi nulla, ad un livello di significativita' del 5%, che i coefficienti del modello siano pari a 0.
 
 ```{r, class.source = "fold-show"}
 # Full model or alternative model
