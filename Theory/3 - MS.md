@@ -1,18 +1,34 @@
 # Model Selection and Nested Models
 Model selection is the process of analyzing what predictors should be included in a model
-in order to balance its complexity and adaptability. In ML this is called feature selection.
+in order to balance its complexity and adaptability. In ML, this is called feature selection and it is acceptable to have
+a number of observations lower than the number of predictors $n < p$.
 
-In statistics we want to have $n > p$ as the number of feature should be ideally small, while
-we hope the observations to be $n \rightarrow \infty$ 
+In statistics we want to have $n > p$ and **p should be ideally the smallest subset of features**, while
+we hope the observations to be $n \rightarrow \infty$. 
+This is because $(X^{T}X)^{-1}$ is a matrix $p \times p$, so if $n < p$ it is not possible invert it.
+
+Another aspect we shall consider is that we want to examine the trade-off between different values of p to catch
+the **best ratio predictive-ability/computational-cost**
+
+Usually we ask ourserlves:
+* Is at least 1 predictor useful in target prediction?
+* Do all predictors help? Should we consider a subset only?
+* How well does the model fit the data?
 
 ## Significance of Regression
 We ask ourselves whether a model with p predictors is better than just taking the expected value $\bar{y}$, since the latter is merely the simplest possible model. 
 We want to be able to distinguish what predictors are useful and how well the model in question fits the data. 
 
-However $R^{2}$ does not supply a clear answer for any of our questions, so we need to find another approach with metrics 
-that:
+Since we can still make a use of the decomposition of variance of the SLR, we can define our goal: find models that minimize $SS_{RES}$ and
+maximize $SS_{REG}$. As they are complementary, we can try achieving either one of those points. 
+
+One way is to try and maximize the r-squared $R^{2} \rightarrow 1$! However it does not supply any relevant info:
+* Problem 1: from this metric we have no clue which predictor explains better the observed variability
+* Problem 2: it is not a clear indication that the regression captures a considerably good proportion of the variability. There is no measure to understand what $(a * 100)%$ means or if it is good. 
+
+Since $R^{2}$ does not supply a clear answer for any of our questions, so we need to find another approach with metrics that:
 1. Declares the model is useful
-2. Tests whether the model is significantly different from taking a simpler one
+2. Tests whether a model is significantly different/better from taking a simpler one: is it worth to build a more complex model?
 
 To obtain some answers with one simple way we can test the significance of the regression which explains
 whether building a certain model is better than sticking to a "null model" or a simpler one.
