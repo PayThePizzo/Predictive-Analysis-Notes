@@ -65,7 +65,7 @@ $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta
 
 Now we will explore some distributions and their link functions.
 
-[distrlink](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/distrlink.png?raw=TRUE)
+![distrlink](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/distrlink.png?raw=TRUE)
 
 ## Binary Response and Logistic Regression
 Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1. With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
