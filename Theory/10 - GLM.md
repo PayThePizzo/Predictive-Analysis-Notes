@@ -95,7 +95,8 @@ Here we consider the following ones:
 | Poisson      	| Count of occurrences in fixed amount of time/space 	| $log(\lambda)$ 	| -            	| $1$       	| $exp(\theta)$           	| $-\log(y!)$                                                	| $\lambda$      	| $\lambda$                  	| $g(\xi) = \log(\xi)$       	|
 
 Note that:
-* Poisson and Bernoulli are 1-parameter distribution: the variance is related to the mean
+* Poisson and Bernoulli are 1-parameter distribution: the variance is related to the mean.
+  * It is harder to estimate.
 * In the Normal distribution we also have a nuisance parameter $\sigma^2$
 
 ---
@@ -166,16 +167,30 @@ We define a link between the mean and expected value of the distribution:
 
 $$\eta_{i} = g(\mu_{i}) = X\beta$$
 
-Often we choose the canonical link $\eta = \theta = g(\mu)$
+Often we choose the **canonical link** $\eta = \theta = g(\mu)$
 
-The beta parameters, of a GLM can be estimated using **maximum likelihood** .Then the log-likelihood is:
+The beta parameters, of a GLM can be estimated using **maximum likelihood**. Then the log-likelihood is:
 
 ```math
 l(\beta) = \sum^{n}_{i=1} \left\{ \frac{y_{i}\theta_{i}-b(\theta_{i})}{a(\phi)}+c(y_{i},\phi) \right\}
 ```
 
-Unfortunately, unlike ordinary linear regression, there is no analytical solution for this maximization problem. Instead, it will need to be solved using numerical approximations via an iteratively reweighted least squares algorithm (IRLS).
+Unfortunately, unlike ordinary linear regression, there is no analytical solution for this maximization problem. Instead, it will need to be solved using **numerical approximations** via an iteratively reweighted least squares algorithm (IRLS).
 
+![GLM1](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm1.png?raw=TRUE)
+
+We can derive Fisher's information, namely the second derivatives/
+
+![GLM2](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm2.png?raw=TRUE)
+
+
+![GLM3](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm3.png?raw=TRUE)
+
+
+![GLM4](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm4.png?raw=TRUE)
+
+
+![GLM5](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm5.png?raw=TRUE)
 
 
 ## glm in R
