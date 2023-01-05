@@ -13,29 +13,30 @@ As an example, suppose a linear prediction model learns from some data (perhaps 
 ---
 
 ## What is new with the GLM?
+The GLM generalizes linear regression by allowing the linear model to be related to the response variable via a link function and by allowing the magnitude of the variance of each measurement to be a function of its predicted value.
 
-Generalized linear models cover all these situations by **allowing for response variables that have arbitrary distributions** (rather than simply normal distributions) which needs to be from the exponential family of distributions.
+The GLM consists of three elements:
+1. A particular distribution for modeling $Y$ from among those which are considered exponential families of probability distributions,
+2. A linear predictor $\eta = X \beta$, and
+3. A link function $g$ such that $\mathbb{E}[Y|X] = \mu = g^{-1}(\eta)$.
+
+
+### 1 - Exponential Family
+GLM **allow for response variables to have arbitrary distributions**. $Y$ is assumed to be generated from a particular distribution in an exponential family (rather than simply normal distributions), such as:
+* Normal
+* Exponential
+* Gamma
+* Inverse Gaussian
+* Poisson
+* Bernoulli
+* Binomial
+* Categorical
+* Multinomial
 
 $$Y_{i} \thicksim \mathbb{EF}(\theta_{i}, \phi_{i})$$
 * $\theta$, the **location** parameter which is related to where the distribution is centered;
 * $\phi$, the **scale** parameter defines how the distribution is dispersed.
 
-Furthermore, they allow for an arbitrary function of the **response variable (the link function) to vary linearly with the predictors** (rather than assuming that the response itself must vary linearly).[1](https://en.wikipedia.org/wiki/Generalized_linear_model)
-
-$$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta_{i})$$
-* Instead of saying that the expected values changes through a linear relationship with $x$, we say the **expected value changes through a function of the linear predictor**, the link function (or its inverse).
-* The link function's goal is to pass from the domain of the linear predictors to the domain of the response variables. 
-* The interpretation of the beta parameters changes as the link function changes.
-
-### GLM components
-1. A **response variable** $Y$ that follows a distribution from the $\mathbb{EF}$ family $Y_{i} \thicksim \mathbb{EF}(\theta_{i}, \phi_{i})$
-2. A linear predictor $\eta = X \beta$
-   1. The linear predictor is the quantity which incorporates the information about the independent variables into the model.
-3. A link function $g$ such that $\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta_{i})$ 
-   1. The link function provides the relationship between the linear predictor and the mean of the distribution function.
-
----
-## Exponential Family
 One of the characteristics of this family of functions is that, it is possible to write the **pdf** as:
 
 ```math
@@ -45,10 +46,22 @@ f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \thet
 * $\mathbb{E}[Y]= b'(\theta)$
 * $Var[Y] = a(\phi)b''(\theta)$
 
-To this family, belong the normal, inverse gaussian, binomial, exponential, gamma, poisson, bernoulli distributions.
-
 These functions can only be defined on the positive axis.
 
+### 2 - Linear Predictor
+The linear predictor is the quantity which incorporates the information about the independent variables into the model. It is related to the expected value of the data through the link function.
+
+$$\eta = X \beta$$
+
+### 3 - Link Function
+Furthermore, GLM allow for an arbitrary function of the **response variable (the link function) to vary linearly with the predictors** (rather than assuming that the response itself must vary linearly).[1](https://en.wikipedia.org/wiki/Generalized_linear_model)
+The link function provides the relationship between the linear predictor and the mean of the distribution function.
+
+$$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta_{i})$$
+* Instead of saying that the expected values changes through a linear relationship with $x$, we say the **expected value changes through a function of the linear predictor**, the link function (or its inverse).
+* The link function's goal is to pass from the domain of the linear predictors to the domain of the response variables.
+* In some cases it makes sense to try to match the domain of the link function to the range of the distribution function's mean.
+* The interpretation of the beta parameters changes as the link function changes.
 
 ---
 
