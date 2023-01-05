@@ -1,4 +1,5 @@
 # GLM - Generalized Linear Models 
+The GLM generalizes linear regression by allowing the linear model to be related to the response variable via a link function and by allowing the magnitude of the variance of each measurement to be a function of its predicted value.
 
 ### Classical Linear Model - Issues
 
@@ -13,13 +14,10 @@ As an example, suppose a linear prediction model learns from some data (perhaps 
 ---
 
 ## What is new with the GLM?
-The GLM generalizes linear regression by allowing the linear model to be related to the response variable via a link function and by allowing the magnitude of the variance of each measurement to be a function of its predicted value.
-
 The GLM consists of three elements:
 1. A response variable $Y$ which distribution is arbitrary and comes from the exponential families of probability distributions
 2. A linear predictor $\eta = X \beta$, and
 3. A link function $g$ such that $\mathbb{E}[Y|X] = \mu = g^{-1}(\eta)$.
-
 
 ### 1 - Exponential Family
 $Y$ is assumed to be generated from a particular distribution in an exponential family (rather than simply normal distributions), such as:
@@ -34,17 +32,20 @@ $Y$ is assumed to be generated from a particular distribution in an exponential 
 * Multinomial
 
 $$Y_{i} \thicksim \mathbb{EF}(\theta_{i}, \phi_{i})$$
-* $\theta$, the **location** parameter which is related to where the distribution is centered;
-* $\phi$, the **scale** parameter defines how the distribution is dispersed.
+* $\theta$, the canonical parameter which represents the **location** 
+  * It is related to where the distribution is centered;
+* $\phi$, the dispersion or **scale** parameter which defines how the distribution is dispersed.
 
-One of the characteristics of this family of functions is that, it is possible to write the **probability distribution** as:
+One of the characteristics of this family of functions is that, it is possible to write the **probability density/mass function** as:
 ```math
 f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)\right\}
 ```
-* $\mathbb{E}[Y]= b'(\theta)$
+Where
+* $a(\cdot)$, $b(\cdot)$ and $c(\cdot, \cdot)$ are specific functions
+* $\mu = \mathbb{E}[Y]= b'(\theta)$
 * $Var[Y] = a(\phi)b''(\theta)$
-
-These functions can only be defined on the positive axis.
+  * The Variance of the distribution is also written as a function of $\theta$ and $\phi$
+  * The $b''(\theta)$ function is called the variance function: specifies how the variance depends on the location parameter.
 
 ### 2 - Linear Predictor
 The linear predictor is the quantity which incorporates the information about the independent variables into the model. It is related to the expected value of the data through the link function.
@@ -61,11 +62,56 @@ $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta
 * In some cases it makes sense to try to match the domain of the link function to the range of the distribution function's mean.
 * The interpretation of the beta parameters changes as the link function changes.
 
+### 3.1 - Canonical Link Function 
+The canonical link function $g$ is the one that transforms
+
+$$\mathbb{E}[Y]=b'(\theta) \rightarrow \theta$$
+
+This happens if:
+
+$$\theta = g(\mathbb{E}[Y]) \;\; or \;\; \theta = b^{'-1}(\mathbb{E}[Y])$$
+
 ---
 
-Now we will explore some distributions and their link functions.
+GLM is a broad class of models. We can use many different functions $g()$: for each such
+function, we have a different GLM. 
 
-![distrlink](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/distrlink.png?raw=TRUE)
+Starting from their original distribution functions we can rewrite them in the form:
+
+```math
+f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)\right\}
+```
+
+
+| Distribution 	| $\theta$       	| $\phi$       	| $a(\phi)$ 	| $b(\theta)$             	| $c(y, \phi)$                                           	| Expected Value 	| Variance                   	| Canonical Link Function    	|
+|--------------	|----------------	|--------------	|-----------	|-------------------------	|--------------------------------------------------------	|----------------	|----------------------------	|----------------------------	|
+| Gaussian     	| $\mu$          	| $\sigma^{2}$ 	| $\phi$    	| $\frac{1}{2}\theta^{2}$ 	| $-\frac{1}{2}(\frac{y}{\phi} + log(\sqrt{2\pi \phi}))$ 	| $\mu$          	| $\sigma^{2}$               	| $g(\xi) = \xi$             	|
+| Gamma        	| $-1/\mu$       	| $\nu$        	| $1/\nu$   	| $log(-1/\theta)$        	| $-\log (\Gamma(\nu))+\nu \log(\nu)+(\nu -1)\log(y)$    	| $\mu$          	| $1/\theta^{2} \cdot 1/\nu$ 	| $g(\xi) = -1/\xi$          	|
+| Bernoulli    	| $log(p/(1-p))$ 	| -            	| $1$       	| $log(1+exp(\theta))$    	| $0$                                                    	| $p$            	| $p(1-p)$                   	| $g(\xi) = \log(\xi/1-\xi)$ 	|
+| Poisson      	| $log(\lambda)$ 	| -            	| $1$       	| $exp(\theta)$           	| $-\log(y!)$                                            	| $\lambda$      	| $\lambda$                  	| $g(\xi) = \log(\xi)$       	|
+## Gaussian distribution
+
+$$$$
+
+where:
+* a
+
+$$$$
+
+
+## Gamma distribution
+
+$$$$
+
+## Bernoulli distribution
+
+$$$$
+
+## Poisson distribution 
+
+$$$$
+
+---
 
 ## Binary Response and Logistic Regression
 Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1. With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
@@ -92,7 +138,11 @@ Note that for $\xi \in (−\infty, \infty)$ , the logistic takes values between 
 
 ---
 
-## Poisson response and log-linear regression
+## Estimation of a GLM
+
+## glm in R
+
+##
 
 ---
 
