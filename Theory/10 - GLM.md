@@ -200,41 +200,6 @@ Unfortunately, unlike ordinary linear regression, there is no analytical solutio
 
 ---
 
-## glm in R
-The `glm` function fit a GLM model using the maximum likelihood method. For ordinary usage, the call is the same as for lm, except for one extra argument, family. The default value of family is gaussian, for each family we can specify a link function
-* In the Poisson regression case the call looks like `glm(y~x, family = poisson)`
-* In the logistic regression case, for example, the call looks like `glm(y~x, family = binomial)`
-
-### Binomial example
-```R
-logitout <- glm(yesVote ~ . , data = chileElection, family = binomial)
-```
-The summary here prints out:
-* Deviance Residuals, with the min, max and the quantiles
-* Coefficients, the usual table with the estimations and significances.
-  * Estimate 
-  * Std. Error 
-  * z value 
-  * Pr(>|z|)
-* A note `Dispersion parameter for binomial family taken to be 1` 
-* Null deviance and the DoF, similar to R-Squared
-* Residual deviance and the DoF, similar to the F-Statistic
-* Number of observations deleted `54 observations deleted due to missingness`
-* AIC
-* Number of Fisher Scoring iterations
-
-#### Link
-As a default R uses the canonical link, for the binomial we check `binomial()$link` which returns `"logit"`. The link can be changed - see ?family
-
-#### Variance 
-
-
-
-
-##
-
----
-
 ### Credits
 * [1 - Generalized Linear Models at Wikipedia](https://en.wikipedia.org/wiki/Generalized_linear_model)
   * Some rephrasing has been done to clarify the issues.
