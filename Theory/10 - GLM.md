@@ -82,36 +82,15 @@ Starting from their original distribution functions we can rewrite them in the f
 f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)\right\}
 ```
 
+So we will obtain:
 
-| Distribution 	| $\theta$       	| $\phi$       	| $a(\phi)$ 	| $b(\theta)$             	| $c(y, \phi)$                                           	| Expected Value 	| Variance                   	| Canonical Link Function    	|
-|--------------	|----------------	|--------------	|-----------	|-------------------------	|--------------------------------------------------------	|----------------	|----------------------------	|----------------------------	|
-| Gaussian     	| $\mu$          	| $\sigma^{2}$ 	| $\phi$    	| $\frac{1}{2}\theta^{2}$ 	| $-\frac{1}{2}(\frac{y}{\phi} + log(\sqrt{2\pi \phi}))$ 	| $\mu$          	| $\sigma^{2}$               	| $g(\xi) = \xi$             	|
-| Gamma        	| $-1/\mu$       	| $\nu$        	| $1/\nu$   	| $log(-1/\theta)$        	| $-\log (\Gamma(\nu))+\nu \log(\nu)+(\nu -1)\log(y)$    	| $\mu$          	| $1/\theta^{2} \cdot 1/\nu$ 	| $g(\xi) = -1/\xi$          	|
-| Bernoulli    	| $log(p/(1-p))$ 	| -            	| $1$       	| $log(1+exp(\theta))$    	| $0$                                                    	| $p$            	| $p(1-p)$                   	| $g(\xi) = \log(\xi/1-\xi)$ 	|
-| Poisson      	| $log(\lambda)$ 	| -            	| $1$       	| $exp(\theta)$           	| $-\log(y!)$                                            	| $\lambda$      	| $\lambda$                  	| $g(\xi) = \log(\xi)$       	|
-## Gaussian distribution
+| Distribution 	| $\theta$       	| $\phi$       	| $a(\phi)$ 	| $b(\theta)$             	| $c(y, \phi)$                                               	| Expected Value 	| Variance                   	| Canonical Link Function    	|
+|--------------	|----------------	|--------------	|-----------	|-------------------------	|------------------------------------------------------------	|----------------	|----------------------------	|----------------------------	|
+| Gaussian     	| $\mu$          	| $\sigma^{2}$ 	| $\phi$    	| $\frac{1}{2}\theta^{2}$ 	| $-\frac{1}{2}(\frac{y^{2}}{\phi} + log(\sqrt{2\pi \phi}))$ 	| $\mu$          	| $\sigma^{2}$               	| $g(\xi) = \xi$             	|
+| Gamma        	| $-1/\mu$       	| $\nu$        	| $1/\nu$   	| $log(-1/\theta)$        	| $-\log (\Gamma(\nu))+\nu \log(\nu)+(\nu -1)\log(y)$        	| $\mu$          	| $1/\theta^{2} \cdot 1/\nu$ 	| $g(\xi) = -1/\xi$          	|
+| Bernoulli    	| $log(p/(1-p))$ 	| -            	| $1$       	| $log(1+exp(\theta))$    	| $0$                                                        	| $p$            	| $p(1-p)$                   	| $g(\xi) = \log(\xi/1-\xi)$ 	|
+| Poisson      	| $log(\lambda)$ 	| -            	| $1$       	| $exp(\theta)$           	| $-\log(y!)$                                                	| $\lambda$      	| $\lambda$                  	| $g(\xi) = \log(\xi)$       	|
 
-$$$$
-
-where:
-* a
-
-$$$$
-
-
-## Gamma distribution
-
-$$$$
-
-## Bernoulli distribution
-
-$$$$
-
-## Poisson distribution 
-
-$$$$
-
----
 
 ## Binary Response and Logistic Regression
 Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1. With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
