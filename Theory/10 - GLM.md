@@ -54,6 +54,10 @@ $$\eta = X \beta$$
 
 ### 3 - Link Function
 GLM allow for an arbitrary function of the **response variable (the link function) to vary linearly with the predictors** (rather than assuming that the response itself must vary linearly).[1](https://en.wikipedia.org/wiki/Generalized_linear_model)
+
+#### Why is this important?
+Some of these distributions have constraints for the values of their parameters, so we cannot directly model the parameters of the distributions as a function of the linear predictors since we risk to estimate values that make no sense in this framework. The solution is to transform the parameters (which are usually related to the expected value) and to model a transformation of the expected value, to respect the constraints of a particular random variable.
+
 The link function $g$ provides the relationship between the linear predictor and the mean of the distribution function.
 
 $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta_{i})$$
@@ -61,6 +65,7 @@ $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta
 * The link function's goal is to pass from the domain of the linear predictors to the domain of the response variables.
 * In some cases it makes sense to try to match the domain of the link function to the range of the distribution function's mean.
 * The interpretation of the beta parameters changes as the link function changes.
+
 
 ### 3.1 - Canonical Link Function 
 The canonical link function $g$ is the one that transforms
@@ -73,7 +78,7 @@ This happens if:
 
 ---
 
-## Common distributions with canonical link functions
+## Common distributions with typical use and canonical link functions
 
 GLM is a broad class of models. We can use many different functions $g()$ for each such
 function, we have a different GLM. In fact, starting from their original distribution functions we can rewrite them in the form:
@@ -82,7 +87,7 @@ function, we have a different GLM. In fact, starting from their original distrib
 f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)\right\}
 ```
 
-So we will obtain:
+Here we consider the following ones:
 
 | Distribution 	| Typical uses                                       	| $\theta$       	| $\phi$       	| $a(\phi)$ 	| $b(\theta)$             	| $c(y, \phi)$                                               	| Expected Value 	| Variance                   	| Canonical Link Function    	|
 |--------------	|----------------------------------------------------	|----------------	|--------------	|-----------	|-------------------------	|------------------------------------------------------------	|----------------	|----------------------------	|----------------------------	|
@@ -123,6 +128,23 @@ Note that for $\xi \in (−\infty, \infty)$ , the logistic takes values between 
 ---
 
 ## Estimation of a GLM
+In the sequel we denote $Y \thicksim \mathbf{EF}(θ, ϕ, a, b, c)$ if Y has a distribution that belongs to an
+exponential family. With n observations, we write the model indexed with i to note that it is being applied to
+each observation $Y \thicksim \mathbf{EF}(θ_{i}, ϕ, a, b, c)$
+
+We define a link between the mean and expected value of the distribution:
+
+$$\eta_{i} = g(\mu_{i}) = X\beta$$
+
+Often we choose the canonical link $\eta = \theta = g(\mu)$
+
+The beta parameters, of a GLM can be estimated using **maximum likelihood** .Then the log-likelihood is:
+
+$$l(\beta) = \sum^{n}_{i=1} \left \{ \frac{y_{i}\theta_{i}-b(\theta_{i})}{a(\phi)}+c(y_{i},\phi) \right \}$$
+
+Unfortunately, unlike ordinary linear regression, there is no analytical solution for this maximization problem. Instead, it will need to be solved using numerical approximations via an iteratively reweighted least squares algorithm (IRLS).
+
+
 
 ## glm in R
 
