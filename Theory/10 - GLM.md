@@ -171,7 +171,7 @@ Often we choose the canonical link $\eta = \theta = g(\mu)$
 The beta parameters, of a GLM can be estimated using **maximum likelihood** .Then the log-likelihood is:
 
 ```math
-$$l(\beta) = \sum^{n}_{i=1} \left{ \frac{y_{i}\theta_{i}-b(\theta_{i})}{a(\phi)}+c(y_{i},\phi) \right}$$
+l(\beta) = \sum^{n}_{i=1} \left{ \frac{y_{i}\theta_{i}-b(\theta_{i})}{a(\phi)}+c(y_{i},\phi) \right}
 ```
 
 Unfortunately, unlike ordinary linear regression, there is no analytical solution for this maximization problem. Instead, it will need to be solved using numerical approximations via an iteratively reweighted least squares algorithm (IRLS).
