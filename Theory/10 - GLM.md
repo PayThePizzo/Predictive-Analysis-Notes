@@ -68,8 +68,8 @@ The canonical link function $g$ is the one that transforms
 $$\mathbb{E}[Y]=b'(\theta) \rightarrow \theta$$
 
 This happens if:
-
-$$\theta = g(\mathbb{E}[Y]) \;\; or \;\; \theta = b^{'-1}(\mathbb{E}[Y])$$
+* $\theta = g(\mathbb{E}[Y])$ or,
+* $\theta = b^{'-1}(\mathbb{E}[Y])$
 
 ---
 
