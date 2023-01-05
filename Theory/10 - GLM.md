@@ -139,8 +139,21 @@ Note that the link function g such that $g(\mathbb{E}[Y| X_{1}=x_{1}, ..., X_{p-
 
 ---
 ## Poisson response and log-linear regression
+Suppose we have count responses $Y$ that we wish to model in terms of a vector of predictors $x_{1},...,x_{p-1}$.
+Assume that Y is Poisson with mean $\mathbb{E}[Y] = \mu > 0$, then:
 
+$$Pr[Y=y] = \frac{\mu^{y}}{y!}exp(-\mu)$$
 
+Model $\mu$ in terms of the predictors:
+
+$$Y| X_{1}=x_{1}, ..., X_{p-1}=x_{p-1} \thicksim Poisson(\mu(x_{1},...,x_{p-1}))$$
+* We need to specify the function $\mu(\cdot) \geq 0$
+
+We use a linear combination of the $x_i$ to form the linear predictor.
+
+$$\mu(x_{1},...,x_{p-1}) = exp\{X\beta\} \rightarrow \log(\mu(x_{1},...,x_{p-1})) = X \beta$$
+
+The link function g $g(\mathbb{E}[Y| X_{1}=x_{1}, ..., X_{p-1}=x_{p-1}]) = X\beta$ is the logarithm and the model is termed log-linear model. This corresponds to the canonical link: it is a natural way to construct the model
 
 ---
 
@@ -157,7 +170,9 @@ Often we choose the canonical link $\eta = \theta = g(\mu)$
 
 The beta parameters, of a GLM can be estimated using **maximum likelihood** .Then the log-likelihood is:
 
-$$l(\beta) = \sum^{n}_{i=1} \left \{ \frac{y_{i}\theta_{i}-b(\theta_{i})}{a(\phi)}+c(y_{i},\phi) \right \}$$
+```math
+$$l(\beta) = \sum^{n}_{i=1} \left{ \frac{y_{i}\theta_{i}-b(\theta_{i})}{a(\phi)}+c(y_{i},\phi) \right}$$
+```
 
 Unfortunately, unlike ordinary linear regression, there is no analytical solution for this maximization problem. Instead, it will need to be solved using numerical approximations via an iteratively reweighted least squares algorithm (IRLS).
 
