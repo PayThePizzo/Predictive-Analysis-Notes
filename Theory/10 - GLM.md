@@ -16,13 +16,13 @@ As an example, suppose a linear prediction model learns from some data (perhaps 
 The GLM generalizes linear regression by allowing the linear model to be related to the response variable via a link function and by allowing the magnitude of the variance of each measurement to be a function of its predicted value.
 
 The GLM consists of three elements:
-1. A particular distribution for modeling $Y$ from among those which are considered exponential families of probability distributions,
+1. A response variable $Y$ which distribution is arbitrary and comes from the exponential families of probability distributions
 2. A linear predictor $\eta = X \beta$, and
 3. A link function $g$ such that $\mathbb{E}[Y|X] = \mu = g^{-1}(\eta)$.
 
 
 ### 1 - Exponential Family
-GLM **allow for response variables to have arbitrary distributions**. $Y$ is assumed to be generated from a particular distribution in an exponential family (rather than simply normal distributions), such as:
+$Y$ is assumed to be generated from a particular distribution in an exponential family (rather than simply normal distributions), such as:
 * Normal
 * Exponential
 * Gamma
@@ -37,12 +37,10 @@ $$Y_{i} \thicksim \mathbb{EF}(\theta_{i}, \phi_{i})$$
 * $\theta$, the **location** parameter which is related to where the distribution is centered;
 * $\phi$, the **scale** parameter defines how the distribution is dispersed.
 
-One of the characteristics of this family of functions is that, it is possible to write the **pdf** as:
-
+One of the characteristics of this family of functions is that, it is possible to write the **probability distribution** as:
 ```math
 f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)\right\}
 ```
-
 * $\mathbb{E}[Y]= b'(\theta)$
 * $Var[Y] = a(\phi)b''(\theta)$
 
@@ -54,8 +52,8 @@ The linear predictor is the quantity which incorporates the information about th
 $$\eta = X \beta$$
 
 ### 3 - Link Function
-Furthermore, GLM allow for an arbitrary function of the **response variable (the link function) to vary linearly with the predictors** (rather than assuming that the response itself must vary linearly).[1](https://en.wikipedia.org/wiki/Generalized_linear_model)
-The link function provides the relationship between the linear predictor and the mean of the distribution function.
+GLM allow for an arbitrary function of the **response variable (the link function) to vary linearly with the predictors** (rather than assuming that the response itself must vary linearly).[1](https://en.wikipedia.org/wiki/Generalized_linear_model)
+The link function $g$ provides the relationship between the linear predictor and the mean of the distribution function.
 
 $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta_{i})$$
 * Instead of saying that the expected values changes through a linear relationship with $x$, we say the **expected value changes through a function of the linear predictor**, the link function (or its inverse).
@@ -64,6 +62,10 @@ $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta
 * The interpretation of the beta parameters changes as the link function changes.
 
 ---
+
+Now we will explore some distributions and their link functions.
+
+[distrlink](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/distrlink.png?raw=TRUE)
 
 ## Binary Response and Logistic Regression
 Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1. With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
