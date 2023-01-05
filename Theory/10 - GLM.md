@@ -73,10 +73,10 @@ This happens if:
 
 ---
 
-GLM is a broad class of models. We can use many different functions $g()$: for each such
-function, we have a different GLM. 
+## Common distributions with typical uses and canonical link functions
 
-Starting from their original distribution functions we can rewrite them in the form:
+GLM is a broad class of models. We can use many different functions $g()$ for each such
+function, we have a different GLM. In fact, starting from their original distribution functions we can rewrite them in the form:
 
 ```math
 f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)\right\}
@@ -91,6 +91,11 @@ So we will obtain:
 | Bernoulli    	| $log(p/(1-p))$ 	| -            	| $1$       	| $log(1+exp(\theta))$    	| $0$                                                        	| $p$            	| $p(1-p)$                   	| $g(\xi) = \log(\xi/1-\xi)$ 	|
 | Poisson      	| $log(\lambda)$ 	| -            	| $1$       	| $exp(\theta)$           	| $-\log(y!)$                                                	| $\lambda$      	| $\lambda$                  	| $g(\xi) = \log(\xi)$       	|
 
+Note that:
+* Poisson and Bernoulli are 1-parameter distribution: the variance is related to the mean
+* In the Normal distribution we also have a nuisance parameter $\sigma^2$
+
+---
 
 ## Binary Response and Logistic Regression
 Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1. With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
