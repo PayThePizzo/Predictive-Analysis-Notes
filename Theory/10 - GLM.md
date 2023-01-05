@@ -41,6 +41,7 @@ One of the characteristics of this family of functions is that, it is possible t
 ```math
 f(y; \theta, \phi) = exp \left\{\frac{y\theta - b(\theta)}{a(\phi)} + c(y, \theta)\right\}
 ```
+
 * $\mathbb{E}[Y]= b'(\theta)$
 * $Var[Y] = a(\phi)b''(\theta)$
 
