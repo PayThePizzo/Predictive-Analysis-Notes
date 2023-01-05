@@ -61,6 +61,8 @@ c(AIC(mod1), AIC(mod2))
 
 ```
 
+The model with the lowest log
+
 ## Bayesian Information Criterion
 It replaces the $2$ with $log(n)$ so it penalizes more complex models. Best used to find parsimonious, highly-interpretable models.
 

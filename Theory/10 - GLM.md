@@ -26,9 +26,11 @@ $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta
 * The interpretation of the beta parameters changes as the link function changes.
 
 ### GLM components
-1. A **response variable** $Y$ that follows a distribution from the $\mathbb{EF}$ family
+1. A **response variable** $Y$ that follows a distribution from the $\mathbb{EF}$ family $Y_{i} \thicksim \mathbb{EF}(\theta_{i}, \phi_{i})$
 2. A linear predictor $\eta = X \beta$
+   1. The linear predictor is the quantity which incorporates the information about the independent variables into the model.
 3. A link function $g$ such that $\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta_{i})$ 
+   1. The link function provides the relationship between the linear predictor and the mean of the distribution function.
 
 ---
 ## Exponential Family
@@ -46,11 +48,7 @@ These functions can only be defined on the positive axis.
 ---
 
 ## Binary Response and Logistic Regression
-Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1.
- 
-$$Y = \left\{ $$
-
-With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
+Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1. With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
 
 $$\mathbb{Pr}[Y=0] = 1−\mathbb{Pr}[Y =1]=1−p$$
 
@@ -58,9 +56,19 @@ Moreover:
 
 $$E[Y]= \mathbb{Pr}[Y=1]= p$$
 
-Probability Odd 
+> Probability Odd, the probability for a positive event (Y = 1) divided by the probability of a negative event (Y = 0).
 
-$$odd = \frac{\mathbb{Pr}[Y=1]}{\mathbb{Pr}[Y=0]} = \frac{p}{1-p}$$
+$$odd = \frac{\mathbb{Pr}[Y=1]}{\mathbb{Pr}[Y=0]} = \frac{p}{1-p} \in (0,1)$$
+* When the odd is 1, the two events have equal probability. Odds greater than 1 favor a positive event. Odds smaller than 1 favor a negative event.
+
+> The log odd is the **logit** transform applied to p
+
+$$logit(\xi) = \log( \frac{\xi}{1 - \xi}) \in (-\infty, +\infty)$$
+
+> The inverse logit, also known as the logistic or sigmoid function
+
+$$logit^{-1}(\xi) = \frac{e^{\xi}}{1+e^{\xi}} = \frac{1}{1+e^{\xi}}-1$$
+Note that for $\xi \in (−\infty, \infty)$ , the logistic takes values between 0 and 1.
 
 ---
 

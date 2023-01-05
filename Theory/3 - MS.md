@@ -34,10 +34,10 @@ To obtain some answers with one simple way we can test the significance of the r
 whether building a certain model is better than sticking to a "null model" or a simpler one.
 * $H_{0} : Y_{i} = \beta_{0} + \varepsilon_{i} \rightarrow Y = \bar{y}$
   * Where the model is $\hat{y_{0,i}} = \bar{y}$ and represents the null model
-  * It indicates no predictor has a significant linear relation with Y, namely $\beta_{1} = \beta_{2} = ... = \beta_{(p-1)} = 0$
+  * It indicates **no predictor has a significant linear relation with Y**, namely $\beta_{1} = \beta_{2} = ... = \beta_{(p-1)} = 0$
 * $H_{A} : Y_{i} =\beta_{0} + \beta_{1}x_{i1} + \beta_{2}x_{i2} + ... + \beta_{(p-1)}x_{i(p-1)} + \varepsilon_{i}$
   * Where the model is $\hat{y_{A,i}}$
-  * It indicates at least one of the predictors has a significant linear relation with Y, namely $\beta_{0} \neq 0, or \beta_{1} \neq 0, or \beta_{2}x_{i2} \neq 0, ... or \beta_{(p-1)} \neq 0$
+  * It indicates **at least one of the predictors has a significant linear relation** with Y, namely $\beta_{0} \neq 0, or \beta_{1} \neq 0, or \beta_{2}x_{i2} \neq 0, ... or \beta_{(p-1)} \neq 0$
 
 ```r
 # Firstly we specify the two model and save them in two different variables
@@ -132,9 +132,9 @@ If you revise the two models we just saw, you can tell they are the same model! 
 names(dataset)
 ```
 
-If we consider a general linear additive linear model with p-1 beta-parameters:
+If we consider a general linear additive linear model with p beta-parameters:
 
-$$Yi = \beta_{0} + \beta_{1}x_{i1} + ... + \beta_{(q)}x_{i(q)} + \beta_{(q+1)}x_{i(q+1)} + ... + \beta_{(p-1)}x_{i(p-1)} + \varepsilon_{i}$$
+$$Yi = \beta_{0} + \beta_{1}x_{i1} + ... + \beta_{(q-1)}x_{i(q-1)} + ... + \beta_{(p-1)}x_{i(p-1)} + \varepsilon_{i}$$
 
 We can proceed by comparing different subsets of predictors to achieve the best model for our goals, which is the same process as we did before. Now the two options are:
 * $H_{0} : \beta{q} = \beta{q+1} = ... = \beta{p-1} = 0$
