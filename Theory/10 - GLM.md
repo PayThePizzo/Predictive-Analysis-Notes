@@ -53,19 +53,17 @@ The linear predictor is the quantity which incorporates the information about th
 $$\eta = X \beta$$
 
 ### 3 - Link Function
-GLM allow for an arbitrary function of the **response variable (the link function) to vary linearly with the predictors** (rather than assuming that the response itself must vary linearly).[1](https://en.wikipedia.org/wiki/Generalized_linear_model)
+GLM allow for an **arbitrary function of the response variable (the link function) to vary linearly with the predictors** (rather than assuming that the response itself must vary linearly).[1](https://en.wikipedia.org/wiki/Generalized_linear_model)
 
 #### Why is this important?
 Some of these distributions have constraints for the values of their parameters, so we cannot directly model the parameters of the distributions as a function of the linear predictors since we risk to estimate values that make no sense in this framework. The solution is to transform the parameters (which are usually related to the expected value) and to model a transformation of the expected value, to respect the constraints of a particular random variable.
 
-The link function $g$ provides the relationship between the linear predictor and the mean of the distribution function.
+The link function's goal is to pass from the domain of the linear predictors to the domain of the response variables. It provides the relationship between the linear predictor and the mean of the distribution function.
 
 $$\mathbb{E}[Y|X=x] = \mu(x) = g(\beta_{0}+\beta_{1}x_{i}) = g(X \beta) = g(\eta_{i})$$
 * Instead of saying that the expected values changes through a linear relationship with $x$, we say the **expected value changes through a function of the linear predictor**, the link function (or its inverse).
-* The link function's goal is to pass from the domain of the linear predictors to the domain of the response variables.
 * In some cases it makes sense to try to match the domain of the link function to the range of the distribution function's mean.
 * The interpretation of the beta parameters changes as the link function changes.
-
 
 ### 3.1 - Canonical Link Function 
 The canonical link function $g$ is the one that transforms
@@ -101,7 +99,6 @@ Note that:
 * In the Normal distribution we also have a nuisance parameter $\sigma^2$
 
 ---
-
 ## Binary Response and Logistic Regression
 Categorical variables with two classes such as yes/no, cat/dog, sick/healthy, etc. can be coded in a binary variable, Y , using 0 and 1. With a binary (Bernoulli) response, we’ll mostly focus on the case when Y = 1, since we can obtain probabilities of Y = 0 with:
 
@@ -123,7 +120,27 @@ $$logit(\xi) = \log( \frac{\xi}{1 - \xi}) \in (-\infty, +\infty)$$
 > The inverse logit, also known as the logistic or sigmoid function
 
 $$logit^{-1}(\xi) = \frac{e^{\xi}}{1+e^{\xi}} = \frac{1}{1+e^{\xi}}-1$$
-Note that for $\xi \in (−\infty, \infty)$ , the logistic takes values between 0 and 1.
+Note that for $\xi \in (−\infty, \infty)$ , the logistic takes values between 0 and 1. The logistic function is used to pass $(0, 1) \rightarrow (−\infty, \infty)$
+
+### Logistic regression
+We have a binary response $Y$: this is the variable we wish to model as function of a vector of $p−1$ predictors $X_{1}, . . . , X_{p−1}$. We denote
+
+$$p(x_{1},..., x_{p-1}) = Pr[Y=1| X_{1}=x_{1}, ..., X_{p-1}=x_{p-1}] = \mathbb{E}[Y| X_{1}=x_{1}, ..., X_{p-1}=x_{p-1}]$$
+
+A logistic regression model for Y is a model such that the logarithm of the odd is a linear combination of the predictors
+
+$$log \left( \frac{p(x_{1},...,x_{p-1})}{1-p(x_{1},...,x_{p-1})} = X\beta \right) \rightarrow  p(x_{1},...,x_{p-1}) = \frac{e^{X\beta}}{1+e^{X\beta}}$$
+
+Then 
+
+$$\mathbb{E}[Y| X_{1}=x_{1}, ..., X_{p-1}=x_{p-1}] = \frac{e^{X\beta}}{1+e^{X\beta}}$$
+
+Note that the link function g such that $g(\mathbb{E}[Y| X_{1}=x_{1}, ..., X_{p-1}=x_{p-1}]) = X\beta$ is the logit transformation $logit(\xi) = \log(\frac{\xi}{1-\xi})$
+
+---
+## Poisson response and log-linear regression
+
+
 
 ---
 
