@@ -179,7 +179,6 @@ Unfortunately, unlike ordinary linear regression, there is no analytical solutio
 
 ![GLM1](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm1.png?raw=TRUE)
 
-We can derive Fisher's information, namely the second derivatives/
 
 ![GLM2](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm2.png?raw=TRUE)
 
@@ -191,6 +190,13 @@ We can derive Fisher's information, namely the second derivatives/
 
 
 ![GLM5](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm5.png?raw=TRUE)
+
+
+![GLM6](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm6.png?raw=TRUE)
+* $V(\beta^{(t)})$ is a matrix where the diagonal is composed of weights ($\phi V_{i}$) deriving from the variance of each observation.
+* $z^{(t)}$ working variable, which is a fake y that is updated at each iteration. 
+
+![GLM7](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/glm7.png?raw=TRUE)
 
 
 ## glm in R
