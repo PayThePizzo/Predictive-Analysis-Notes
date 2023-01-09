@@ -33,7 +33,7 @@ If you want to visualize the labs without having to download and run the Rmd fil
 * [Lab 06](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab06/lab06.html) - Multicollinearity and influential points
   * [Lab 06 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab06/lab06_sol.html)
   * [Lab 06 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab06/lab06_class.html)
-* [Lab 07](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07.html) - Transformations and model selection
+* [Lab 07 - Assignment](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07.html) - Transformations and model selection
   * [Lab 07 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07_sol.html)
   * [Lab 07 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07_class.html)
 * [Lab 08](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08.html) - TBD
