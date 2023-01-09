@@ -200,6 +200,77 @@ Unfortunately, unlike ordinary linear regression, there is no analytical solutio
 
 ---
 
+## Glm in R
+The `glm` function fit a GLM model using the maximum likelihood method. For ordinary usage, the call is the same as for lm, except for one extra argument, family. The default value of family is gaussian, for each family we can specify a link function
+* In the Poisson regression case the call looks like `glm(y~x, family = poisson)`
+* In the logistic regression case, for example, the call looks like `glm(y~x, family = binomial)`
+
+## glm Bernoulli example
+```R
+logitout <- glm(yesVote ~ . , data = chileElection, family = binomial)
+```
+The summary here prints out:
+* Deviance Residuals, with the min, max and the quantiles
+* Coefficients, the usual table with the estimations and significances.
+  * Estimate 
+  * Std. Error 
+  * `z value` and `Pr(>|z|)`, which are test statistics on the single predictors. They are based on the distribution of the MLE, which is a gaussian distribution.
+* A note `Dispersion parameter for binomial family taken to be 1` 
+* Null deviance and the DoF, similar to R-Squared
+* Residual deviance and the DoF, similar to the F-Statistic
+* Number of observations deleted `54 observations deleted due to missingness`
+* AIC
+* Number of Fisher Scoring iterations
+
+### Link
+As a default R uses the canonical link, for the binomial we check `binomial()$link` which returns `"logit"`. The link can be changed - see ?family
+
+### Variance 
+Specifying the family implies the specification of the variance function:
+
+```R
+binomial()$variance
+
+function (mu)
+mu * (1 - mu)
+<bytecode: 0x000001ee75be2310>
+<environment: 0x000001ee764122d8>
+```
+
+### Names
+Specifying the family and the link implies a number of relationships:
+
+```R
+names(binomial())
+
+[1] "family" "link" "linkfun" "linkinv" "variance"
+[6] "dev.resids" "aic" "mu.eta" "initialize" "validmu"
+[11] "valideta" "simulate"
+```
+
+---
+
+## Fitting issues for the logistic regression
+We should note that, if there exists some $\beta^{*}$ such that $X\beta > 0 \Rightarrow y_{i}=1$ and $X\beta < 0 \Rightarrow y_{i}=0$, for all observations, then the MLE is not unique. Which is usually what happens when we have binary response variable.
+
+![separabledata](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/Separabledataglm.png?raw=TRUE)
+
+Such data is said to be separable. There are many ways to proceed with the estimations. 
+
+This, and similar numeric issues related to estimated probabilities near 0 or 1, will return a warning in R.
+
+```R
+Warning messages:
+1: glm.fit: algorithm did not converge
+2: glm.fit: fitted probabilities numerically 0 or 1 occurred
+```
+
+When this happens, the model is still “fit”, but there are consequences, namely, the estimated coefficients are highly suspect.
+* This is an issue when then trying to interpret the model.
+* However it could be useful for creating a classifier
+
+---
+
 ### Credits
 * [1 - Generalized Linear Models at Wikipedia](https://en.wikipedia.org/wiki/Generalized_linear_model)
   * Some rephrasing has been done to clarify the issues.
