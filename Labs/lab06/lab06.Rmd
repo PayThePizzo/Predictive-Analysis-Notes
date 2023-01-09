@@ -1,5 +1,5 @@
 ---
-title: "Lab 8 - things that can go wrong"
+title: "Lab 6 - things that can go wrong"
 author: "Ilaria Prosdocimi"
 output: 
   html_document: 
