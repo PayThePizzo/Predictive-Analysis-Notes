@@ -1,142 +1,74 @@
 ---
-title: "Lab 05 - categorical data"
+title: "Lab 05 - categorical variables"
+author: "Ilaria Prosdocimi"
 output:
   html_document:
-    theme: readable
+    fig_caption: yes
+    theme: flatly #sandstone #spacelab #flatly
+    highlight: pygments
+    code_folding: hide
     toc: yes
-    code_folding: show
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-# Using categorical data 
+## Modelli con dati categoriali  
 
-```{r}
-# Using data from package
+Usiamo il dataset Prestige, che può essere estratto dal pacchetto `carData` (o leggiamo il file .csv): 
+
+```{r readData, echo=FALSE}
 data(Prestige, package = "carData")
-```
-
-```{r, include = FALSE}
-# To have some insights on the data's background
 # help(Prestige, package = "carData")
-```
-
-Analizziamo se le persone che hanno avuto un'educazione maggiore, abbiano anche un livello di prestigio piu' alto.
-
-```{r, include= FALSE}
+# Prestige <- read.table("prestige.csv", sep =",")
+plot(Prestige)
 head(Prestige)
 ```
+
+La variabile risposta è `Prestige`: si desidera individuare quali fattori influenzano il prestigio (percepito) di una professione. 
+
+Iniziamo con un modello in cui includiamo `income` ed `education`: 
+
 ```{r}
-plot(Prestige)
+fit1 <- lm(prestige ~ education+income, data = Prestige)
 ```
 
-Sembrano esserci delle differenze nelle medie del prestigio, nei diversi tipi di lavoro.
-
----
-
-## 1 - First model: income and education as predictors
-
-Un primo modello con education e income come predittori. Analizziamo se le persone che hanno avuto un'educazione maggiore, abbiano anche un livello di prestigio piu' alto.
+Andiamo a verificare se il modello è significativo e se rispetta le assunzioni usate per costruire il modello stesso: 
 
 ```{r}
-fit1 <- lm(prestige ~ income+education, data = Prestige)
 summary(fit1)
-```
-
-Vediamo che il coefficiente angolare e' positivo per entrambi e molto forte per quanto riguarda l'educazione. Per entrambi, possiamo rifiutare l'ipotesi nulla con un p-value molto piccolo.
-
-Il modello spiega circa il 79.39% della variabilita'. La F-statistic e' molto grande per un p-value molto piccolo e percio' rifiutiamo l'ipotesi nulla dell'utilizzo di un modello con solo $\beta_{0}$
-
-
-### 1.1 - Verifying assumptions and Residuals checking
-
-Andiamo a verificare se il modello è significativo e se rispetta le assunzioni
-usate per costruire il modello stesso: 
-
-```{r}
-# Create a 2x2 grill to include 4 graphs 
-par(mfrow=c(2,2)); 
-plot(fit1)
-```
-
-* **Residuals vs Fitted** e' un grafico dei valori stimati contro i residui; Ci serve per vedere se c'e' qualche forma strutturale per vedere se stiamo sovrastimando o sottostimando il modello per alcuni valori di Y
-    + In questo caso non vediamo una grande struttura, forse vi e' una struttura quadratica. 
-    + La linea rossa e' uno "smoother" uno stimatore snon-parametrico della forma della relazione tra fitted values e residuals. Ci interessa che la linea rossa sia sullo 0, e che sia orizzontale. Vediamo che in questo caso e' molto vicina alle nostre aspettative.
-* **Normal QQplot**, il grafico in cui si analizza l' ipotesi della normalita' dei residui.
-* **Scale-Location** (valori stimati vs sqrt(abs(standardized residuals))), "la versione positiva dei residui". 
-    + Quello che si vede e' la stima della radice quadrata della varianza.
-    + Se ci fossero problemi di eteroschedasticita', sarebbe particolarmente facile vedere una forma funzionale dei residui (che cresce al crescere dei residui) in questo grafico. Non e' il nostro caso.
-* **Residuals vs Leverage**
-    + Leverage contiene l'informazione riguardo alla presenza di variabili che hanno sull'asse delle x dei valori "bizzarri", diversi dal resto del campione
-    + Vediamo cio' contro i residui standardizzati.
-    + Vediamo che in generale non sono problematiche, a parte due professioni che sono particolari dal punto di vista dell'asse delle x. 
-    
-Nel nostro caso, le assunzioni del modello non sembrano particolarmente problematiche e l'inferenza che andiamo a fare e' particolarmente buona. Questo e' confermato dai dati e dai residui che sembrano essere normali ed omoschedastici. Inoltre, non sembra che abbiamo trascurato altre relazioni importanti dei dati.
-
-```{r, include = FALSE}
+# par(mfrow=c(2,2)); plot(fit1)
 par(mfrow=c(1,2))
-# Normal QQplot alone
 qqnorm(residuals(fit1)); qqline(residuals(fit1))
-# Fitted vs Residuals
 plot(fitted(fit1), residuals(fit1))
 ```
 
-## 2 - Let's consider more predictors
 
-Tipicamente, per capire se il nostro modello e' stato ben specificato, controlliamo se ci sono altri predittori inclusi nel dataset che possono aiutare a catturare variabilità aggiuntiva. 
-
-Passiamo quindi ad una fase di plotting, utilizzando degli scatterplots per i potenziali predittori (non presenti nel modello) al fine di analizzare come i residui del modello si comportano.
-
-Se vedessimo una forma funzionale in questi grafici, sarebbe evidente che non stiamo includendo parte della variabilita'.
+Nulla di particolarmente problematico nei residui: nessun segno evidente di eteroschedasticità o di non-normalità. Controlliamo poi se ci sono alcune delle altre variabili incluse nel dataset che possono aiutare a catturare variabilità aggiuntiva. Per questa indagine facciamo degli scatterplots dei potenziali predittori e i residui del modello: 
 
 ```{r}
 par(mfrow=c(1,3),pch=16)
-plot(residuals(fit1) ~ Prestige$women); abline(h = 0)
-plot(residuals(fit1) ~ Prestige$census); abline(h = 0)
-plot(residuals(fit1) ~ Prestige$type); abline(h = 0)
+plot(Prestige$census, residuals(fit1))
+plot(Prestige$women, residuals(fit1))
+plot(Prestige$type, residuals(fit1))
 ```
 
-* I residui di `women`, che sono molto sparsi, non fanno intravedere una qualche forma di relazione che sia rilevante e percio' possiamo escluderla dal modello.
-* I residui di `census` sembrano mostrare una qualche relazione, quasi quadratica.
-* In `type` invece, vediamo che vi e' una palese differenza tra le medie, e possiamo pensare di non aver catturato completamente quel tipo di variabilita'.
+`women` non sembra associata ai residui, ma sia `census` che `type` sembrano mostrare una qualche relazione, forse quadratica nel caso di `census`. 
 
-
-### 2.1 - Extending the model
-
-Proviamo ad aggiungere `census` e `type` al modello, grazie ad `update()`: 
+Proviamo ad aggiungerle al modello: 
 
 ```{r}
-fit_wthcensus <- update(fit1, . ~ .+census)
-# fit_wthcensus <- lm(prestige ~ education+income+census, data = Prestige)
+fit_wthcensus <- lm(prestige ~ education+income+census, data = Prestige)
 summary(fit_wthcensus)
 ```
 
-Vediamo che l'aggiunta di `census`, influenza anche la forza di `income`. 
-
-Si vede una relazione forte per quanto riguarda `census` sebbene sia poco significativa se presa singolarmente (il p-value non e' molto signifcativo). Dato che la relazione precedentemente vista era quadratica, non sarebbe una brutta idea aggiungere census al quadrato. 
-
-Inoltre, l' $R^{2}$ e' aumentato di relativamente poco rispetto a prima ed il Residual Standard Error e' diminuito di poco. 
-
 ```{r}
-fit_wthtype <- update(fit1, . ~ .+type)
-#fit_wthtype <- lm(prestige ~ education+income+type, data = Prestige)
+fit_wthtype <- lm(prestige ~ education+income+type, data = Prestige)
 summary(fit_wthtype)
 ```
 
-Essendo una variabile categoriale, R aggiunge due parametri al modello, che risultano entrambi non significativi.
-
-La presenza di type indebolisce la relazione di `income` ed `education`. 
-
-Vediamo un importante aumento del $R^{2}$ probabilmente dovuto al fatto che si sono aggiunti due predittori ed e' quindi poco importante e trascurabile, soprattutto perche' e' aumentato di appena 3 punti circa.
-
-Dunque, nessuna delle due variabili sembra essere significativa se presa singolarmente.
-
-
-### 2.2 - Comparing the new models
-
-Alternativamente possiamo arrivare alle stesse conclusioni usando `AIC` ed `ANOVA` (perche' siamo nel caso dei nested models) per i confronti: 
+Nessuna delle due variabili sembra essere significativa se presa singolarmente. Possiamo anche confrontare i diversi modelli stimati usando AIC: 
 
 ```{r}
 AIC(fit1); AIC(fit_wthcensus); AIC(fit_wthtype)
@@ -148,53 +80,25 @@ o più semplicemnte
 ```{r}
 AIC(fit1, fit_wthcensus, fit_wthtype)
 ```
-Da questo punto di vista sembra che fit_wthtype sia migliore.
-
-
-### 2.3 - Dealing with Missing Data/Observations
 
 Notiamo che R stampa un warning. Nel `summary` di `fit_wthtype` in effetti notiamo che quando usiamo la variabile `type` cambiano il numero di gradi di libertà a disposizione del modello: questo perché la variabile `type` ha dei valori mancanti ed R elimina le osservazioni che contengono dati mancanti quando stima il modello: 
 
-
 ```{r}
+Prestige[is.na(Prestige$type),]
 dim(fit_wthcensus$model)
 dim(fit_wthtype$model)
 ```
 
-Infatti non potremmo fare un `anova(fit1, fit_wthtype)` in queste condizioni, dato che non e' possibile calcolare la matrice di disegno ed ANOVA ha bisogno di calcolare le $n-p$.
-
-Potrebbe valere la pena  di tralasciare `type` come possibile predittore perche' ci farebbe perdere molta informazione. Esistono tecniche di imputazione dei dati mancanti per risolvere questo problema, ma non ne facciamo uso qua.
-
-Prima di tutto andiamo a vedere quali tipi, hanno dati mancanti:
+Per poter confrontare i modelli dobbiamo essere sicuri che tutti i modelli siano stimati usando lo stesso dataset: 
 
 ```{r}
-Prestige[is.na(Prestige$type),]
-```
-
-Per poter confrontare i modelli dobbiamo essere sicuri che **tutti i modelli siano stimati usando lo stesso dataset**, perche' la verosimiglianza deve essere calcolata sulle stesse osservazioni.
-
-Percio' possiamo decide di eliminare 4 osservazioni per confrontare i modelli in maniera valida. Abbiamo principalmente due modi:
-
-* Rispecificare i dati 
-* Specificare solo i dati non mancanti
-
-
-```{r}
-# 1 - Specify a subset dataset with no missing data
+# specify a smaller dataset 
 sfit1 <- lm(prestige ~ education+income, data = Prestige[!is.na(Prestige$type),])
-
-# 2 - Use the subset option in lm
-sfit_wthcensus <- lm(prestige ~ education+income+census, data = Prestige, 
-                     subset = !is.na(Prestige$type))
-
+# use the subset option in lm
+sfit_wthcensus <- lm(prestige ~ education+income+census, data = Prestige, subset = !is.na(Prestige$type))
 dim(sfit1$model); dim(sfit_wthcensus$model)
-
-
-# 102 obs - 3 est. param. vs 99 obs - 4 est. param.
-c(fit1$df.residual, sfit1$df.residual)
+# ok 
 ```
-
-Procediamo.
 
 Dato che `sfit_wthcensus` e `sfit_wthtype` non sono annidati facciamo un confronto basato solo su AIC
 
@@ -202,18 +106,11 @@ Dato che `sfit_wthcensus` e `sfit_wthtype` non sono annidati facciamo un confron
 AIC(sfit1, sfit_wthcensus, fit_wthtype)
 ```
 
-`fit_wthtype` ha una performance migliore, sebbene i coefficienti per i due singoli livelli non siano significativi.
+`fit_wthtype` ha una performance migliore, e sebbene i coefficienti per i due singoli livelli non siano significativi il modello in cui viene inclusa la variabile risulta significativamente migliore del modello senza la variabile in un test anova:
 
 ```{r}
-# anova(fit1, fit_wthcensus)
 anova(sfit1,fit_wthtype)
 ```
-
-Il modello in cui viene inclusa la variabile `type` risulta significativamente migliore del modello senza la variabile in un test anova.
-
-Infatti, possiamo rifiutare (con un basso p-value) l'ipotesi nulla che $\beta_{3}, \beta_{4}$ siano pari a 0. 
-
-Invece per `census` il p-value non e' significativo e non fa aumentare di piu' la capacita' predittiva del modello. Un altro motivo per escludere `census` e' che il censo non è veramente una variabile numerica che esprime una misura ma è una categorizzazione fatta dall'istituto di statistica ha più senso mantenere la variabile categoriale che descrive una vera caratteristica del dato (sebbene anche `type` sia un'informazione non misurabile empiricamente ma frutto di una valutazione fatta da persone). 
 
 Possiamo anche notare che `type` e `census` sono associati tra loro e includere entrambe le variabili potrebbe non portare a miglioramenti in termini di bontà di adattamento: 
 
@@ -228,25 +125,12 @@ plot(Prestige$census[!is.na(Prestige$type)],
      residuals(fit_wthtype))
 ```
 
-## 3 - Understanding categorial variables in R
-
-Come fa R per stimare questa variabile categoriale?
+Dato che il codice del censo non è veramente una variabile numerica che esprime una misura ma è una categorizzazione fatta dall'istituto di statistica ha più senso mantenere la variabile categoriale che descrive una vera caratteristica del dato (sebbene anche `type` sia un'informazione non misurabile empiricamente ma frutto di una valutazione fatta da persone).  
 
 Andiamo adesso a capire che modello è `fit_wthtype` esattamente e come R ha inserito nel modello una variale esplicativa che noi vediamo stampata come stringa nel dataset: 
 
 ```{r}
 ## rewrite the dataset to only include complete information 
-Prestige <- Prestige[!is.na(Prestige$type),]
-
-# what is type 
-class(Prestige$type)
-
-head(Prestige$type)
-```
-
-R identifica `type` come una variabile categoriale con tre livelli `bc`, `prof` e `wc`.
-
-```{r, include=FALSE}
 Prestige <- Prestige[!is.na(Prestige$type),]
 # what is type 
 class(Prestige$type)
@@ -255,50 +139,19 @@ fit_wthtype$coefficients
 cmod <- signif(fit_wthtype$coefficients,2)
 ```
 
-```{r}
-# They coincide!
-colSums(model.matrix(fit_wthtype))
-table(Prestige$type)
-```
+I coefficienti legati ad `education` ed `income` sono positivi: lavori in cui si guadagna di più o per cui si è studiato più a lungo tendono ad essere più prestigiosi. La variabile `type` può avere tre valori: quando la aggiungiamo al modello aggiungiamo di fatto due coefficienti che descrivono la differenza del valore dell'intercetta per due dei tre gruppi rispetto ad un primo gruppo che è il gruppo di base. Di fatto vengono stimati tre iper-piani, uno per ogni gruppo con tre intercette diverse: 
 
-I tipi coincidono esattamente ai lavoratori per ciascuna categoria.
-
-
-### 3.1 - Dummy encoding for type
-
-```{r}
-fit_wthtype$coefficients
-```
-
-La variabile `type` può avere tre valori: quando la aggiungiamo al modello aggiungiamo di fatto due coefficienti che descrivono la differenza del valore dell'intercetta per due dei tre gruppi rispetto ad un primo gruppo che è il gruppo di base (reference leve). 
-
-In pratica, vengono stimati tre iper-piani, uno per ogni gruppo con tre intercette diverse. Ci risultano tre sotto-modelli diversi: 
-
-\[\text{if type = bc}\rightarrow \hat{y}_i = `r signif(cmod[1])` + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
-\[\text{if type = prof} \rightarrow \hat{y}_i =  (`r signif(cmod[1])` + `r signif(cmod[4])`) + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
-\[\text{if type = wc}\rightarrow \hat{y}_i = (`r signif(cmod[1])` + `r signif(cmod[5])`) + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
+\[\text{if type = bc the model is}: \hat{y}_i = `r signif(cmod[1])` + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
+\[\text{if type = prof the model is}: \hat{y}_i =  (`r signif(cmod[1])` + `r signif(cmod[4])`) + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
+\[\text{if type = wc the model is}: \hat{y}_i = (`r signif(cmod[1])` + `r signif(cmod[5])`) + `r signif(cmod[2])`* \text{education}_i + `r signif(cmod[3])`* \text{income}_i\]
 
 Il livello `bc` della variabile `type` è il livello di riferimento, le stime per i lavori negli altri tipi di lavoro sono derivate rispetto al livello 
-`bc`. 
-
-Perché `bc`? R ordina i livelli in ordine alfabetico e prende il primo livello come modello di riferimento. R poi crea due variabili dicotomiche per i livelli che non sono quello di riferimento 
+`bc`. Perché `bc`? R ordina i livelli in ordine alfabetico e prende il primo livello come modello di riferimento. R poi crea due variabili dicotomiche per i livelli che non sono quello di riferimento 
 
 ```{r}
 head(model.matrix(fit_wthtype))
+colSums(model.matrix(fit_wthtype))[4:5]
 ```
-
-Vediamo bene come viene vista la matrice di modello da R, dopo la trasformazione di `type` l'assenza di `typeprof = 0` e `typewc = 0` codifica `bc`.
-
-```{r}
-fit_wthtype$coefficients
-```
-
-I coefficienti legati ad `education` ed `income` sono positivi: lavori in cui si guadagna di più o per cui si è studiato più a lungo tendono ad essere più prestigiosi. 
-
-La stima di `typeprof` e' altamente positiva, quindi le persone in un lavoro professionale hanno un prestigio ben piu' alto di quelle che lavorano in `bc`, data dalla intercept (a parita' di income ed education). 
-
-In altre parole, a parita' di `income` ed `education` , lavorare in lavori professionali porta ad un aumento di 6 punti (`typeprof`), mentre lavorare in lavori di tipo `wc` porta ad un decremento di 2.7, rispetto al reference level `bc` che si identifica come l'intercetta.
-
 
 Diamo un occhio ai dati originali e i valori stimati dal modello in cui permettiamo di avere tre intercette diverse per ogni gruppo: 
 
@@ -330,85 +183,72 @@ lines(nd$income[nd$type == "prof"], predict(fit_wthtype,nd[nd$type == "prof",]),
 lines(nd$income[nd$type == "wc"], predict(fit_wthtype,nd[nd$type == "wc",]),col=4)
 ```
 
-Si nota che i diversi gruppi hanno effettivamente livelli medi diversi di `prestige` e che la variabile `type` interagisce con `education` e `income`. Infatti income, non e' ugualmente distribuito tra i livelli delle diverse professioni.
+Si nota che i diversi gruppi hanno effettivamente livelli medi diversi di `prestige` e che la variabile `type` interagisce con `education` e `income`. Come possiamo inserire questa interazione con gli altri predittori nel modello? Possiamo stimare un modello in cui oltre a ad avere tre diverse intercette possiamo avere dei coefficienti angolari diversi per ogni gruppo, cioè permettere che la relazione tra i predittori e la variabile risposta sia diversa per ogni gruppo. Iniziamo da un modello piuttosto complesso in cui permettiamo a `type` di interagire con `income` o `education` e permettiamo quindi che i coefficienti angolari per entrambi i predittori numerici siano diversi per ognuno dei tre gruppi: 
 
-Quello che potrebbe succedere e' che la relazione tra queste variabili sia piu' forte in alcuni gruppi rispetto ad altri! Conseguentemente il coefficiente angolare nei tre gruppi puo' cambiare.
-
-### 3.2 - Interactions
-
-Come possiamo inserire questa interazione con gli altri predittori nel modello? 
-
-Possiamo stimare un modello in cui oltre a ad avere tre diverse intercette possiamo avere dei coefficienti angolari diversi per ogni gruppo, cioè permettere che la relazione tra i predittori e la variabile risposta sia diversa per ogni gruppo. 
-
-Iniziamo da un modello piuttosto complesso in cui permettiamo a `type` di interagire con `income` o `education` e permettiamo quindi che i coefficienti angolari per entrambi i predittori numerici siano diversi per ognuno dei tre gruppi.
-
-```{r}
-fit_intrall <- lm(prestige~ income*type + education*type, 
-                  data = Prestige,  subset = !is.na(Prestige$type))
+```{r allInteraction}
+fit_intrall <- lm(prestige~education+income+type+education:type+income:type, data = Prestige)
+# summary(fit_intrall)
+#### guardiamo la matrice di disegno
+head(model.matrix(fit_intrall))
+colSums(model.matrix(fit_intrall))
+sum(Prestige$income[Prestige$type == "wc"], na.rm=TRUE)
 ```
 
 Il modello stimato è il seguente:
 
-$$Y = \beta_{0} + \beta_{1}X_{1} + \beta_{2}X_{2} + \beta_{3}v_{3} + \beta_{4}v_{4} + \gamma_{3}X_{1}v_{3} + \gamma_{4}X_{1}v_{4} + \gamma_{5}X_{2}v_{3} + \gamma_{6}X_{2}v_{4} + \varepsilon$$
-Dove:
+\begin{equation} 
+\begin{split}
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +  \beta_{type:prod} \text{type:prof} +  \beta_{type:wc} \text{type:wc} +
+  \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} + \\  
+  \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   +
+  \beta_{inc,type:prof} * \text{income}_i * \text{type:prof} +  
+  \beta_{inc,type:wc} *   \text{income}_i * \text{type:wc}   + \epsilon_i
+\end{split}
+\end{equation}
 
-* $\beta_{1}X_{1} = \beta_{inc}\cdot income_{i}$
-* $\beta_{2}X_{2} = \beta_{educ}\cdot education_{i}$
-* $\beta_{3}v_{3} = \beta_{type:prof} \cdot \text{type:prof}$
-* $\beta_{4}v_{4} = \beta_{type:wc} \cdot \text{type:wc}$
-* $\gamma_{3}X_{i}v_{3} = \beta_{educ,type:prof} \cdot \text{education}_i \cdot \text{type:prof}$
-* $\gamma_{4}X_{i}v_{4} = \beta_{educ,type:wc} \cdot \text{education}_i \cdot \text{type:wc}$ 
-* $\gamma_{5}X_{i}v_{3} = \beta_{inc,type:prof} \cdot \text{income}_i \cdot \text{type:prof}$
-* $\gamma_{6}X_{i}v_{4} = \beta_{inc,type:wc} \cdot \text{income}_i \cdot \text{type:wc}$
-* $\varepsilon_i$ è l'errore $\varepsilon_i \sim N(0, \sigma^2)$ (NB: c'è un solo parametro $\sigma$ che descrive la variabilità dell'errore per tutti i gruppi).
-
+<!-- \[ Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +  \beta_{type:prod} \text{type:prof} +  \beta_{type:wc} \text{type:wc} + -->
+<!--   \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} +   -->
+<!--   \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   +  -->
+<!--   \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} +   -->
+<!--   \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   + \epsilon_i -->
+<!-- \] -->
+dove $\varepsilon_i$ è l'errore $\varepsilon_i \sim N(0, \sigma^2)$ (NB: c'è un solo parametro $\sigma$ che descrive la variabilità dell'errore per tutti i gruppi). 
 
 Per ogni gruppo quindi viene stimato un modello diverso: 
+\[\text{if type = bc}: 
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i + \epsilon_i
+\]
 
-* Per `bc`:$Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} \text{income}_i + \epsilon_i$
-* Per `prof`: $Y_i = \beta_0 + \beta_{ed} * \text{education}_i + \beta_{inc} \text{income}_i + \beta_{type:prof} \text{type:prof} + \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} + \beta_{inc,type:prof} * \text{income}_i * \text{type:prof} + \epsilon_i$
-* Per `wc`: $Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i + \beta_{type:wc} \text{type:wc} + \beta_{ed,type:wc} * \text{education}_i * \text{type:wc} + \beta_{inc,type:wc} *   \text{income}_i * \text{type:wc}   + \epsilon_i$ 
+\[\text{if type = prof}: 
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +
+  \beta_{type:prof}  \text{type:prof} + \\
+  \beta_{ed,type:prof} * \text{education}_i * \text{type:prof} +  
+  \beta_{inc,type:prof} * \text{income}_i * \text{type:prof} +  
+ \epsilon_i
+\]
 
-Vediamo un riasssunto della stima ottenuta: 
+\[\text{if type = wc}: 
+Y_i = \beta_0 + \beta_{ed} * \text{education}_i +  \beta_{inc} * \text{income}_i +
+  \beta_{type:wc} \text{type:wc} + \\
+  \beta_{ed,type:wc} *   \text{education}_i * \text{type:wc}   +
+  \beta_{inc,type:wc} *   \text{income}_i * \text{type:wc}   + \epsilon_i
+\]
+
+
+Vediamo un raissunto della stima ottenuta: 
 
 ```{r showAllInteraction}
 summary(fit_intrall)
 ```
 
-Vediamo che molti parametri del modello non risultano significativi. 
-
-La variabilità della stima è aumentata, si confrontino per esempio gli intervalli di confidenza del parametro associato ad `education` nel modello in cui `type` non interagisce con gli altri predittori (`confint(fit_wthtype, parm ="education")`) e nel modello con l'interazione (`confint(fit_intrall, parm ="education")`): stiamo stimando molti parametri con un numero non poi così grande di osservazioni e rischiamo di sovra-parametrizzare il nostro modello. 
-
-### 3.3 - AIC and ANOVA 
-
-Tuttavia spieghiamo buona parte della variabilità della variabile risposta e vediamo che il test anova indica un miglioramento significativo della bontà di adattamento quando confrontiamo il modello con le interazioni contro il modello senza interazioni: 
-
-Per l' ANOVA modelliamo il test:
-
-* $H_{0}:$ all $\beta_{i}=0$
-    + Contando anche i parametri di interazione.
-* Any $\beta_{i} \neq 0$
+Vediamo che molti parametri del modello non risultano significativi. La variabilità della stima è aumentata, si confrontino per esempio gli intervalli di confidenza del parametro associato ad `education` nel modello in cui `type` non interagisce con gli altri predittori (`confint(fit_wthtype, parm ="education")`) e nel modello con l'interazione (`confint(fit_intrall, parm ="education")`): stiamo stimando molti parametri con un numero non poi così grande di osservazioni e rischiamo di sovra-parametrizzare il nostro modello. 
+Tuttavia spieghiamo buona parte della variabilità della variabile risposta e vediamo che il test anova indica un miglioramento significativo della bontà di adattamento quando confrontiamo il modello con le interazioni contro il modello senza interazioni:   
 
 ```{r}
 anova(fit_wthtype, fit_intrall)
-```
-
-Rifiutiamo piuttosto confidentemente l'ipotesi nulla, conviene inserire i 4 parametri in piu' pero' potrebbero essercene di superflui. Aumentare la dimensionalita' del modello crea un modello complesso e si rischia di aumentare la variabilita' del livello stesso.
-
-```{r}
 #  anche AIC indica che fit_intrall è da preferire 
 AIC(fit_wthtype, fit_intrall)
 ```
-
-Anche AIC indica che `fit_intrall` è da preferire.
-
-Possiamo anche cercare intervalli di confidenza per un parametro singolo.
-
-```{r}
-confint(fit_wthtype, parm = "education")
-confint(fit_intrall, parm = "education")
-```
-E' abbastanza chiaro che vi e' un effetto di education, infatti per `fit_intrall` l'intervallo di confidenza si e' allargato fino ad includere 0, mentre prima era molto significativo. Questo puo' avere due motivi, o abbiamo trovato qualcosa che spiega meglio il target, o stiamo sovraparametrizzando il modello e stiamo stimando troppi parametri per fare un'inferenza dettagliata. Probabilmente, quest'ultimo e' il nostro caso.
 
 Guardiamo i valori stimati: 
 
@@ -440,79 +280,57 @@ lines(nd$income[nd$type == "prof"], predict(fit_intrall,nd[nd$type == "prof",]),
 lines(nd$income[nd$type == "wc"], predict(fit_intrall,nd[nd$type == "wc",]),col=4)
 ```
 
-### 3.3 - Simplify the model
 
 Tuttavia potrebbe essere un modello troppo variabile da usare in pratica, proviamo a cercare una via di mezzo in cui solo uno dei predittori continui interagisce con la variabile categoriale.  
 
 ```{r singleIntercaction}
-fit_intred <- lm(prestige~education+income+type+education:type, 
-                 data = Prestige)
-summary(fit_intred)
+fit_intred <- lm(prestige~education+income+type+education:type, data = Prestige)
+#summary(fit_intred)
+fit_intrinc <- lm(prestige~education+income+type+income:type, data = Prestige)
+#summary(fit_intrinc)
 ```
-
-I parametri `education:typewc` e `education:typeprof` sono poco significativi, cio' ci suggerisce che l'interazione tra education e type non sia significativa. Questo non toglie che `type` possa comunque essere significativa.
-
-```{r}
-fit_intrinc <- lm(prestige~education+income+type+income:type, 
-                  data = Prestige)
-summary(fit_intrinc)
-```
-
-`income:typeprof` e `income:typewc` sono molto piu' significativi.
-
-In questi due modelli, che hanno lo stesso numero di parametri, vediamo un $R^{2}$ piu' alto rispetto ai modelli precedenti! Questo e' un segnale che i modelli hanno una bonta' di adattamento migliore.
-
-#### 3.3.1 - Tests
 
 Questi due modelli sono annidati in `fit_intrall` quindi possiamo verificare tramite test anova se escludere l'interazione con uno dei predittori continui cambia in maniera significativa la bontà di adattamento del modello. 
-
-Iniziamo con testare se possiamo eliminare l'interazione tra `education` e `type`:
+Iniziamo con testare se possiamo eliminare l'interazione tra `education` e `type` ($H_0:$ i due parametri legati ai coefficienti angolari di `education` per i due gruppi non di riferimento sono pari a 0): 
 
 ```{r}
 anova(fit_intred, fit_intrall)
 ```
-Il modello in cui abbiamo rimosso la relazione tra `income` e `type` ha un p-value molto significativo.
 
-Possiamo rifiutare convintamente l'ipotesi nulla $H_{0}$ che il coefficiente angolare di `income` sia lo stesso per tutti e tre i gruppi. E' meglio usare un modello in cui permettiamo ad income di variare, oltre ad education.
+Evidenza non fortissima contro $H_0$, al tipico livello di significatività del 5\% non rifiuteremmo $H_0$: escludere l'interazione `education` non riduce di molto la bontà di adattamento del modello. 
+
+Testiamo anche se sia possibile eliminare l'interazione tra `income` e `type` : 
 
 ```{r}
 anova(fit_intrinc, fit_intrall)
 ```
-Evidenza non fortissima contro $H_0$, al tipico livello di significatività del 5\% non rifiuteremmo $H_0$: escludere l'interazione `education` non riduce di molto la bontà di adattamento del modello. 
 
-Possiamo dire che questi due modelli sono in qualche modo confrontabili, la RSS dei due modelli non e' cosi' diversa, ma preferiamo il modello con `income:type`
+Evidenza piuttosto forte contro $H_0$: escludere questa interazione cambia di molto la capacità del modello di catturare la variabilità nei dati. Infine possiamo testare se questo modello è significativamente diverso dal modello senza interazione. 
 
-Possiamo anche usare AIC, BIC o $R^2_{adj}$ per confrontare i vari modelli: 
-
-```{r}
-# More likely to include more interactions
-AIC(fit_wthtype, fit_intred, fit_intrinc, fit_intrall)
-# More likely to choose simpler models
-BIC(fit_wthtype, fit_intred, fit_intrinc, fit_intrall)
-summary(fit_wthtype)$adj.r.square; summary(fit_intred)$adj.r.square
-summary(fit_intrinc)$adj.r.square; summary(fit_intrall)$adj.r.square
-```
-
-I criteri non concordano su quale sia il modello migliore. Cio' non sorprende, non sappiamo quale sia effettivamente il modello migliore dato che non conosciamo il _vero_ processo che genera i dati. 
-
-A seconda del criterio adottato sceglieremo un modello diverso come modello ottimale: l'importante è essere coerenti sulla metrica che si usa per confrontare i modelli.  
-
-Infine possiamo testare se questo modello è significativamente diverso dal modello senza interazione. 
 
 ```{r}
 anova(fit_wthtype, fit_intrinc)
 ```
 
-C'è una differenza significativa tra i RSS dei due modelli: l'interazione è necessaria per catturare qualche caratteristica presente nei dati. 
-
-Possiamo dire che AIC e BIC "concordano" sul fatto che `fit_intrinc` sia il migliore tra i modelli scelti.
-
-Guardiamo i valori stimati dal modello `fit_intrinc`: 
+C'è una differenza significativa tra i RSS dei due modelli: l'interazione è necessaria per catturare qualche caratteristica presente nei dati.  
 
 ```{r}
 summary(fit_intrinc)
 ```
 
+Possiamo anche usare AIC, BIC o $R^2_{adj}$ per confrontare i vari modelli: 
+
+```{r}
+AIC(fit_wthtype, fit_intred, fit_intrinc, fit_intrall)
+BIC(fit_wthtype, fit_intred, fit_intrinc, fit_intrall)
+summary(fit_wthtype)$adj.r.square; summary(fit_intred)$adj.r.square
+summary(fit_intrinc)$adj.r.square; summary(fit_intrall)$adj.r.square
+```
+
+I criteri non concordano su quale sia il modello migliore, ma non sappiamo quale sia effettivamente il modello migliore dato che non conosciamo il _vero_ processo che genera i dati. A seconda del criterio adottato sceglieremo un modello diverso come modello ottimale: l'importante è essere coerenti sulla metrica che si usa per confrontare i modelli.  
+
+
+Guardiamo i valori stimati dal modello `fit_intrinc`: 
 
 ```{r}
 par(mfrow=c(1,2))
@@ -542,34 +360,29 @@ lines(nd$income[nd$type == "prof"], predict(fit_intrinc,nd[nd$type == "prof",]),
 lines(nd$income[nd$type == "wc"], predict(fit_intrinc,nd[nd$type == "wc",]),col=4)
 ```
 
+
+
 *Nota bene: fin'ora abbiamo usato `type` come codificata nel dataset. Guardando i grafici e i livelli di significatività dei coefficienti si potrebbe sosepettare che siano solo le professioni del gruppo `prof` ad avere una relazione diversa tra `education` e `prestige` e `income` e `prestige`, mentre le professioni in  `"bc"` e `"wc"` si comportano in maniera simile. Possiamo creare una variabile dicotomica che differenzi solo i lavori `prof` da quelli `bc` e `wc` e fare una nuova analisi* 
 
 
-## 4 - Reference Levels in R
+## Il livello di riferimento: usare i factors in R
 
-R usa il livello `"bc"` come livello di riferimento perché  è il primo livello in ordine alfabetico. Tutti i coefficienti stimati nel modello sono quindi relativi al livello `bc`. 
-
-Possiamo cambiare il livello di riferimento in modo che i parametri del modello rappresentino la differenza di intercetta e coefficiente angolare rispetto ad livello che non sia `bc`, ma per esempio `prof` che funge quindi da livello di riferimento. Per fare questo in R dobbiamo usare l'argomento `levels` nella funzione `factor` per specificare i livelli della variabile: 
+R usa il livello `"bc"` come livello di riferimento perché  è il primo livello in ordine alfabetico. Tutti i coefficienti stimati nel modello sono quindi relativi al livello `bc`. Possiamo cambiare il livello di riferimento in modo che i parametri del modello rappresentino la differenza di intercetta e coefficiente angolare rispetto ad livello che non sia `bc`, ma per esempio `prof` che funge quindi da livello di riferimento. Per fare questo in R dobbiamo usare l'argomento `levels` nella funzione `factor` per specificare i livelli della variabile: 
 
 ```{r}
 class(Prestige$type)
 table(Prestige$type)
 levels(Prestige$type)
-
-# Reordering the levels'order
 Prestige$newtype <- factor(Prestige$type, levels = c("prof","wc","bc"))
-
 table(Prestige$newtype)
 ```
-Se stimiamo dei modelli usando il tipo definito dal nostro ordine
 
 ```{r}
 fit_newlevels <- lm(prestige ~ education + income + newtype, data = Prestige)
 fit_newlevels$coefficients
 ```
-Vediamo che abbiamo dei coefficienti aggiuntivi stimati per i gruppi `wc` e `bc`. Inoltre, i valori numerici dei coefficienti sono diversi rispetto a prima.
 
-Tuttavia a livello numerico non cambia nulla:
+Vediamo che abbiamo dei coefficienti aggiuntivi stimati per i gruppi `wc` e `bc`. Tuttavia a livello numerico non cambia nulla e otteniamo le stesse stime: 
 
 ```{r}
 fit_newlevels$coefficients
@@ -581,39 +394,13 @@ nd <- data.frame(education = rep(mean(Prestige$education),3),
 predict(fit_wthtype, nd)
 predict(fit_newlevels, nd)
 ```
-```{r}
-logLik(lm(prestige ~ income * newtype + education + newtype, data = Prestige, 
-    subset = !is.na(Prestige$newtype)))
-logLik(fit_intrinc)
-```
 
-Quello che cambia è la matrice di disegno usata da R per stimare il modello: 
+quello che cambia è la matrice di disegno usata da R per stimare il modello: 
 
 ```{r}
 head(model.matrix(fit_wthtype))
-head(model.matrix(lm(prestige ~ income * newtype + education + newtype, 
-                     data = Prestige, subset = !is.na(Prestige$newtype))))
+head(model.matrix(fit_newlevels))
 ```
 
-Quello che fa R e' moltiplicare il valore della variabile continua per degli 0 o degli 1.
 
-Facciamo un grafico del modello stimato, in cui si vede la relazione tra income e prestige, fissando education.
 
-```{r}
-col_type <- rep(1, length(Prestige$type)) 
-col_type[Prestige$type == "wc"] <- 4                
-col_type[Prestige$type == "prof"] <- 2      
-plot(Prestige$income, Prestige$prestige, pch = 16, col = col_type)
-
-# education = 10 
-# NOT WORKING
-abline(a = coef(fit_intrinc)[1]+coef(fit_intrinc)[4]+coef(fit_intrinc)[5]*10,
-       b = coef(fit_intrinc)[2]+coef(fit_intrinc)[7], col = 4)
-
-abline(a = coef(fit_intrinc)[1]+coef(fit_intrinc)[3]+coef(fit_intrinc)[5]*10,
-       b = coef(fit_intrinc)[2]+coef(fit_intrinc)[6], col = 2)
-
-abline(a = coef(fit_intrinc)[1]+coef(fit_intrinc)[5]*10,
-       b = coef(fit_intrinc)[2], col = 1)
-
-```
