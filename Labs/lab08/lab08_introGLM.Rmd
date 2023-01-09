@@ -7,7 +7,7 @@ output:
 ---
 
 
-Il dataset `patents.txt` contiene informazioni raccolte dall'ufficio brevetti dell'UE su alcune caratteristiche dei brevetti, tra cui il numero di citazioni, se è stata presentata un'opposizione al brevetto, l'anno in cui il brevetto è stato depositato e l'informazione se il brevetto è nel settore bio-farmaceutico. (Il dataset è stato derivato dal dataset sulle patenti utilizzato nel libro [*Regression* di Fahrmeir et al.](https://www.uni-goettingen.de/de/regression+-+models%2c+methods+and+applications/550514.html). 
+Il dataset `patents.txt` contiene informazioni raccolte dall'ufficio brevetti dell'UE su alcune caratteristiche dei brevetti, tra cui il numero di citazioni, quante opposizioni sono state presentate al brevetto, l'anno in cui il brevetto è stato depositato e l'informazione se il brevetto è nel settore bio-farmaceutico. (Il dataset è stato derivato dal dataset sulle patenti utilizzato nel libro [*Regression* di Fahrmeir et al.](https://www.uni-goettingen.de/de/regression+-+models%2c+methods+and+applications/550514.html) 
 
 ```{r}
 dat <- read.table("../data/patents.txt")
@@ -23,63 +23,83 @@ Ci concentriamo ora sulla variabile `opposed`, un indicatore che ha valore "oppo
 
 ```{r}
 summary(dat$opposed)
+# Better summary
 table(dat$opposed)
 ```
 
-vediamo che nella maggior parte dei casi il brevetto è non opposto.  Vogliamo valutare se c'è un effetto dell'anno in cui il brevetto è stato presentato sulla probabilità che venga presentata un'opposizione al brevetto: 
+Vediamo che nella maggior parte dei casi il brevetto è non opposto.  Vogliamo valutare se c'è un effetto dell'anno in cui il brevetto è stato presentato sulla probabilità che venga presentata un'opposizione al brevetto: 
 
-```{r,eval=FALSE}
+```{r, eval=FALSE}
+## This doesn't work since the variable is not numeric.
+# There are many get-arounds, such as building a dummy variable.
+
 plot(opposed~year, data = dat)
-## this doesn't work 
 ```
 
 
-```{r,eval=TRUE}
+```{r,eval=FALSE}
+# This is one way but not the best
+dat$numopp <- ifelse(dat$opposed == "opposed", 1, 0)
+plot(numopp ~ year, data=dat)
+```
+
+```{r, eval=TRUE}
 plot((opposed == "opposed") ~year, data = dat)
 ```
 
-Non si capisce granché, possiamo "sparpagliare" i valori di 0/1 con la funzione `jitter`
+Non si capisce granché. Tipicamente quando vogliamo vedere un predittore contro una risposta, ma la risposta e' binaria, possiamo "sparpagliare" i valori di `0` e `1` con la funzione `jitter`. Questa funzione sparpaglia i valori in verticale.
 
+Possiamo sparpagliare i valori anche rispetto ad `year`
 
 ```{r,eval=FALSE}
-plot(jitter(opposed == "opposed") ~year, data = dat)
 ## this doesn't work
+plot(jitter(opposed == "opposed") ~year, data = dat)
 ```
-
 
 ```{r}
 plot(jitter(ifelse(opposed == "opposed", 1,0), amount = 0.1) ~year, data = dat)
 ```
+
+Possiamo sparpagliare i valori anche rispetto ad `year`
 
 ```{r}
 plot(jitter(ifelse(opposed == "opposed", 1,0), amount = 0.1) ~
        jitter(year, amount = 0.2), data = dat)
 ```
 
-Non un effetto così chiaro. Per stimare come varia la probabilità che ci sia un'opposizione ad un brevetto possiamo usare un glm: come specificare un glm in R? Abbiamo bisogno dei seguenti elementi 
+Non un effetto così chiaro. 
 
-* la distribuzione che si assume per la variabile risposta $Y$ (in questo caso una binomiale, in particolare un Bernoulli, cioè una binomiale in cui vi è un solo "tentativo"): $Y \sim Bin(1, p(x))$, con $\mu(x) = E[Y|X=x] = p(x)$
-* la funzione legame tra $\mu(x)$ e il predittore lineare $\eta(x)$: usiamo in questo caso il legame canonico, cioè la trasformazione logistica: $logit(\mu(x)) = \beta_1 + \beta_1 x$
-* la specificazione del predittore lineare: in questo modello usiamo un solo predittore, `year` 
+## Specificare il GLM
+
+Per stimare come varia la probabilità che ci sia un'opposizione ad un brevetto possiamo usare un glm: come specificare un glm in R? Abbiamo bisogno dei seguenti elementi. 
+
+* La distribuzione che si assume per la variabile risposta $Y$ (in questo caso una binomiale, in particolare un Bernoulli, cioè una binomiale in cui vi è un solo "tentativo"): $Y \sim Bin(1, p(x))$, con $\mu(x) = E[Y|X=x] = p(x)$
+    + `family`
+* La funzione legame tra $\mu(x)$ e il predittore lineare $\eta(x)$: usiamo in questo caso il legame canonico, cioè la trasformazione logistica: $logit(\mu(x)) = \beta_1 + \beta_1 x$
+    + Da specificare in `family`
+* La specificazione del predittore lineare: in questo modello usiamo un solo predittore, `year` 
 
 
 La funzione che possiamo usare in R è la funzione `glm` dove è possibile specificare la distribuzione che si assume per la variabile risposta usando l'argomento `family`: 
 
 ```{r, eval=FALSE}
-fit_bin <- glm(opposed ~ year, data = dat, family = binomial)
 ## this doesn't work 
+fit_bin <- glm(opposed ~ year, data = dat, family = binomial)
 ```
 
 Guardando le indicazioni in `?binomial` (che rimanda a `?family`) vediamo che non possiamo fornire una stringa come variabile risposta, ma dobbiamo usare: 
+
 * un fattore 
 * un valore numerico tra 0 e 1 (usando eventualmente anche l'opzione `weights`)
 * una matrice di due colonne 
 
+Qui utilizziamo un fattore.
 
 ```{r}
 dat$fopp <- as.factor(dat$opposed)
 levels(dat$fopp) ## first level is the "failure", that's what we wanted 
 ```
+
 
 ```{r}
 fit_bin <- glm(fopp ~ year, data = dat, family = binomial)
@@ -87,82 +107,133 @@ summary(fit_bin)
 ```
 
 ```{r}
-## alternative 
+## Alternative 1
 dat$numopp <- as.numeric(dat$opposed == "opposed")
+# We can specify the number of trials through weights
 summary(glm(numopp ~ year, data = dat, family = binomial, weights = rep(1, nrow(dat))))
+
+# Alternative 2
 dat$ntrial <- rep(1, nrow(dat))
 summary(glm(cbind(dat$numopp,dat$ntrial-dat$numopp) ~ dat$year, family = binomial))
 ```
 
-Il valore stimato del parametro legato a `year` è negativo, col passare degli anni è diminuita la probabilità che venga depositata un'opposizione ad un brevetto. Notiamo anche un valore di intercetta molto grande - per facilitare l'interpretazione del modello trasformiamo `year`, senza che questo cambi la stima finale del modello: 
+Il valore stimato del parametro legato a `year` è negativo, col passare degli anni è diminuita la probabilità che venga depositata un'opposizione ad un brevetto. 
+
+Il valore dell'intercetta e' difficile da interpretare, poiche' sarebbe il logaritmo dell' `odd ratio` di qualche brevetto presentato nell'anno `0`. Notiamo anche che ha un valore molto grande.
+
+Per facilitare l'interpretazione del modello trasformiamo `year`, senza che questo cambi la stima finale del modello o la goodness of fit: 
 
 
 ```{r}
+# Transformation
 dat$yearSince1979 <- dat$year - 1979
+
 fit_bin <- glm(fopp ~ yearSince1979, data = dat, family = binomial)
 summary(fit_bin)
 ```
+`(Dispersion parameter for binomial family taken to be 1)` sottolinea il fatto che la varianza in questo caso sia totalmente dipendente dalla stima del valore atteso, tipico della bernoulli che ha un solo parametro `p`.
 
-Come per il modello lineare R ci presenta varie informazioni sul modello: innanzi tutto ci indica una valutazione dell'incertezza della stima dei parametri. Da dove arrivano questi valori? 
+## Incertezza
 
+
+Come per il modello lineare R ci presenta varie informazioni sul modello: innanzi tutto ci indica una valutazione dell'incertezza della stima dei parametri, ovvero `Std. Error`. Da dove arrivano questi valori? 
+
+
+Essi derivano dal fatto che gli stimatori sono stimatori **MLE** e che quindi seguano $\hat{\beta} \stackrel{approx}\thicksim  \mathcal{N}(\beta, \mathcal{I}(\beta)^{-1}), \text{ When } n \rightarrow \infty$. 
+
+Purtroppo noi non conosciamo il vero valore di $\beta$ e percio' deriviamo quei numeri da $\mathcal{I}(\beta) = \mathbf{X^{T}VX}$, dove la matrice $\mathbf{V}$ contiene la vera varianza. Percio' dobbiamo stimare questa varianza per poter utilizzare questo metodo.
+
+$$V_{i} = \frac{1}{Var[Y_{i}]}(d\mu/d\eta)^{2} \stackrel{logistic} \rightarrow V_{i} = \frac{exp(X\beta)}{[1+exp(X\beta)]^{2}}$$
 
 ```{r}
-X <- model.matrix(fit_bin) # design matrix 
+# Design matrix 
+X <- model.matrix(fit_bin)
+
+# matrix V
 # b''(\theta) = exp(theta)/((1+exp(theta))^2) 
 # theta = beta_0 + beta_1 x
-V <- diag(exp(fit_bin$coefficients[1]+fit_bin$coefficients[2]*dat$yearSince1979)/((1+exp(fit_bin$coefficients[1]+fit_bin$coefficients[2]*dat$yearSince1979))^2))
+V <- diag(exp(fit_bin$coefficients[1] + fit_bin$coefficients[2]*dat$yearSince1979) / ((1+exp(fit_bin$coefficients[1]+fit_bin$coefficients[2]*dat$yearSince1979))^2))
+
+# The results coincide
 solve(t(X) %*% V %*% X)
 vcov(fit_bin)
 ```
 
 L'incertezza si deriva usando la matrice di disegno e la varianza (stimata) di $Y_i$, che è diversa per ogni osservazione dato che dipende da $\theta_i$. 
 
-Con gli standard errros possiamo fare dell'inferenza, ad esempio costruire intervalli di confidenza, o "a mano" o usando la funzione `confint.default`: 
+
+## Inferenza
+
+Con gli standard errrors possiamo fare dell'inferenza, ad esempio costruire intervalli di confidenza, o "a mano" o usando la funzione `confint.default`: 
 
 
 ```{r}
+# These are based on the estimation
 confint.default(fit_bin)
 confint.default(fit_bin, parm = "yearSince1979")
+
+# Std. Error + normal quantile at alpha=0.05 * SE
 coef(fit_bin)[2] + qnorm(c(0.025,0.975))*sqrt(vcov(fit_bin)[2,2])
 ```
 
-Nota: a differenza di quanto fatto per il modelli lineari, per costruire l'intervallo di confidenza usiamo un normale (e non una T di Student) dato che stiamo utilizzando il fatto che le stime dei coefficienti di regressione nei GLM sono ottenute tramite massima verosimiglianza per cui possiamo sfruttare il fatto che per gli stimatori di massima verosimiglianza si ha una distribuzione approssimativamente normale. Di conseguenza l'intervallo di confidenza è approssimato e l'approssimazione sarà tanto migliore quanto più è grande il campione.
+Nota: a differenza di quanto fatto per il modelli lineari, per costruire l'intervallo di confidenza usiamo un normale (e non una T di Student) dato che stiamo utilizzando il fatto che le stime dei coefficienti di regressione nei GLM sono ottenute tramite massima verosimiglianza per cui possiamo sfruttare il fatto che per gli stimatori di massima verosimiglianza si ha una distribuzione approssimativamente normale. 
+
+Di conseguenza l'intervallo di confidenza è **approssimato** e l'approssimazione sarà tanto migliore quanto più è grande il campione.
 
 Cerchiamo adesso di capire un po' meglio la stima ottenuta del modello  
 
+
+## Interpretazione
+La stima viene interpretata in base alla funzione legame, in questo caso la funzione logistica.
 
 Come possiamo interpretare i coefficienti? [Video che spiega come non sia banale la cosa!](https://twitter.com/ChelseaParlett/status/1304436259926896640).  
 
 ```{r}
 nd <- data.frame(yearSince1979 = c(1, 2, 17, 18))
-# the linear predictor fit 
+
+# The linear predictor fit 
 coef(fit_bin)[1] + coef(fit_bin)[2] * nd$yearSince1979
+
 # alternatively use predicct
 (lpred <- predict(fit_bin, newdata = nd))
+
+# The above equals this one
 # by default it predicts the linear predictor
-(lpred <- predict(fit_bin, newdata = nd, 
-                  type = "link"))
+(lpred <- predict(fit_bin, newdata = nd, type = "link"))
 
-diff(lpred) # these change by beta1 for a change of unit
+# these change by beta1 for a change of unit
+diff(lpred)
+```
 
+```{r}
 ## We can use predict to ask for E[Y]
 ## ie make a prediction on the response scale 
-(rpred <- predict(fit_bin, newdata = nd, 
-                  type="response"))
-## transform the linear predictor 
+## We can see that the change in the response is not linear
+(rpred <- predict(fit_bin, newdata = nd, type="response"))
+
+## Same as doing:
+## Transform the linear predictor 
 exp(lpred)/(1+exp(lpred))
-# this is the odds ratio 
+```
+
+```{r}
+# This is the odds ratio 
 rpred/(1-rpred) 
+
 exp(lpred)
+```
+
+```{r}
 # ratio of odds ratio is the same for 
-# a change of one unit in x
+# a change of one unit in x, distance of 1
 (rpred/(1-rpred))[2]/(rpred/(1-rpred))[1]
 (rpred/(1-rpred))[4]/(rpred/(1-rpred))[3]
+
 # its value is beta1
 exp(fit_bin$coefficients[2])
 ```
 
-Il coefficiente $\beta_1$ rappresenta l'effetto (su scale logaritmica) del predittore sull'odds ratio: un coefficiente positivo indica che al crescere di X cresce la probabilità che $Y =1$. Tuttavia quanto sia forte questo effetto dipende dal valore di X, non è costante. Possiamo visualizzare l'effetto che ha il predittore sul valore atteso della varaibile risposta:  
+Il coefficiente $\beta_1$ rappresenta l'effetto (su scala logaritmica) del predittore sull'odds ratio: un coefficiente positivo indica che al crescere di X cresce la probabilità che $Y=1$. Tuttavia quanto sia forte questo effetto dipende dal valore di X, non è costante. Possiamo visualizzare l'effetto che ha il predittore sul valore atteso della varaibile risposta:  
 
 
 ```{r}
@@ -179,7 +250,6 @@ plot(nd$yearSince1979,
 ### we can plot the original data
 points(dat$yearSince1979, jitter(dat$numfopp), col = "grey70")
 ```
-
 
 In questo esempio la stima della probabilità è piuttosto lineare nell'intervallo di tempo osservato. Se pensassimo di estendere (di molto) l'intervallo in cui valutiamo la funzione troveremmo la classica forma sigmoide della regressione logistica: 
 
@@ -246,6 +316,8 @@ abline(v = range(dat$yearSince1979), col = "grey", lty = 2)
 ```
 
 Per i brevetti in ambito bio-farmaceutico c'è una probabilità più alta che si registri un'opposizione e questa probabilità è diminuta in maniera meno forte rispetto agli altri ambiti. 
+
+---
 
 # Un modello per il numero di citazioni 
 
