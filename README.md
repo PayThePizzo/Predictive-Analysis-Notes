@@ -38,7 +38,7 @@ If you want to visualize the labs without having to download and run the Rmd fil
   * [Lab 07 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07_class.html)
 * [Lab 08](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08.html) - Intro to GLM
 * [Lab 09](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab09/lab09.html) - More about GLM
-* [Lab10](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab10/lab10.html)
+* [Lab10](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab10/lab10.html) - Spam Detection
 ---
 ## Resources 
 The course's page and the slides specify the material used already, but I will try to cite it wherever possible.

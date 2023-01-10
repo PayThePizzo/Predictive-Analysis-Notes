@@ -34,66 +34,146 @@ Desideriamo costruire un modello che predica la probabilità di avere una malatt
 par(mfrow=c(2,2))
 for(j in 1:4) plot(jitter(SAheart$chd, amount = 0.2)~SAheart[,j], main = names(SAheart)[j])
 ```
+Per alcune di queste variabili continue sembra esserci un legame.
 
 ```{r}
 par(mfrow=c(2,2))
 for(j in 6:9) plot(jitter(SAheart$chd, amount = 0.2)~SAheart[,j], main = names(SAheart)[j])
 ```
-
+Quando abbiamo una variabile dicotomica come risposta ed una variabile categoriale come predittore, conviene fare una tabella di contingenza e/o un `mosaicplot`
 
 Per `famhist`, che è una variabile categoriale, possiamo utilizzare un cosiddetto mosaicplot: 
-
 
 ```{r}
 table(SAheart$famhist, SAheart$chd)
 mosaicplot(table(SAheart$famhist, SAheart$chd))
 ```
+Vediamo che vi e' una maggiore numerosita' di `absent` (data dalla larghezza della colonna) rispetto a `present`. Inoltre, sembra esserci un' associazione tra avere problemi alle coronarie ed avere una storia familiare dal momento che i valori della diagonale sono piu' "pesanti" che i valori fuori dalla diagonale.
+
+## First attempt
+
+Iniziamo con un primo modello che utilizza `ldl` come predittore e `chd` come variabile risposta.
 
 ```{r}
 chd_mod_ldl <- glm(chd ~ ldl, family = binomial, data = SAheart)
 summary(chd_mod_ldl)
+```
+Come abbiamo intuito, al crescere dei valori del colesterolo, cresce il rischio di avere una malattia alle coronarie.
+Purtroppo pero', non sappiamo interpretare gli `0.27466` punti di crescita, per questo ci serve utilizzare un grafico o guardare dei punti di interesse.
+
+```{r}
 par(mfrow=c(1,1))
+
 plot(SAheart$ldl, jitter(SAheart$chd, amount = 0.14), pch = 16)
+
 lines(sort(SAheart$ldl), 
       predict(chd_mod_ldl, newdata = data.frame(ldl = sort(SAheart$ldl)),
              type = "response"), col = "red")
+```
+E' interessante vedere che non si raggiungono mai gli estremi della probabilita' (ne' 0, ne' 1) e che la crescita, sebbene sia positiva, non e' lineare nella scala della probabilita'. 
+
+* L'effetto di passare da 2 a 3, non e' lo stesso di passare da 8 a 9;
+* Lo e' solo nella scala della `log-odds`
+
+### Intervalli di confidenza
+
+Se vogliamo verificare l'intervallo di confidenza per il valore, possiamo usare:
+```{r}
 confint.default(chd_mod_ldl, level = 0.99, parm = "ldl")
 ```
+E' fortemente significativo, sebbene piccolo e' distante da `0`. L'intervallo e' costruito a partire dal fatto che l'aprossimazione di una normale (che deriva dal fatto che il modello e' approssimato tramite massima verosimiglianza).
 
+* Per costruire l'intervallo si usa il quantile della normale, quindi e' simmetrico.
+
+## Second Attempt
+
+Proviamo ora ad utilizzare un secondo modello, che include tutti i predittori in forma additiva (senza interazioni)
 
 ```{r}
 chd_mod_additive <- glm(chd ~ ., family = binomial, data = SAheart)
 summary(chd_mod_additive)
 ```
 
+Otteniamo una devianza molto piu' bassa di quella nulla, possiamo dedurre che il modello sia significativo. Tanti predittori singoli non sono significativi, dunque ci poniamo l'obiettivo di trovare un modello significativo e parsimonioso.
+
+Confrontiamo le devianze dei due modelli
+
+### LRT
+
 ```{r}
 anova(chd_mod_ldl, chd_mod_additive, test = "LRT")
 ```
 
+Il modello additivo e' significativamente diverso e ci dovrebbe, percio', essere un modello intermedio che sia significativo. 
+
+
+### Stepwise Selection
+
+Utilizziamo una selezione del modello tramite *Stepwise selection* basata su *AIC*
+
 ```{r}
-chd_mod_select <- step(chd_mod_additive, 
-                       k = 2 # use AIC
-                       )
-step(chd_mod_ldl, direction = "forward", scope = list(lower = chd_mod_ldl, 
-                                                    upper = chd_mod_additive))
-step(chd_mod_ldl, direction = "both", scope = list(lower = chd_mod_ldl, 
-                                                    upper = chd_mod_additive))
+# Backward
+chd_mod_select <- step(chd_mod_additive, k = 2) # use AIC
+
+# Forward
+step(chd_mod_ldl, direction = "forward", 
+     scope = list(lower = chd_mod_ldl, upper = chd_mod_additive))
+
+# Both
+step(chd_mod_ldl, direction = "both", 
+     scope = list(lower = chd_mod_ldl, upper = chd_mod_additive))
 
 ```
 
+Togliendo un elemento alla volta, la selezione arriva ad un modello che ha `AIC=487.69` con la formula `chd ~ ldl + age + famhist + tobacco + typea`
+
+```{r}
+chd_mod_select
+```
+Vediamo quindi che vi sono delle relazioni positive per quasi tutti i predittori.
+
+* In particolare quando `famhist` e' `present`, il coefficiente e' molto positivo. Stiamo stimando due predittori lineari paralleli tra loro (perche e' una variabile categorica). 
+
+
+### LRT
+
+```{r}
+anova(chd_mod_ldl, chd_mod_select, test = "LRT")
+```
+Troviamo un miglioramento significativo rispetto al modello piu' semplice
+
+```{r}
+anova(chd_mod_additive, chd_mod_select, test = "LRT")
+```
+Purtroppo rispetto al modello adittivo, non vi e' grande evidenza statistica di miglioramento.
+
+### Interpretazione ed Incertezza
+Come nei MLR, l'interpretazione dei predittori e' la seguente: il valore (positivo o negativo) e' l'effetto che ha il predittore `beta` sul log-odd-ratio, assumendo che tutti gli altri predittori abbiano valori fissi. Infatti, per visualizzare questi effetti tramite grafici, si devono prima fissare i valori dei predittori.
+
+
 ```{r}
 plot(SAheart$ldl, jitter(SAheart$chd, amount = 0.14), pch = 16)
+
+# "pure" ldl effect
 lines(sort(SAheart$ldl), 
       predict(chd_mod_ldl, newdata = data.frame(ldl = sort(SAheart$ldl)),
              type = "response"), col = "red")
+
+# Fix the values
 nd <- data.frame(ldl = seq(0,16), age = median(SAheart$age), 
                  tobacco = median(SAheart$tobacco), 
                  famhist = "Absent", typea = median(SAheart$typea))
+
+# ldl effect, given that all the predictors have median values
 lines(sort(nd$ldl), 
       predict(chd_mod_select, newdata = nd,
              type = "response"), col = "orange")
+
+# Uncertainty estimation
 linpred <- predict(chd_mod_select, newdata = nd,
              type = "link", se.fit = TRUE)
+
+#
 cint <- cbind(linpred$fit - qnorm(.995) * linpred$se.fit,
               linpred$fit + qnorm(.995) * linpred$se.fit)
 cint_response <- 
@@ -103,7 +183,11 @@ lines(sort(nd$ldl), cint_response[,1], lty = 2, col = "darkorange")
 lines(sort(nd$ldl), cint_response[,2], lty = 2, col = "darkorange")
   
 ```
+L'effetto del colesterolo, a valori fissati, (linea arancione non tratteggiata) e' meno forte rispetto all'effetto "puro" dello stesso (linea rossa). Questo accade probabilmente perche' la linea rossa descrive le persone con il colesterolo alto e che hanno un'eta' maggiore. Come nei modelli lineare, con cosi' tante variabili e' difficile spiegare esattamente come influisce.
 
+Per quanto riguarda l'incertezza dei parametri, e' facilmente reperibile una volta ottenuta l'incertezza della stima. E' molto piu' semplice nei MLR, dove le trasformazioni sono lineari, mentre qui le linee non tratteggiate sono trasformazioni non-lineari (si passa attraverso la link function).
+
+Quello che si fa e' costruire degli intervalli di confidenza.
 
 
 # Model selection per GLMs - Poisson 
