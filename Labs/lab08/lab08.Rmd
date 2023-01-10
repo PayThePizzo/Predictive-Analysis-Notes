@@ -131,6 +131,7 @@ dat$yearSince1979 <- dat$year - 1979
 fit_bin <- glm(fopp ~ yearSince1979, data = dat, family = binomial)
 summary(fit_bin)
 ```
+
 `(Dispersion parameter for binomial family taken to be 1)` sottolinea il fatto che la varianza in questo caso sia totalmente dipendente dalla stima del valore atteso, tipico della bernoulli che ha un solo parametro `p`.
 
 ## Incertezza
@@ -251,7 +252,9 @@ plot(nd$yearSince1979,
 points(dat$yearSince1979, jitter(dat$numfopp), col = "grey70")
 ```
 
-In questo esempio la stima della probabilità è piuttosto lineare nell'intervallo di tempo osservato. Se pensassimo di estendere (di molto) l'intervallo in cui valutiamo la funzione troveremmo la classica forma sigmoide della regressione logistica: 
+In questo esempio la stima della probabilità è piuttosto lineare nell'intervallo di tempo osservato. Se pensassimo di estendere (di molto) l'intervallo in cui valutiamo la funzione troveremmo la classica forma sigmoide della regressione logistica. 
+
+Estrapolazione sul parametro `year`:
 
 ```{r}
 # binomial()$linkfun
@@ -270,6 +273,8 @@ lines(nd$yearSince1979,
 ```
 
 Per una applicazione vagamente sensata non avrebbe molto senso estrapolare così avanti o indietro nel tempo: questo grafico ha solo lo scopo di far vedere la forma classica della regressione logistica. 
+
+### Considerare l'ambito
 
 Vogliamo ora indagare se l'essere o meno un brevetto che ha a che fare con l'ambito bio-farmaceutico incide sulla probabilità che  vi sia una opposizione al brevetto. Possiamo provare a dare un'occhiata ai dati
 
@@ -296,7 +301,14 @@ fit_bin3 <- glm(fopp ~ yearSince1979*biopharm, family = binomial, data = dat)
 summary(fit_bin3)
 ```
 
+Cosi` facendo, al livello del predittore lineare, stiamo stimando due linee con due intercette e due coefficienti angolari diversi. Questo, risulta in due diverse curve logistiche in base al fatto che un brevetto sia in ambito farmaceutico o meno.
+
+* `biopharm1` rimanendo positivo, indicando che tipicamente la probabilita' di un'opposizione sara' piu' alta in media, quando l'anno non cambia ed il brevetto e' `biopharm`. Purtroppo pero' non sappiamo dire di quanto sia piu' alta a priori, perche' il valore e' mediato dalla logit.
+* L'effetto del tempo sara' negativo, in entrambi i casi.
+* Il fatto che l'interazione sia positiva, vuol dire che e' piu' "piatta" questa relazione ed il coefficiente angolare sara' piu' basso in termini di valore assoluto. Vi e' meno effetto del tempo per le aziende in ambito `biopharm`
+
 Un effetto che appare essere significativo. Possiamo visualizzare il modello stimato (anche qui estrapoliamo la funzione a dismisura per visualizzare bene le differenze): 
+
 
 ```{r}
 # binomial()$linkfun
@@ -315,57 +327,124 @@ lines(nd$yearSince1979,
 abline(v = range(dat$yearSince1979), col = "grey", lty = 2)
 ```
 
-Per i brevetti in ambito bio-farmaceutico c'è una probabilità più alta che si registri un'opposizione e questa probabilità è diminuta in maniera meno forte rispetto agli altri ambiti. 
+In conclusione, per i brevetti in ambito bio-farmaceutico c'è una probabilità più alta che si registri un'opposizione e questa probabilità è diminuta in maniera meno forte rispetto agli altri ambiti. 
+
+Per quanto riguarda l'utilizzo di R per i modelli GLM, sono equivalenti ai MLR anche se le misure cambiano.
+
+### AIC
+Per quanto riguarda l'AIC, vogliamo minimizzare questa misura.
+
+```{r}
+logLik(fit_bin); logLik(fit_bin3)
+```
+
+Abbiamo decisamente diminuito la verosimiglianza ed AIC ci dice conferma che i gradi di liberta' non pesano poi cosi' tanto rispetto al miglioramento avuto.
+
+```{r}
+AIC(fit_bin); AIC(fit_bin3)
+```
+
+### Fitted
+Useremo molto meno `fitted` dal momento che ci mostra solo i valori stimati, mentre `predict` ci permette di scegliere la scala da utilizzare per i valori.
+
+### plot
+Si puo' utilizzare la funzione `plot` per i GLM, ed in questo caso ritorna un grafico dei residui
+
+```{r}
+plot(fit_bin)
+```
+
+Purtroppo non sono cosi' utili se si utilizzano dei dati di tipo binario, anche perche' sono difficili da interpretare.
 
 ---
 
 # Un modello per il numero di citazioni 
 
 Ci concentriamo ora sulla variabile `ncit`, il numero di citazioni ricevute da un brevetto. Le citazioni sono in qualche modo una misura del successo di un brevetto: desideriamo verficare se i brevetti depositati recentemente hanno più successo. 
-`ncit` è una variabile che misura dei conteggi: possiamo assumere che segua una distribuzione di Poisson. Diamo un'occhiata ai dati: 
+`ncit` è una variabile che misura dei conteggi: possiamo assumere che segua una distribuzione di Poisson. 
+Diamo un'occhiata ai dati: 
 ```{r}
 # notice we already use yearSince1979
 plot(ncit~yearSince1979, data = dat) 
 ```
 
-Difficile sapere quanti punti ci sono in ogni combinazione - usiamo jitter
+Difficile sapere quanti punti ci sono in ogni combinazione. Usiamo allora `jitter` che rende evidente dove si 
+trova la maggior parte dei dati.
 
 ```{r}
 plot(jitter(ncit, amount = 0.2)~jitter(yearSince1979, amount = 0.2), 
      data = dat) 
 ```
 
-Non un effetto chiarissimo, ma forse le citazioni di brevetti presentati di recente sono relativamente meno (hanno avuto meno tempo per essere citate). Iniziamo comunque con un modello semplice per capire come lavorare con modelli con dati di conteggio: 
+Sebbene l'effetto non sia chiarissimo, intravediamo che forse le citazioni di brevetti presentati di recente sono relativamente meno (hanno avuto meno tempo per essere citate). 
 
+Iniziamo comunque con un modello semplice della famiglia `poisson` per capire come lavorare con modelli con dati di conteggio: 
+
+* Dobbiamo ricordarci che la funzione legame e' il logaritmo.
 
 ```{r}
 fit_pois <- glm(ncit~yearSince1979, data = dat, family = poisson)
 summary(fit_pois)
 ```
 
-Un effetto significativo e negativo del tempo: brevetti presentati in anni più recenti hanno meno citazioni. Vediamo che ci sono degli errori standard e dei test: deriviamo questi numeri: 
+Interpretiamo `yearSince1979`: questo parametro ha un effetto significativo e negativo del tempo: brevetti presentati in anni più recenti hanno meno citazioni. 
+
+* Di quanto diminuiscono? Nella scala del link function, il decadimento e' lineare. Invece, rispetto alla scala originale dei dati, dobbiamo andare a vedere cosa succede tramite la funzione legame.
+
+### Inferenza
+
+Vediamo che ci sono degli errori standard e dei test: deriviamo questi numeri: 
 
 ```{r}
+# Design Matrix
 X <- model.matrix(fit_pois)
+
+# In this case Vi changes!
+# exp(B0 + B1X1)
 V <- diag(exp(fit_pois$coefficients[1]+fit_pois$coefficients[2]*dat$yearSince1979))
+
 solve(t(X) %*% V %*% X)
+
 vcov(fit_pois)
 ```
 
-Possiamo anche derivare intervalli di confidenza (basati sulla normale, cioè la distribuzione approssimata degli stimatori di massima verosimiglianza): 
+Di nuovo, abbiamo che la varianza viene spiegata tramite il valore atteso
+
+* E' un vantaggio perche' con un singolo parametro si stima tutto
+* E' uno svantaggio poiche' al crescere/diminuire della media cresce/diminuisce la varianza. Ne consegue che i modelli siano troppo restrittivi per i dati.
+
+Notiamo che le statistiche test `z value` sono particolarmente grandi, dovute anche al fatto che lo standard error di beta, dipende da beta stesso. Essendo il p-value molto piccolo in entrambi i casi possiamo intuire che il vero valore dei parametri sia diverso da zero.
+
+Per conferma, possiamo anche derivare intervalli di confidenza (basati sulla normale, cioè la distribuzione approssimata degli stimatori di massima verosimiglianza): 
 
 ```{r}
 confint.default(fit_pois, "yearSince1979")
 coef(fit_pois)[2] + qnorm(c(.025, .975)) * sqrt(vcov(fit_pois)[2,2])
 ```
 
+Questo grafico rappresenta, come cambia la predizione sulla scala della variabile risposta.
+
+```{r}
+# Link
+# plot(dat$yearSince1979, predict((fit_pois),  type="l"))
+
+# Response
+plot(dat$yearSince1979, predict((fit_pois),  type='r'))
+```
+Non ci stupisce vedere una stima piu' bassa al crescere dell'anno, poiche' la gran parte dei brevetti aveva un numero di citazioni piuttosto basso. Vediamo un decadimento non lineare e se rimpicciolissimo l'immagine vedremmo un vero e proprio decadimento non-lineare.
+
 Andiamo adesso a capire più in dettaglio che modello abbiamo stimato. Si assume che 
 
 \[Y_i = (Y|X = x_i) \sim Pois(\lambda(yearSince1979_i)) \]
+
 dove 
+
 \[\lambda(yearSince1979_i) = \exp\{\beta_0 + \beta_1 yearSince1979_i \} \]
+
 con il predittore lineare $\eta(yearSince1979_i) = \log(\lambda(yearSince1979_i))$:
+
 \[\eta(yearSince1979_i) = \beta_0 + \beta_1 yearSince1979_i\]
+
 Dato che $Y_i$ segue una Poisson si ha che $E[Y_i] (= Var(Y_i)) = \lambda_i$. Quindi `yearSince1979` ha un effetto sul valore atteso della distribuzione tramite la funzione legame. Due brevetti presentati in due anni distanti tra loro $c$ anni avranno come valore predetto: 
 
 \[\lambda(x_0) = \exp\{\beta_0 + \beta_1 x_0 \} \quad \lambda(x_0 + c) = \exp\{\beta_0 + \beta_1 (x_0 + c) \}\]
@@ -376,37 +455,63 @@ Possiamo verificare la cosa usando la funzione `predict`:
 
 ```{r}
 nd <- data.frame(yearSince1979 = c(1,2, 17, 18))
+```
+
+Sulla scala del predittore lineare abbiamo
+```{r}
 # linear predictor  
 (lpred <- predict(fit_pois, newdata = nd,type = "link"))
-diff(lpred) # linear scale
+
+# linear scale
+# difference from one year to another is linear
+diff(lpred)[1]
+```
+
+
+Mentre sulla scala della risposta troviamo
+```{r}
 # response 
 (rpred <- predict(fit_pois, newdata = nd,type = "response"))
-exp(lpred) # response scale 
-rpred[2]/rpred[1]; rpred[4]/rpred[3]; exp(-0.07003)   
-rpred[3]/rpred[2]; exp(-0.07003*15)
-# response is exp(linear predictor)
-log(rpred[2])-log(rpred[1]); log(rpred[4])-log(rpred[3])
-rpred[1]* exp(fit_pois$coefficients[2]); rpred[2]
-rpred[3]* exp(fit_pois$coefficients[2]); rpred[4]
-rpred[1]* exp(fit_pois$coefficients[2]*17); rpred[4]
+# response scale 
+# The response is not constant
+exp(lpred)  
+
+# But this is constant
+c(rpred[2]/rpred[1], rpred[4]/rpred[3], exp(-0.07003))  
+# And this too
+c(rpred[3]/rpred[2], exp(-0.07003*15))
 ```
+
+Questo deriva dalla proprieta' delle esponenziali come descritto sopra.
+
+```{r}
+# response is exp(linear predictor)
+c(log(rpred[2])-log(rpred[1]), log(rpred[4])-log(rpred[3]))
+c(rpred[1]* exp(fit_pois$coefficients[2]), rpred[2])
+c(rpred[3]* exp(fit_pois$coefficients[2]), rpred[4])
+c(rpred[1]* exp(fit_pois$coefficients[2]*17), rpred[4])
+```
+
+Quello che bisogna ricordarsi e' che:
+
+* Bisogna passare per la funzione legame, il che ci permette di adattarci alla natura dei dati. 
+* Stimare questi tipi di modelli ci costringe a studiare una relazione non-lineare tra la variabile risposta ed i predittori. Cio' rende difficile l'interpretazione ed il passaggio da un livello lineare.
 
 Per visualizzare l'effetto di una variabile esplicativa sulla variabile risposta si possono usare i predittori lineari (sulla scala logaritmica) o delle trasformazioni dei predittori lineari sulla scala della variabile risposta: 
 
 ```{r}
 par(mfrow=c(1,2), pch = 16, col = "grey40")
 plot(dat$yearSince1979, log(dat$ncit))
+
 ## but careful about any(dat$ncit == 0)
 nd <- data.frame(yearSince1979=seq(1, 18, by=1))
-lines(nd$yearSince1979, predict(fit_pois, newdata = nd),
-      col = 2, lwd = 2)
+
+lines(nd$yearSince1979, predict(fit_pois, newdata = nd), col = 2, lwd = 2)
 plot(dat$yearSince1979, dat$ncit)
-lines(nd$yearSince1979, 
-      predict(fit_pois, newdata = nd, type="response"),
-      col = 4, lwd = 2)
+lines(nd$yearSince1979, predict(fit_pois, newdata = nd, type="response"), col = 4, lwd = 2)
 ```
 
-In questo grafico i brevetti con 0 citazioni non bengono mostrati ($log(0) = -\infty$). Per mostrare i valori pari a 0 a volte vengono mostrati con dei valori piccoli ma maggiori di 0: 
+In questo grafico i brevetti con 0 citazioni non vengono mostrati ($log(0) = -\infty$). Per mostrare i valori pari a 0 a volte vengono mostrati con dei valori piccoli ma maggiori di 0: 
 
 ```{r}
 par(mfrow=c(1,1), pch = 16, col = "grey40")
@@ -430,7 +535,10 @@ lines(nd$yearSince1979, predict(fit_pois, newdata = nd, type = "response"),
 
 La forma stimata ora è quella di un'esponenziale: la stima del valore atteso della funzione è non lineare in `yearSince1979`. 
 
-Il termine lineare forse non cattura del tutto la forma funzionale della relazione. Inoltre potrebbero esserci degli effetti legati al tipo brevetto e all'opposizione allo stesso: brevetti per cui c'è stata un'opposizione forse sono legati a temi di interesse generale e risultano quindi più interessanti. Oltre ad usare un termine quadratico per il tempo, aggiungiamo anche `fopp` e `biopharm` al modello: 
+### In Conclusione
+Il termine lineare forse non cattura del tutto la forma funzionale della relazione. Inoltre potrebbero esserci degli effetti legati al tipo brevetto e all'opposizione allo stesso: brevetti per cui c'è stata un'opposizione forse sono legati a temi di interesse generale e risultano quindi più interessanti. 
+
+Oltre ad usare un termine quadratico per il tempo, aggiungiamo anche `fopp` e `biopharm` al modello: 
 
 ```{r}
 # we can use poly like in linear models 
@@ -442,6 +550,7 @@ summary(fit_pois_quad)
 Che modello abbiamo stimato? Guardiamo sia i predittori lineari che l'effetto sulla scala della variabile risposta 
 
 ```{r}
+# On the linear scale, it looks like a parabola
 par(mfrow=c(1,2), pch = 16, col = "grey40")
 nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "1", fopp = "opposed")
 plot(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "link"),
@@ -455,7 +564,7 @@ lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "link"),
 nd <- data.frame(yearSince1979=seq(1, 18, by=1), biopharm = "0", fopp = "not-opposed")
 lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "link"),
       col = 1, lwd = 2, lty = 2)
-# paralle parabolas 
+
 # on the orginal scale 
 plot(dat$yearSince1979, jitter(dat$ncit, amount = 0.2), 
      ## add transparency 
@@ -476,16 +585,20 @@ lines(nd$yearSince1979, predict(fit_pois_quad, newdata = nd, type = "response"),
 ```
 
 I brevetti in ambito bio-farmaceutico e che hanno avuto un'opposizione sono i brevetti che hanno più citazioni. 
+Inoltre vediamo come l'effetto dell'anno sia significativo.
 
-I singoli predittori sono significativi. Il modello `fit_pois` è annidato in questo modello e possiamo quindi chiederci come confrontare modelli annidati. Usiamo l'analisi della devianza. 
+I singoli predittori sono significativi. 
+
+Il modello `fit_pois` è **annidato** in questo modello. Possiamo, quindi, chiederci **come confrontare** modelli annidati: Usiamo l'analisi della devianza. 
 
 ## La devianza 
 
-Nel `summary` R stampa l'informazione su devianza nulla e devianza residua, che una misura della bontà di adattamento   di un modello ai dati, in qualche modo simile alla somma dei quadrati dei residui del modello (e è anche la devizna qualcosa che si cerca di minimizzare): 
+Nel `summary` R stampa l'informazione su devianza nulla e devianza residua, che una misura della bontà di adattamento   di un modello ai dati, in qualche modo simile alla somma dei quadrati dei residui del modello (e è anche la devianza qualcosa che si cerca di minimizzare): 
 
 ```{r}
-fit_pois$deviance
-fit_pois_quad$deviance
+# Deviance
+# model1 vs model2 
+c(fit_pois$deviance, fit_pois_quad$deviance)
 ```
 
 Modelli più complessi tendono a far diminuire la devianza. La devianza nulla è la devianza per un modello in cui non vengono usati predittori: 
