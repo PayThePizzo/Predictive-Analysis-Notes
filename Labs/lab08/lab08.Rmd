@@ -651,10 +651,16 @@ Usiamo questo fatto per creare un test sulla significatività del modello (un te
 ```{r}
 anova(fit_pois_null, fit_pois, test = "LRT")
 (lrt_stats <- fit_pois_null$deviance - fit_pois$deviance)
+
 pchisq(lrt_stats, 
         df = fit_pois_null$df.residual - fit_pois$df.residual, 
         lower.tail = FALSE)
+
+# deviance of fit_pois_quad
+2*(logLik(fit_pois_quad) - logLik(fit_pois))
 ```
+
+Nell'anova troviamo la differenza della devianza del modello semplice (devianza maggiore) e del modello meno complesso. In questo caso il p-value deriva dal quantile del chi-quadro `pchisq`
 
 Vediamo che il modello è altamente significativo. Sebbene `summary` non stampi il valore della statistica test, possiamo avere un'idea della bontà di adattamento del modello confrontando la devianza nulla e residua: se abbiamo diminuto di poco la devianza inserendo dei predittori nel modello forse non vale la pena di costruire un modello predittivo basato sulle variabili esplicative che abbiamo usato. 
 
@@ -672,37 +678,89 @@ Perché usiamo la devianza quando facciamo un Likelihood ratio test (che come di
 
 \[LR = 2log\frac{L(\mathcal{M_{full}})}{L(\mathcal{M_{null}})} = 2 (l(\mathcal{M_{full}}) - l(\mathcal{M_{null}})) = 2 (l(\mathcal{M_{full}}) - l(\mathcal{M_{null}}) + l^{sat} - l^{sat})  = D(M_{null}) - D(M_{full})\]
 
+---
 
 # La modellazione del numero di successi (proporzioni)  
 
-La distribuzione binomiale che viene usata quando si specifica  `family = binomial` può essere usata non solo per dati binari ma anche per dati in cui il dato discreto che si modella è il numero di successi ($y$) su un totale di $k$ tentativi, assumendo che $Y|X=x \sim Bin(k, p(x))$. Come specificato in ?family possiamo specificare il modello per questo tipo di dati in due modi: 
+## Patents
+La distribuzione binomiale che viene usata quando si specifica  `family = binomial` può essere usata non solo per dati binari ma anche per dati in cui il dato discreto che si modella è il numero di successi ($y$) su un totale di $k$ tentativi, assumendo che $Y|X=x \thicksim Bin(k, p(x))$. 
 
-* As a numerical vector with values between 0 and 1, interpreted as the proportion of successful cases (with the total number of cases given by the weights).
-* As a two-column integer matrix: the first column gives the number of successes and the second the number of failures.
+A differenza del modello $Y|X=x \thicksim Bern(p(x))$, abbiamo molte meno informazioni da salvare, ma non possiamo utilizzare le informazioni per stimare come impattano i predittori rispetto ad ogni singolo brevetto dato che abbiamo solo le informazioni aggregate. 
+
+In ogni caso, proprio per il fatto che le informazioni aggregate sono meno dispendiose, si trova molto spesso il modello binomiale.
 
 Come primo esempio deriviamo dal dataset `patents` l'informazione di quanti brevetti sono stati depositati e di quanti hanno avuto un'opposizione per ogni anno. Da questa informazione (molto più sintetica di quella disponibile in prima istanza), possiamo modellare la proporzione dei brevetti per cui vi è un'opposizione: 
 
 ```{r}
 # dat <- dat[order(dat$year),]
+
+# New dataset
+# 1) unique value per year
+# 2) count of opposition per year
+# 3) count of patents per year
 byYear <- data.frame(year = tapply(dat$year, factor(dat$year), unique), 
                      numopp = tapply(dat$numopp, factor(dat$year), sum), 
                      tpat = tapply(dat$numopp, factor(dat$year), length)) 
+```
+
+Ora, come specificato in `?family` possiamo specificare il modello per questo tipo di dati in due modi (per specificare k): 
+
+* As a numerical vector with values between 0 and 1, interpreted as the proportion of successful cases (with the total number of cases given by the weights). It would be like providing $\pi_{i} = y_{i}/k_{i}$
+* As a two-column integer matrix: the first column gives the number of successes and the second the number of failures.
+
+Proviamo entrambi
+
+```{r}
+# Method with two columns
 byYear$n_notopp <- byYear$tpat - byYear$numopp
+# Method with proportion
 byYear$propOpp <- byYear$numopp/byYear$tpat
+
 head(byYear)
-##first specification
-fit_t1_bin <- glm(cbind(numopp, n_notopp)~year, family = binomial, data = byYear)             
+```
+
+I metodi sono effettivamente equivalenti in termini di risultati
+
+```{r}
+## Two columns
+fit_t1_bin <- glm(cbind(numopp, n_notopp)~year, 
+                  family = binomial, 
+                  data = byYear)
 summary(fit_t1_bin)
-## second specification
-fit_t2_bin <- glm(propOpp~year, family = binomial, weights = tpat, data = byYear)             
+
+## Proportion
+fit_t2_bin <- glm(propOpp~year, 
+                  family = binomial, 
+                  data = byYear, 
+                  weights = tpat)             
 summary(fit_t2_bin)
+
+## Previous model
 summary(fit_bin)
 ```
 
 In questo caso notiamo che la stima che otteniamo è identica alla stima ottenuta quando usavamo l'informazione individuale di ogni brevetto (il modello `fit_bin`): questo è vero solo perché `year`, la variabile esplicativa, ha lo stesso valore per tutte le osservazioni di un anno. Non potremmo per esempio usando questi dati più "compatti" valutare l'effetto che ha la variabile `biopharm` sulla probabilità che venga registrata un'opposizione al brevetto. In generale però ci sono delle somiglianze nella modellazione di dati binari e nei dati che hanno a che fare con proporzioni.
 
+Andiamo ora a considerare il cambiamento delle proporzioni nel tempo
+```{r}
+par(mfrow=c(1,1), pch = 16, col = "grey40")
+plot(byYear$year, byYear$propOpp)
+# plot()
+```
+Il grafico fa vedere i dati della proporzione ed il fatto che decada in modo evidente, non 
+stupisce quando si tratta di trovare una stima importante dell'effetto. Il dataset e' ridotto a 18 punti, e percio' valutare l'effetto di essere o meno nell'ambito bio-farmaceutico non e' piu' possibile a questo punto. Infine il grande valore della varianza e' dovuto in parte al fatto che $p$ potrebbe essere poco preciso.
 
-Vediamo un altro esempio molto famoso che ha avuto conseguenze molto rilevanti legate al disastro dello [https://it.wikipedia.org/wiki/Disastro_dello_Space_Shuttle_Challenger](Shuttle Challenger). L'esplosione del razzo fu imputata al fatto che delle guarnizioni di sicurezza (O-rings) ebbero un guasto causando una perdita nel serbatoio e l'esplosione. Ex-post la causa del guasto agli O-rings fu identificata nella bassa temperatura a cui venne effettuato il lancio. La sera prima del lancio, sebbene le previsioni meteo indicavano che la temperatura il giorno successivo sarebbe stata bassa (tra i 25 e i 27 gradi Fahrenheit), si decise di andare avanti con il lancio sulla base delle informazioni disponibili sui lanci precedenti in cui erano stati riscontrati danni agli O-rings, in cui non si era rilevato un effetto della temperatura sulla probabilità di riscontrare danni agli O-rings. I dati sono contenuti nel dataset `shuttles1`: ogni shuttle aveva un totale di 6 O-rings e la variabile `Damaged` indica quanti degli O-rings siano risultati danneggiati mentre `Temp` indica la temperatura a cui erano avvenuti i lanci. 
+
+## Shuttle
+
+Vediamo un altro esempio molto famoso che ha avuto conseguenze molto rilevanti legate al disastro dello [https://it.wikipedia.org/wiki/Disastro_dello_Space_Shuttle_Challenger](Shuttle Challenger). 
+
+L'esplosione del razzo fu imputata al fatto che delle guarnizioni di sicurezza (O-rings) ebbero un guasto causando una perdita nel serbatoio e l'esplosione. Ex-post la causa del guasto agli O-rings fu identificata nella bassa temperatura a cui venne effettuato il lancio. 
+
+La sera prima del lancio, sebbene le previsioni meteo indicavano che la temperatura il giorno successivo sarebbe stata bassa (tra i 25 e i 27 gradi Fahrenheit), si decise di andare avanti con il lancio sulla base delle informazioni disponibili sui lanci precedenti in cui erano stati riscontrati danni agli O-rings, in cui non si era rilevato un effetto della temperatura sulla probabilità di riscontrare danni agli O-rings. 
+
+I dati sono contenuti nel dataset `shuttles1`: ogni shuttle aveva un totale di 6 O-rings e la variabile `Damaged` indica quanti degli O-rings siano risultati danneggiati mentre `Temp` indica la temperatura a cui erano avvenuti
+i lanci. 
 
 ```{r}
 shuttles1 <- read.table("shuttles1.txt", header = TRUE)
@@ -769,24 +827,157 @@ abline(v = 25)
 
 La probabilità di un problema con gli O-rings in un lancio a temperature molto basse viene stimata molto alta, ma stiamo estrapolando molto al di fuori delle temperature per cui sono già stati fatti lanci: la stima sarà molto imprecisa, ma forse era alta abbastanza da motivare uno stop al lancio del razzo. 
 
+---
 
 # Verifica della teoria tramite simulazione 
 
 Abbiamo detto che l'inferenza nei modelli lineari generalizzati si basa sulla distribuzione approssimata di $\hat{\beta}$. Dato che $\hat{\beta}$ viene stimato tramite il metodo della massima verosimiglianza si ha che il seguente risutalto approssimato:  
 
-\[\hat{\beta} \sim N(\beta, (X^TVX)^{-1})\]
+\[\hat{\beta} \thicksim N(\beta, (X^TVX)^{-1})\]
 
-Andiamo a verificare tramite uno studio di simulazione se questo risultato sia valido (e nel caso andiamo a vedere se ci sono situazioni in cui è più o meno robusto). 
+### Perche' la simulazione?
 
-Andiamo quindi a generare dei dati usando un modello noto per poi andare a vedere cosa succede quando stimiamo il modello usando i dati generati dal modello noto. Dobbiamo generare dati da una distribuzione che appartiene alla famiglia esponenziale e usare una funzione legame per legare il valore atteso della distribuzione al predittore lineare. Iniziamo con un modello in cui la variabile risposta segue una distribuzione di Poisson il cui valore atteso dipende da una variabile esplicativa (che prendiamo essere un campione da una uniforme in (-4.5, 4.5)) e due parametri ($\beta_0$, $\beta_1$) (che prendiamo avere valore (3,0.05) ): 
+Andiamo a verificare tramite uno studio di simulazione se questo risultato sia valido (e nel caso andiamo a vedere se ci sono situazioni in cui è più o meno robusto). In particolare vogliamo verificare che gli stimatori
+
+* Si comportino come una normale
+* Siano non-distorti
+* Che la matrice `vcov` sia effettivamente quella della teoria
+
+### Steps
+
+Generiamo dei dati usando un modello noto per poi andare a vedere cosa succede quando stimiamo il modello usando i dati generati dal modello noto. 
+
+* Dobbiamo generare dati da una **distribuzione** che appartiene alla famiglia esponenziale 
+* Ed usare una **funzione legame** per legare il valore atteso della distribuzione al predittore lineare. 
+Ricordiamo che e' raro trovare $n \rightarrow \infty$ nella vita reale.
+
+## Binomiale e logit
 
 ```{r}
-n <- 60 ## what happens if this decreases? 
-x_vals <- sort(runif(n, -4.5, 4.5))
-beta_vals <- c(3,0.05)
-Xmat <- cbind(rep(1, n), x_vals)
 set.seed(76)
+
+# Sample Size, what happens if this decreases? 
+n <- 60 
+# Observations
+x <- sort(runif(n, 0,1))
+# Beta parameters, they influence the linear predictor
+beta_true <- c(-5,10)
+
+par(mfrow=c(1,3), pch = 16, col = "grey40")
+
+plot(x, beta_true[1] + beta_true[2]*x)
+plot(x, exp(beta_true[1] + beta_true[2]*x)/(1+ exp(beta_true[1] + beta_true[2]*x)))
+
+lines(x, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+
+y_sim <- rbinom(n, 200, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+
+plot(x, y_sim)
+```
+Il grafico a sinistra evidenza come cambia il predittore lineare in modo positivo (arbitrario in questo  caso). Il grafico centrale, invece dimostra come la sigmoide sottolinea la crescita della probabilita'  al crescere di x. Infine, simulando i dati con una binomiale ed utilizzando l'inversa della link function, otteniamo una distribuzione dei dati che segue la sigmoide.
+
+La stima di `p` cambiera' con il numero di tentativi `n` che diminuendo, aumentera' il rumore.
+
+```{r}
+par(mfrow=c(1,3), pch = 16, col = "grey40")
+
+y_sim <- rbinom(n, 200, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+plot(x, y_sim)
+
+y_sim <- rbinom(n, 20, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+plot(x, y_sim)
+
+y_sim <- rbinom(n, 2, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+plot(x, y_sim)
+```
+```{r}
+y_sim <- rbinom(n, 200, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+summary(glm(cbind(y_sim, 200-y_sim) ~ x, family = binomial))
+```
+La stima dei parametri e' abbastanza buona in generale.
+
+```{r}
+# 500 times we generate data and we analyze the estimations
+beta_sim <- NULL
+for(i in 1:500){
+    y_sim <- rbinom(n, 200, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+    beta_sim <- rbind(beta_sim,
+                      coef(glm(cbind(y_sim, 200-y_sim) ~ x, family = binomial)))
+}
+```
+
+Unbiased? Abbastanza.
+```{r}
+# Unbiased?
+colMeans(beta_sim)
+```
+Std. Error (variabilita'/incertezza della stima)?
+```{r}
+apply(beta_sim, 2, sd)
+```
+Da dove deriva la variabilita' ? `vcov` matrix
+```{r}
+# Empirical vcov
+cov(beta_sim)
+
+# Theorical vcov
+X_mat <- cbind(rep(1,n),x)
+V <- diag(exp(beta_true[1] + beta_true[2]*x)/((1+ exp(beta_true[1] + beta_true[2]*x))^2))
+
+# Since it is a binomial, we want to divide by the number of trials
+solve((t(X_mat) %*% V %*% X_mat))/200
+```
+I valori sono molto vicini.
+
+Come ultima cosa vogliamo verificare se le distribuzioni sono effettivamente delle normali
+
+```{r}
+par(mfrow=c(1,2), pch = 16, col = "grey40")
+
+hist(beta_sim[,1])
+hist(beta_sim[,2])
+```
+
+Sono effettivamente vicini alla normale. Se vogliamo verificare lo stesso ma con meno tentatitivi possiamo provare
+
+```{r}
+beta_sim <- NULL
+for(i in 1:500){
+    y_sim <- rbinom(n, 5, binomial()$linkinv(beta_true[1] + beta_true[2]*x))
+    beta_sim <- rbind(beta_sim,
+                      coef(glm(cbind(y_sim, 5-y_sim) ~ x, family = binomial)))
+}
+X_mat <- cbind(rep(1,n),x)
+V <- diag(exp(beta_true[1] + beta_true[2]*x)/((1+ exp(beta_true[1] + beta_true[2]*x))^2))
+solve((t(X_mat) %*% V %*% X_mat))/5
+
+par(mfrow=c(1,2), pch = 16, col = "grey40")
+
+hist(beta_sim[,1])
+hist(beta_sim[,2])
+```
+Troviamo ancora parametri che sono abbastanza non distorti, la `vcov` teorica e' ancora simile a quella empirica, ma vediamo dagli istogrammi che si comportano meno bene i parametri stimati, dal momento che nella binomiale la grandezza del campione `k` e' fondamentale che cresca poiche' le stime si comportino bene.
+
+Quando `k` e' basso, l'approssimazione e' meno precisa e il modello stimato potrebbe essere poco utile.
+
+## Poisson
+
+Proviamo con un modello in cui la variabile risposta segue una distribuzione di **Poisson** il cui valore atteso dipende da una variabile esplicativa (che prendiamo essere un campione da una uniforme in (-4.5, 4.5)) e due parametri ($\beta_0$, $\beta_1$) (che prendiamo avere valore (3,0.05) ): 
+
+```{r}
+# Sample Size, what happens if this decreases? 
+n <- 60 
+# Observations
+x_vals <- sort(runif(n, -4.5, 4.5))
+# Beta parameters, they influence the linear predictor
+beta_vals <- c(3,0.05)
+
+Xmat <- cbind(rep(1, n), x_vals)
+
+set.seed(76)
+
 y_sim <- rpois(n, poisson()$linkinv(Xmat %*% beta_vals))
+
 plot(Xmat[,2], y_sim)
 ```
 
@@ -802,8 +993,10 @@ beta_vals
 La stima dei parametri è abbastanza vicina aio veri valori dei parametri usati per generare i dati e la funzione stimata infatti assomiglia abbastanza alla vera relazione tra predittore e risposta: 
 ```{r}
 par(mfrow=c(1,2))
+
 plot(x_vals, Xmat %*% beta_vals, type="l", main = "Linear predictor")
 lines(x_vals, Xmat %*% fit_sim$coefficients, col = 4)
+
 plot(x_vals, exp(Xmat %*% beta_vals), type="l",  main = "Response")
 lines(x_vals, exp(Xmat %*% fit_sim$coefficients), col = 4)
 ```
@@ -884,6 +1077,7 @@ lines(seq(0,1,by=0.00025),
 
 Gli istogrammi risultano simili alla distribuzione normali che ci si aspetta secondo i risultati teorici. 
 
+---
 
 *Esercizio*: si può provare a vedere cosa succede quando cambia la numerosità campionaria; oppure quando cambia la vera funzione $\mu(x)$, in particolare quando prende valori abbastanza piccoli (ad esempio in un intervallo tra 0 e 4) o abbastanza grandi (ad esempio in un intervallo tra 70 e 90)
 
