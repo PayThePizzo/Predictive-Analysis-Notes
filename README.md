@@ -36,9 +36,9 @@ If you want to visualize the labs without having to download and run the Rmd fil
 * [Lab 07 - Assignment](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07.html) - Transformations and model selection
   * [Lab 07 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07_sol.html)
   * [Lab 07 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab07/lab07_class.html)
-* [Lab 08](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08.html) - TBD
-  * [Lab 08 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08_sol.html)
-  * [Lab 08 - Class](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08_class.html)
+* [Lab 08](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab08/lab08.html) - Intro to GLM
+* [Lab 09](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab09/lab09.html) - More about GLM
+* [Lab10](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab10/lab10.html)
 ---
 ## Resources 
 The course's page and the slides specify the material used already, but I will try to cite it wherever possible.
