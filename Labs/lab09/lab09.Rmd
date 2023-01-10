@@ -169,26 +169,49 @@ lines(sort(nd$ldl),
       predict(chd_mod_select, newdata = nd,
              type = "response"), col = "orange")
 
+# ---
 # Uncertainty estimation
+
+# fit, se.fit
 linpred <- predict(chd_mod_select, newdata = nd,
              type = "link", se.fit = TRUE)
 
-#
+# confidence intervals for the linear predictor
+# upper and lower bound
 cint <- cbind(linpred$fit - qnorm(.995) * linpred$se.fit,
               linpred$fit + qnorm(.995) * linpred$se.fit)
-cint_response <- 
-  binomial()$linkinv(cbind(linpred$fit - qnorm(.995) * linpred$se.fit,
-              linpred$fit + qnorm(.995) * linpred$se.fit))
-lines(sort(nd$ldl), cint_response[,1], lty = 2, col = "darkorange")
-lines(sort(nd$ldl), cint_response[,2], lty = 2, col = "darkorange")
+
+# two columns of values between 0 and 1
+cint_response <-  binomial()$linkinv(
+    cbind(linpred$fit - qnorm(.995) * linpred$se.fit, 
+          linpred$fit + qnorm(.995) * linpred$se.fit))
+
+lines(sort(nd$ldl), cint_response[,1], lty = 2, col = "purple")
+lines(sort(nd$ldl), cint_response[,2], lty = 2, col = "purple")
   
 ```
 L'effetto del colesterolo, a valori fissati, (linea arancione non tratteggiata) e' meno forte rispetto all'effetto "puro" dello stesso (linea rossa). Questo accade probabilmente perche' la linea rossa descrive le persone con il colesterolo alto e che hanno un'eta' maggiore. Come nei modelli lineare, con cosi' tante variabili e' difficile spiegare esattamente come influisce.
 
 Per quanto riguarda l'incertezza dei parametri, e' facilmente reperibile una volta ottenuta l'incertezza della stima. E' molto piu' semplice nei MLR, dove le trasformazioni sono lineari, mentre qui le linee non tratteggiate sono trasformazioni non-lineari (si passa attraverso la link function).
 
-Quello che si fa e' costruire degli intervalli di confidenza.
+### Intervalli approssimati
 
+Quello che si fa e' costruire degli intervalli di confidenza a partire da
+
+$$\hat{\eta} = X\hat{\beta}\rightarrow \hat{V}(\hat{\eta}) = X\hat{V}(\hat{\beta})X^{T}$$
+Per $\eta_{i}$ il livello di confidenza $1-\alpha$
+
+$$\left(\hat{\eta}_{i} + z_{\alpha/2} \left( \hat{V}(\hat{\eta})\right)_{ii}, \hat{\eta}_{i} + z_{1-\alpha/2} \left( \hat{V}(\hat{\eta})\right)_{ii} \right)$$
+Per $\mu_{i}$ il livello di confidenza si ottiene invece:
+
+$$\left( g^{-1} \left(\hat{\eta}_{i} + z_{\alpha/2} \left( \hat{V}(\hat{\eta})\right)_{ii} \right), g^{-1}\left( \hat{\eta}_{i} + z_{1-\alpha/2} \left( \hat{V}(\hat{\eta})\right)_{ii} \right) \right) $$
+Sebbene siano approssimati, cio' ci assicura che gli intervalli di confidenza appartengano ad un range di valori per cui $\mu$ puo' essere definito. Cio' e' possibile grazie alla funzione legame.
+
+### Predizione
+
+Per quanto riguarda gli intervalli di predizione, nei GLM non si possono fare intervalli di predizione, questo e' dato dal fatto che i valori stimati coinvolgevano la varianza ma qui non abbiamo la varianza del modello. In alternativa possiamo simularli tramite `simulate` che simula dati da un modello stimato per poterci aiutare a vedere cosa potrebbe succedere su un dataset.
+
+---
 
 # Model selection per GLMs - Poisson 
 
