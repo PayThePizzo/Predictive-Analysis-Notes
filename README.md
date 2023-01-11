@@ -6,8 +6,9 @@ All the credits go to the professor Prosdocimi Ilaria, the creators and owners o
 ---
 
 ## My formulas handbook
+I tried to assemble some formulas and their translation to R, obviously there are many ways to achieve the same results (depending on the given input).
 
-[Formulas Handbook](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00.html)
+[Formulas Handbook](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/Formulas.html)
 
 ---
 ## Visualize the course's notes!
