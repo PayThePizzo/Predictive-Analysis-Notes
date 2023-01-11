@@ -227,9 +227,9 @@ plot(hcrabs)
 `Spine` e `Col` sono dei fattori ordinati: 
 
 ```{r}
+# Categorical variables
 hcrabs$Spine <- factor(hcrabs$Spine, levels = c("NoneOK", "OneOK", "BothOK"))
 hcrabs$Col <- factor(hcrabs$Col, levels = c("LM", "M", "DM", "D"))
-
 ```
 
 `Sat` (la variabile risposta) sembra essere legata a `Width` e `Wt`, le quali però sono anche legate tra loro. Le altre variabili nel dataset sono variabili categoriali Inoltre ci sono alcune variabili categoriali per cui lo scatterplot non facilita la comprensione delle relazioni tra i predittori ma che sembrano avere forse qualche effetto su `Sat`: 
@@ -239,6 +239,10 @@ par(mfrow=c(1,2))
 plot(Sat~Col, data =hcrabs)
 plot(Sat~Spine, data =hcrabs)
 ```
+ Persistono problemi di multicollinearita', ma non andiamo in fondo alla questione
+ poiche' l'obbiettivo del file e' un altro.
+
+## Full additive model vs Simplest model
 
 Iniziamo la procedura di selezione del modello specificando i due modelli additivi più semplice e più complesso possibile: utilizzeremo poi la funzione `step` per verificare se esiste un modello con complessità intermedia tra i due che spieghi sufficientemente bene i dati. 
 
@@ -247,26 +251,54 @@ model0<-glm(Sat~1, family=poisson(link=log),data=hcrabs)
 modelFull<-glm(Sat~., family=poisson(link=log),data=hcrabs)
 anova(model0, modelFull, test = "LRT") ## at least some variables are significant
 ```
+Il modello, sebbene complicato, e' significativo. Proviamo ad utilizzare la stepwise
+selection
+
+## Stepwise Selection
+
 Come criterio di valutazione della bontà di adattamento possiamo usare AIC or BIC (quindi prendiamo $k=log(n)$ nella penalizzazione): 
 
 ```{r}
-selAIC <-  step(model0, direction = "forward", 
-    scope = list(lower = model0, upper = modelFull))
+selAIC <-  step(model0, direction = "forward", scope = list(lower = model0, upper = modelFull))
+summary(selAIC)
 ```
+Questo modello e' interesante poiche' si ha una variabile continua ed una categoriale. Per quanto riguarda la categoriale, e' come se stimassimo 4 curve "parallele" sulla scala dei predittori.
 
+* Il modello ha un coefficiente per ogni categoria,
+
+ E' opportuno ricordare che la stepwise selection confronta solo modelli additivi. 
+
+In alternativa possiamo decidere di analizzare le eventuali presenze di interazioni. Cio' comporta avere 4 curve con forme diverse.
 
 ```{r}
 modelInteract <- glm(Sat~Wt*Col, family=poisson(link=log),data=hcrabs)
-summary(selAIC)
 summary(modelInteract)
+```
+Analizziamo i risultati
+
+* E' interessante che la stima di `Wt` sia negativa, poiche' dal grafico dei predittori dovrebbe risultare positivo. E' interpretato come l'effetto del peso pe la categoria `lM` (di colore). 
+* Vediamo che il peso ha un effetto positivo per il resto dei granchi.
+
+### AIC
+E' possibile utilizzare AIC dal momento che abbiamo modelli annidati
+
+```{r}
 AIC(selAIC, modelInteract)
+```
+AIC determina che il modello con le interazioni e' il migliore tra i due.
+
+### LRT
+
+```{r}
 anova(selAIC, modelInteract, test = "LRT")
 ```
+Il modello con le interazioni risulta ad essere migliore, sebbene il livello di significativita' non sia cosi' statisticamente importante.
 
 
 ```{r}
-hcrabs <-hcrabs[order(hcrabs$Wt),]
+hcrabs <- hcrabs[order(hcrabs$Wt),]
 plot(hcrabs$Wt, hcrabs$Sat, col = as.numeric(hcrabs$Col), pch = 16)
+# 4 different curves
 lines(hcrabs$Wt[hcrabs$Col =="LM"], 
        predict(selAIC, type = "response")[hcrabs$Col =="LM"], col = 1, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="M"], 
@@ -275,7 +307,14 @@ lines(hcrabs$Wt[hcrabs$Col =="DM"],
        predict(selAIC, type = "response")[hcrabs$Col =="DM"], col = 3, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="D"], 
        predict(selAIC, type = "response")[hcrabs$Col =="D"], col = 4, lwd = 2)
+```
+Dal risultato vediamo che non ci sono punti neri (granchi `lM`), la stima per questi punti avra' ovviamente una grande varianza, sebbene sia comunque contenuta perche' non vengono stimate separatamente le categorie riguardo al colore.
 
+Per quanto riguarda le curve, la linea azzurra e verde sono praticamente sovrapposte e tendono ad oscurarsi, percio' e' opinabile collassare le due categoria in una singola. Le tre curve sono proporzionali. 
+
+Vediamo lo stesso con il modello che include le interazioni.
+
+```{r}
 plot(hcrabs$Wt, hcrabs$Sat, col = as.numeric(hcrabs$Col), pch = 16)
 lines(hcrabs$Wt[hcrabs$Col =="LM"], 
        predict(modelInteract, type = "response")[hcrabs$Col =="LM"], col = 1, lwd = 2)
@@ -287,17 +326,21 @@ lines(hcrabs$Wt[hcrabs$Col =="D"],
        predict(modelInteract, type = "response")[hcrabs$Col =="D"], col = 4, lwd = 2)
 ```
 
+Le curve stimate ci confermano gli effetti del peso per ogni categoria, visti precedentemente nel summary.
+
+### Intervallo di confidenza
+
+Bisognerebbe andare a confrontare, tramite IC sulla scala della risposta, per vedere se effettivamente l'effetto che sembra negativo di `Wt` per la linea nera, abbia senso.
+
 Intevallo di confidenza per un granchio di peso 3000 nelle 4 categorie di colore: 
 
 ```{r}
 nd <- data.frame(Wt = 3000, Col = c("LM","M","D","DM"))
 cint <- predict(modelInteract, newdata = nd, type = "link", se.fit = TRUE)
-
-  exp(cbind(cint$fit - qnorm(.995)*cint$se.fit, 
-      cint$fit + qnorm(.995)*cint$se.fit) )    
-
+exp(cbind(cint$fit - qnorm(.995)*cint$se.fit, cint$fit + qnorm(.995)*cint$se.fit)) 
 ```
 
+Questo e' un IC sulla scala della risposta (valore atteso di Y).
 
 
 
