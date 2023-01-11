@@ -1,0 +1,114 @@
+# Formulas Handbook
+
+## Setting Up
+Set working directory.
+```{r}
+getwd()
+setwd("my/long/path")
+```
+
+Import dataset
+```{r}
+mrents <- read.table("rent99.raw", header = TRUE)
+```
+
+
+```{r}
+summary(mrents)
+head(mrents)
+```
+
+Histogram
+```{r}
+hist(mrents$rent, xlab = "Rent")
+abline(v=mean(mrents$rent), col = 2, lwd =2)
+abline(v=median(mrents$rent), col = 4, lwd =2)
+legend("topright", bty = "n", col = c(2,4),lwd = 2, legend = c("mean","median"))
+```
+
+Barplot
+```{r}
+par(mfrow=c(1,2))
+barplot(table(mrents$kitchen)) 
+barplot(table(mrents$cheating))
+```
+
+Boxplot
+
+```{r}
+par(mfrow=c(1,2))
+boxplot(rent~kitchen, data = mrents)
+boxplot(rent~bath, data = mrents)
+```
+
+```{r}
+mrents$kitchen_level <- factor(mrents$kitchen, labels = c("Standard","Premium"))
+boxplot(rent~kitchen_level, data = mrents, col = c(rgb(0.45,0,0,0.4),rgb(0.118,0.565,1,0.4)),
+        border= c("darkred","dodgerblue"))
+```
+
+Plot
+```{r}
+plot(rent~area, data = mrents, pch =16, bty = "l",col="darkorange2")
+title(main = "relazione tra area e affitto")
+```
+
+## SLR
+
+$$$$
+```{r}
+fit <- lm(formula = target ~ predictor, data = dataset)
+```
+
+```{r}
+x <- pengs$body_mass_g
+y <- pengs$flipper_length_mm
+n <- length(x)
+
+s2x <- sum((x-mean(x))^2)/n
+s2y <- sum((y-mean(y))^2)/n
+
+covxy <- cov(x,y) 
+rxy <- cor(x,y)
+
+mx <- mean(x)
+my<- mean(y)
+
+# Angular coefficient
+# Dictates how the y changes in proportion to x
+beta1_hat <- rxy * sqrt(s2y/s2x)
+# Intercept
+# Forces the regression to pass by the sample mean of x and y.
+beta0_hat <- my - beta1_hat *mx
+
+# The coefficients
+c(beta0_hat, beta1_hat)
+```
+
+```{r}
+computeSumSquares <- function(bs, y, x){
+  observed <- y
+  modelled <- bs[1] + bs[2] * x
+  squares <- (observed - modelled)^2
+  sum(squares)
+}
+```
+
+
+---
+
+## MLR
+
+$$$$
+
+---
+
+## GLM
+
+$$$$
+
+---
+
+## GLM - Classifier
+
+
