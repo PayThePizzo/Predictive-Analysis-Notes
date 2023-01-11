@@ -4,6 +4,12 @@ Notes and labs from the [CT0429 - Predictivie Analytics](https://www.unive.it/da
 All the credits go to the professor Prosdocimi Ilaria, the creators and owners of the resources used in this course.
 
 ---
+
+## My formulas handbook
+
+[Formulas Handbook](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00.html)
+
+---
 ## Visualize the course's notes!
 ...Coming soon.
 
