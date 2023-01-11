@@ -359,9 +359,18 @@ classifiers</h1>
 logistica: un classificatore</a>
 <ul>
 <li><a href="#la-valutazione-di-un-classificatore" id="toc-la-valutazione-di-un-classificatore">La valutazione di un
-classificatore</a></li>
-<li><a href="#sensitivity-and-specificity" id="toc-sensitivity-and-specificity">Sensitivity and
-Specificity</a></li>
+classificatore</a>
+<ul>
+<li><a href="#cross-validation-based-on-misclassification-rate" id="toc-cross-validation-based-on-misclassification-rate">Cross-validation
+based on misclassification rate</a></li>
+<li><a href="#confusion-matrix" id="toc-confusion-matrix">Confusion
+Matrix</a></li>
+</ul></li>
+<li><a href="#sensitivity-and-specificity" id="toc-sensitivity-and-specificity">Sensitivity and Specificity</a>
+<ul>
+<li><a href="#sensitivity" id="toc-sensitivity">Sensitivity</a></li>
+<li><a href="#specificity" id="toc-specificity">Specificity</a></li>
+</ul></li>
 </ul></li>
 </ul>
 </div>
@@ -370,16 +379,17 @@ Specificity</a></li>
 <h1>La regressione logistica: un classificatore</h1>
 <p>Fino ad ora quando abbiamo stimato modelli logistici per dati binari
 ci siamo concentrati sulla stima della funzione che descrive la
-probabilità di osservare un “successo”. Possiamo anche usare i modelli
-logistici per fare predizione su nuove osservazioni e in particolare per
-predire se appartengono alla categoria “successo” o “insuccesso”: in
-pratica possiamo usare la regressione logistica come un classificatore
-(classifier) che predica a che categoria (<span class="math inline">\(Y=1\)</span> o <span class="math inline">\(Y=0\)</span>) apparterranno nuove
+probabilità di osservare un “successo”.</p>
+<p>Possiamo anche usare i modelli logistici per fare predizione su nuove
+osservazioni e in particolare per predire se appartengono alla categoria
+“successo” o “insuccesso”: in pratica possiamo usare la regressione
+logistica come un classificatore (classifier) che predica a che
+categoria (<span class="math inline">\(Y=1\)</span> o <span class="math inline">\(Y=0\)</span>) apparterranno nuove
 osservazioni.</p>
 <p>Sapendo che <span class="math display">\[
 p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 1 \mid X_1=x_1,\ldots,X_{p-1}=x_{p -
 1}]
-\]</span> and <span class="math display">\[
+\]</span> e <span class="math display">\[
 1 - p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 0 \mid X_1=x_1,\ldots,X_{p-1}=x_{p
 - 1}].
 \]</span></p>
@@ -472,10 +482,10 @@ fit_selected &lt;- glm(type ~ edu + money + capitalTotal + charDollar, data = sp
 <pre><code>## Warning: glm.fit: fitted probabilities numerically 0 or 1 occurred</code></pre>
 <p>Riceviamo dei warning: i modelli stimati potrebbero avere dei
 problemi nella stima e non dovremmo fidarci troppo delle stime dei
-parametri (e della loro variabilità!). Tuttavia possiamo comunque
-costruire dei classificatori e valuteremo i modelli sulla base di quanto
-precisi sono i classificatori basati sulle loro stime. Come valutiamo
-quindi questi modelli?</p>
+parametri (e della loro variabilità!).</p>
+<p>Tuttavia possiamo comunque costruire dei classificatori e valuteremo
+i modelli sulla base di quanto precisi sono i classificatori basati
+sulle loro stime. Come valutiamo quindi questi modelli?</p>
 <div id="la-valutazione-di-un-classificatore" class="section level2">
 <h2>La valutazione di un classificatore</h2>
 <p>La metrica più naturale per valutare come si comporti un
@@ -512,18 +522,22 @@ usati su campioni diversi (non sono cioè generalizzabili).</p>
 troppo semplice è a rischio di underfitting: dobbiamo trovare una via di
 mezzo. Per trovare un modello che sia un compromesso tra gli estremi
 tramite la validazione incrociata, ma in questo tipo di applicazioni
-andiamo a fare la validazioni sul tasso di errore di classificazione.
-Possiamo usare la funzione <code>cv.glm</code> nel pacchetto
+andiamo a fare la validazioni sul tasso di errore di
+classificazione.</p>
+<div id="cross-validation-based-on-misclassification-rate" class="section level3">
+<h3>Cross-validation based on misclassification rate</h3>
+<p>Possiamo usare la funzione <code>cv.glm</code> nel pacchetto
 <code>boot</code>, o scrivere direttamente una funzione che implementi
 la validazione incrociata. Per i glm non esiste un risultato simile a
 quello visto per i modelli lineari che permetta di derivare con semplici
 calcoli analitici il valore di <span class="math inline">\(RMSE_{Loo}\)</span>, dobbiamo effettivamente
-togliere un osservazione e ricalcolare la stima del modello. Per evitare
-il costo computazionale di stimare un modello di regressione <span class="math inline">\(n\)</span> volte usiamo 5-fold o 10-fold cross
-validation in cui togliamo da campione originale di volta in volta un
-quinto (o un decimo) del campione che non viene usato per la stima ma
-che viene usato per calcolare l’errore di stima. In pratica facciamo per
-5 volte questa procedura:</p>
+togliere un osservazione e ricalcolare la stima del modello.</p>
+<p>Per evitare il costo computazionale di stimare un modello di
+regressione <span class="math inline">\(n\)</span> volte usiamo 5-fold o
+10-fold cross validation in cui togliamo da campione originale di volta
+in volta un quinto (o un decimo) del campione che non viene usato per la
+stima ma che viene usato per calcolare l’errore di stima. In pratica
+facciamo per 5 volte questa procedura:</p>
 <ul>
 <li>Togliamo dal campione un quinto delle osservazioni (ogni
 osservazione verrà tolta una volta soltanto)</li>
@@ -601,6 +615,9 @@ da usare….</p>
 ## fit_additive  58 1234.047
 ## fit_over     114 1482.908</code></pre>
 <p>)</p>
+</div>
+<div id="confusion-matrix" class="section level3">
+<h3>Confusion Matrix</h3>
 <p>Per dare una valutazione del classificatore creiamo la cosiddetta
 <em>confusion matrix</em>, un tabella di contingenza tra categorie
 osservate e stimate, che permette di differenziare tra i diversi tipi di
@@ -619,7 +636,7 @@ troviamo invece i veri positivi e veri negativi.</p>
 spam_tst_pred &lt;- ifelse(
   predict(fit_additive, spam_tst, type = &quot;response&quot;) &gt; 0.5, 
                 1, 0)</code></pre>
-<p>dato che</p>
+<p>che sono equivalenti, dato che</p>
 <p><span class="math display">\[
 \beta_0 + \beta_1x_1 + \ldots + \beta_{p - 1}x_{p - 1} = 0 \iff
 p({x_1,\ldots,x_{p - 1}}) = 0.5
@@ -667,14 +684,17 @@ spam ha conseguenze diverse da avere spam che finisce nella casella di
 posta. Gli 82 falsi negativi sono molti e causano un problema, mentre i
 111 falsi positivi delle mail di spam che finiscono della casella di
 posta possono essere gestiti facilmente dall’utente.</p>
+<hr />
+</div>
+</div>
+<div id="sensitivity-and-specificity" class="section level2">
+<h2>Sensitivity and Specificity</h2>
 <p>Definiamo quindi due ulteriori metriche utili per valutare dei
 classificatori la sensitività e la specificità. Ci sono (molte!) altre
 metriche che potremmo considerare, ma per ora definiamo queste due: la
 sensitività e la specificità.</p>
-</div>
-<div id="sensitivity-and-specificity" class="section level2">
-<h2>Sensitivity and Specificity</h2>
-<p><strong>Sensitivity</strong></p>
+<div id="sensitivity" class="section level3">
+<h3>Sensitivity</h3>
 <p>La sensitività è il tasso di veri positivi, quindi se cresce la
 sensitività diminuiscono i falsi negativi:</p>
 <p><span class="math display">\[
@@ -685,7 +705,9 @@ sensitività diminuiscono i falsi negativi:</p>
 conf_mat[2, 2] / sum(conf_mat[, 2])
 }
 # Note that this function is good for illustrative purposes, but is easily broken. (Think about what happens if there are no &quot;positives&quot; predicted.)</code></pre>
-<p><strong>Specificity</strong></p>
+</div>
+<div id="specificity" class="section level3">
+<h3>Specificity</h3>
 <p>La specificità è il tasso dei veri negativi: se aumenta la
 specificità diminuiscono i falsi positivi:</p>
 <p><span class="math display">\[
@@ -702,8 +724,8 @@ usando la matrice di confusione:</p>
 <pre class="r"><code>get_spec(conf_mat_50) # true negative rate</code></pre>
 <pre><code>## [1] 0.949005</code></pre>
 <p>Nel costruire il classificatore abbiamo assegnato un’osservazione ad
-una categoria usando il valore limite di <span class="math inline">\(p =
-0.5\)</span>, ma volendo potremmo usare altri limiti.</p>
+una categoria usando il valore limite o “cut-off” di <span class="math inline">\(p = 0.5\)</span>, ma volendo potremmo usare altri
+limiti per migliorare una delle due metriche.</p>
 <p><span class="math display">\[
 \hat{C}({x_1,\ldots,x_{p - 1}}) =
 \begin{cases}
@@ -779,6 +801,7 @@ poco generalizzabile. Possiamo probabilmente cercare di usare modelli
 più complessi per creare un filtro spam, ma giù usando un modello di
 regressione logistica riusciamo ad ottenere qualcosa che potrebbe in
 qualche modo funzionare in pratica.</p>
+</div>
 </div>
 </div>
 

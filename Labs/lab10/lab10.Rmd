@@ -8,13 +8,15 @@ output:
 
 # La regressione logistica: un classificatore
 
-Fino ad ora quando abbiamo stimato modelli logistici per dati binari ci siamo concentrati sulla stima della funzione che descrive la probabilità di osservare un "successo". Possiamo anche usare i modelli logistici per fare predizione su nuove osservazioni e in particolare per predire se appartengono alla categoria "successo" o "insuccesso": in pratica possiamo usare la regressione logistica come un classificatore (classifier) che predica a che categoria ($Y=1$ o $Y=0$) apparterranno nuove osservazioni.  
+Fino ad ora quando abbiamo stimato modelli logistici per dati binari ci siamo concentrati sulla stima della funzione che descrive la probabilità di osservare un "successo". 
+
+Possiamo anche usare i modelli logistici per fare predizione su nuove osservazioni e in particolare per predire se appartengono alla categoria "successo" o "insuccesso": in pratica possiamo usare la regressione logistica come un classificatore (classifier) che predica a che categoria ($Y=1$ o $Y=0$) apparterranno nuove osservazioni.  
 
 Sapendo che 
 $$
 p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 1 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}]
 $$
-and
+e
 $$
 1 - p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 0 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
 $$
@@ -97,7 +99,9 @@ fit_additive <- glm(type ~ ., data = spam_trn, family = binomial)
 fit_over <- glm(type ~ capitalTotal*(.), data = spam_trn, family = binomial, maxit = 120)
 ```
 
-Riceviamo dei warning: i modelli stimati potrebbero avere dei problemi nella stima e non dovremmo fidarci troppo delle stime dei parametri (e della loro variabilità!). Tuttavia possiamo comunque costruire dei classificatori e valuteremo i modelli sulla base di quanto precisi sono i classificatori basati sulle loro stime. Come valutiamo quindi questi modelli? 
+Riceviamo dei warning: i modelli stimati potrebbero avere dei problemi nella stima e non dovremmo fidarci troppo delle stime dei parametri (e della loro variabilità!). 
+
+Tuttavia possiamo comunque costruire dei classificatori e valuteremo i modelli sulla base di quanto precisi sono i classificatori basati sulle loro stime. Come valutiamo quindi questi modelli? 
 
 ## La valutazione di un classificatore 
 
@@ -126,7 +130,13 @@ mean(ifelse(predict(fit_additive) > 0, 1, 0) != spam_trn$type)
 mean(ifelse(predict(fit_over) > 0, 1, 0) != spam_trn$type)
 ```
 
-Un modello troppo complesso è a rischio di overfitting, un modello troppo semplice è a rischio di underfitting: dobbiamo trovare una via di mezzo. Per trovare un modello che sia un compromesso tra gli estremi tramite la validazione incrociata, ma in questo tipo di applicazioni andiamo a fare la validazioni sul tasso di errore di classificazione. Possiamo usare la funzione `cv.glm` nel pacchetto `boot`, o scrivere direttamente una funzione che implementi la validazione incrociata. Per i glm non esiste un risultato simile a quello visto per i modelli lineari che permetta di derivare con semplici calcoli analitici il valore di $RMSE_{Loo}$, dobbiamo effettivamente togliere un osservazione e ricalcolare la stima del modello. Per evitare il costo computazionale di stimare un modello di regressione $n$ volte usiamo 5-fold o 10-fold cross validation in cui togliamo da campione originale di volta in volta un quinto (o un decimo) del campione che non viene usato per la stima ma che viene usato per calcolare l'errore di stima. In pratica facciamo per 5 volte questa procedura: 
+Un modello troppo complesso è a rischio di overfitting, un modello troppo semplice è a rischio di underfitting: dobbiamo trovare una via di mezzo. Per trovare un modello che sia un compromesso tra gli estremi tramite la validazione incrociata, ma in questo tipo di applicazioni andiamo a fare la validazioni sul tasso di errore di classificazione. 
+
+### Cross-validation based on misclassification rate
+
+Possiamo usare la funzione `cv.glm` nel pacchetto `boot`, o scrivere direttamente una funzione che implementi la validazione incrociata. Per i glm non esiste un risultato simile a quello visto per i modelli lineari che permetta di derivare con semplici calcoli analitici il valore di $RMSE_{Loo}$, dobbiamo effettivamente togliere un osservazione e ricalcolare la stima del modello. 
+
+Per evitare il costo computazionale di stimare un modello di regressione $n$ volte usiamo 5-fold o 10-fold cross validation in cui togliamo da campione originale di volta in volta un quinto (o un decimo) del campione che non viene usato per la stima ma che viene usato per calcolare l'errore di stima. In pratica facciamo per 5 volte questa procedura: 
 
 * Togliamo dal campione un quinto delle osservazioni (ogni osservazione verrà tolta una volta soltanto)
 * Stimiamo il modello sui dati rimanenti
@@ -186,6 +196,8 @@ AIC(fit_caps, fit_selected, fit_additive, fit_over, k = log(nrow(spam_trn)))
 
 )
 
+### Confusion Matrix
+
 Per dare una valutazione del classificatore creiamo la cosiddetta _confusion matrix_, un tabella di contingenza tra categorie osservate e stimate, che permette di differenziare tra i diversi tipi di errore: i falsi positivi (False Positive $\hat{Y} = 1$, while $Y = 0$) e i falsi negativi (False Negative, $\hat{Y} = 0$, while $Y = 1$). Sulla diagonale della matrice troviamo invece i veri positivi e veri negativi. 
 
 ```{r}
@@ -207,7 +219,7 @@ spam_tst_pred <- ifelse(
                 1, 0)
 ```
 
-dato che 
+che sono equivalenti, dato che 
 
 $$
 \beta_0 + \beta_1x_1 + \ldots + \beta_{p - 1}x_{p - 1} = 0 \iff p({x_1,\ldots,x_{p - 1}}) = 0.5
@@ -254,11 +266,14 @@ mean(spam_tst_pred != spam_tst$type)
 
 Abbiamo migliorato di molto rispetto al modello base. Tuttavia forse non tutti gli errori sono uguali: avere vere mail che finiscono nello spam ha conseguenze diverse da avere spam che finisce nella casella di posta. Gli 82 falsi negativi sono molti e causano un problema, mentre i 111 falsi positivi delle mail di spam che finiscono della casella di posta possono essere gestiti facilmente dall'utente. 
 
-Definiamo quindi due ulteriori metriche utili per valutare dei classificatori la sensitività e la specificità. Ci sono (molte!) altre metriche che potremmo considerare, ma per ora definiamo queste due: la sensitività e la specificità. 
+---
 
 ## Sensitivity and Specificity 
 
-**Sensitivity**
+Definiamo quindi due ulteriori metriche utili per valutare dei classificatori la sensitività e la specificità. Ci sono (molte!) altre metriche che potremmo considerare, ma per ora definiamo queste due: la sensitività e la specificità. 
+
+
+### Sensitivity
 
 La sensitività è il tasso di veri positivi, quindi se cresce la sensitività diminuiscono i falsi negativi: 
 
@@ -273,7 +288,7 @@ conf_mat[2, 2] / sum(conf_mat[, 2])
 # Note that this function is good for illustrative purposes, but is easily broken. (Think about what happens if there are no "positives" predicted.)
 ```
 
-**Specificity**
+### Specificity
 
 La specificità è il tasso dei veri negativi: se aumenta la specificità diminuiscono i falsi positivi:
 
@@ -294,7 +309,7 @@ get_sens(conf_mat_50) # true positive rate
 get_spec(conf_mat_50) # true negative rate
 ```
 
-Nel costruire il classificatore abbiamo assegnato un'osservazione ad una categoria usando il valore limite di $p = 0.5$, ma volendo potremmo usare altri limiti.
+Nel costruire il classificatore abbiamo assegnato un'osservazione ad una categoria usando il valore limite o "cut-off" di $p = 0.5$, ma volendo potremmo usare altri limiti per migliorare una delle due metriche.
 
 
 $$
@@ -304,8 +319,6 @@ $$
 0 & \hat{p}({x_1,\ldots,x_{p - 1}}) \leq c 
 \end{cases}
 $$
-
-
 
 Cambiando questo limite potremmo migliorare sensitività e specificità, ma il prezzo da pagare è peggiorare l'errore di classificazione. Vediamo cosa succede quando cambiamo il limite da 0.5 a 0.1: 
 

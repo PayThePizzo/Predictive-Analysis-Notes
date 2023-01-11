@@ -1,15 +1,5 @@
 # Classification
 
-## spam example
-
----
-
-## Evaluating Classifiers
-
-
-
----
-
-## Sensitivity and Specificity
+Follow the [lab10]() to cover this part.
 
  
