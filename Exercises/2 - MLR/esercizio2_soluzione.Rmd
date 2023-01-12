@@ -1,0 +1,138 @@
+---
+title: "Esercizio 2 - Regressione Lineare Multipla"
+author: "Inserite il vostro nome"
+output: html_document
+---
+
+Si prenda in esame il dataset `salaries`: 
+
+```{r}
+salaries <- read.csv("Salaries.txt")
+salaries <- salaries[order(salaries$sex,decreasing = TRUE),]
+```
+
+Il dataset comprende informazioni raccolte da un college americano che desidera monitorare la parità salariale tra i generi. In particolare il dataset contiene le seguenti variabili: 
+
+* rank: a factor with levels AssocProf AsstProf Prof
+* discipline: a factor with levels A (“theoretical” departments) or B (“applied” departments).
+* yrsSincePhd: years since PhD.
+* yrsService: years of service.
+* sex: a factor with levels Female Male
+* salary: nine-month salary, in 1000s dollars.
+
+
+
+1. Si verifichi se i salari medi sono uguali per uomini e donne. 
+
+2. Si verifichi usando dei modelli lineari semplici se vi è una relazione tra salario e anni di carriera (`yrsService`) e salario ed anni di esperienza (`yrsSincePhd`). 
+
+3. Si valuti se la variabile `rank` può aggiungere capacità predittiva al modello stimato al punto 2.: si stimi un modello in cui `rank` entra solo in maniera additiva nel modello e uno in cui `rank` interagisce con `yrsService`. Si crei una visualizzazione che mostra l'effetto di `yrsService` sui salari per i diversi gradi di carriera in entrambi i modelli. 
+
+4. Si stimi un modello in cui tutti i predittori a disposizione vengono inseriti in maniera additiva nel modello lineare: si valuti se, a parità di altre condizioni, vi è una differenza negli stipendi medi di uomini e donne. Come è cambiata l'interpretazione dell'effetto del sesso rispetto al punto 1.?
+
+5. Domanda extra: è possibile usare la variabile `yrsService` per predire se una persona è uomo o donna? 
+
+## Soluzione 
+
+1. Per verificare se vi è una differenza tra salari di uomini e donne possiamo usare un t.test o un modello lineare in cui `sex` viene usata come predittore. Iniziamo comunque con una visualizzazione dei dati: 
+
+```{r}
+plot(jitter(as.numeric(salaries$sex == "Male"), amount = 0.2), salaries$salary, pch = 16, col = "grey70")
+points(c(0,1), tapply(salaries$salary, salaries$sex,mean), pch = 4, col =2, lwd = 1.5, cex = 1.6)
+t.test(salary~sex, data = salaries) # var.equal = TRUE to have the same inference as linear model 
+summary(lm(salary~sex, data = salaries))
+```
+
+
+In entrambi i casi vediamo una forte differenza nei salari per i due sessi. Si nota anche come ci siano meno persone di sesso femminile nel campione.  
+
+2. Vediamo ora se vi è una relazione tra i salari e `yrsService` e `yrsSincePhd`: 
+
+```{r}
+fyrsService <- lm(salary~yrsService, data = salaries)
+fyrsSincePhd <- lm(salary~yrsSincePhd, data = salaries)
+par(mfrow=c(1,2))
+plot(salaries$yrsService, salaries$salary, pch = 16, col = 2-(as.numeric(salaries$sex == "Male")))
+abline(fyrsService, col = 4)
+plot(salaries$yrsSincePhd, salaries$salary, pch = 16, col = 2-(as.numeric(salaries$sex == "Male")))
+abline(fyrsSincePhd, col = 4)
+summary(fyrsService); summary(fyrsSincePhd)
+```
+
+Entrambe i predittori sono legati in maniera significativa ai salari. Si nota anche che le donne tendono ad essere impiegate da meno tempo presso l'università e tendono ad avere ricevuto il dottorato più di recente rispetto ai colleghi maschi. 
+Considerando che questi due fattori hanno un forte impatto sul salario il fatto che le donne tendano ad avere valori bassi delle variabili `yrsService` e `yrsSincePhd` ha un impatto sui salari medi delle donne. 
+
+
+3. Abbiamo visto che `yrsService` ha un forte effetto: vediamo se aggiungere la variabile categoriale `rank` in maniera additiva o in un'interazione con `yrsService` migliora la bontà di adattmento del modello: 
+
+
+```{r}
+salaries$rank  <- factor(salaries$rank, levels = c("AsstProf","AssocProf","Prof")) # give natural order
+fyrsService_add_rank <- lm(salary~yrsService+rank, data = salaries)
+fyrsService_int_rank <- lm(salary~yrsService*rank, data = salaries)
+par(mfrow=c(1,2))
+rcol <- rep(1, nrow(salaries))
+rcol[salaries$rank == "AssocProf"] <- 2; rcol[salaries$rank == "Prof"] <- 4
+plot(salaries$yrsService, salaries$salary, pch = 16, col = rcol)
+abline(fyrsService_add_rank$coefficients[1], fyrsService_add_rank$coefficients[2], col = 1)
+abline(fyrsService_add_rank$coefficients[1]+fyrsService_add_rank$coefficients[3], fyrsService_add_rank$coefficients[2], col = 2)
+abline(fyrsService_add_rank$coefficients[1]+fyrsService_add_rank$coefficients[4], fyrsService_add_rank$coefficients[2], col = 4)
+plot(salaries$yrsService, salaries$salary, pch = 16, col = rcol)
+abline(fyrsService_int_rank$coefficients[1], fyrsService_int_rank$coefficients[2], col = 1)
+abline(fyrsService_int_rank$coefficients[1]+fyrsService_int_rank$coefficients[3], 
+       fyrsService_int_rank$coefficients[2]+fyrsService_int_rank$coefficients[5], col = 2)
+abline(fyrsService_int_rank$coefficients[1]+fyrsService_int_rank$coefficients[4], 
+       fyrsService_int_rank$coefficients[2]+fyrsService_int_rank$coefficients[6], col = 4)
+summary(fyrsService_add_rank); summary(fyrsService_int_rank)
+anova(fyrsService,fyrsService_add_rank) # rank is useful
+anova(fyrsService_add_rank,fyrsService_int_rank) # but interaction maybe not needed
+```
+
+
+Anche `rank` ha un ruolo nello spiegare la variabilità dei salari: persone con i ruolo di Associate o Assistant Professors tendono a guadagnare meno, e anche ad essere in servizio da poco tempo (e si nota anche che le persone che hanno il ruolo di Professor tendono ad essere in servizio da più tempo). 
+Includere `rank` rende non significativo `yrsService` e la direzione della stima cambia. Inoltre, sebbene l'inclusione dell'interazione tra `rank` e `yrsService` non risulti significativa è interessante notare come quando viene inserita l'interazione la stima della  direzione dell'effetto di `yrsService` sul salario sia diversa nei diversi gruppi: per le persone all'inizio della carriera (che sono una minoranza del campione) l'effetto è positivo, cioè al crescere degli anni di servizio cresce il salario; per le persone con grado più alto l'effetto diventa negativo e meno marcato.  
+
+
+4. Stimiamo ora il modello con tutti i predittori: 
+
+```{r}
+fall <- lm(salary~., data = salaries)
+summary(fall)
+```
+
+Vediamo che una volta che si prendono in considerazione tutte le altre variabili l'effetto del sesso diventa non significativo (sebbene per le persone di sesso maschile viene comunque stimato uno stipendio in media più alto di circa `r signif(coef(fall)["sexMale"],3)` migliaia di dollari). Le altre variabili che abbiamo inserito nel modello sono fortemente legate a `sex`. 
+
+
+```{r}
+# freqeuncy table
+ctab <- table(salaries$discipline, salaries$sex)
+# divide vy row totals 
+signif(100*rbind(ctab[1,]/sum(ctab[1,]), ctab[2,]/sum(ctab[2,])),3)
+ctab <- table(salaries$rank, salaries$sex)
+signif(100*rbind(ctab[1,]/sum(ctab[1,]), ctab[2,]/sum(ctab[2,]), ctab[3,]/sum(ctab[3,])),3)
+par(mfrow = c(2,1))
+plot(jitter(as.numeric(salaries$sex == "Male")), salaries$yrsSincePhd, pch = 16)
+plot(jitter(as.numeric(salaries$sex == "Male")), salaries$yrsService, pch = 16)
+```
+
+5. Nell'ultimo grafico abbiamo mostrato la possibile relazione tra  `yrsService` e `sex`: le donne tendono ad essere state assunte più di recente. Possiamo usare questo fatto per stimare la probabilità che un persona che lavora presso l'università sia un maschio in funzione degli anni di servizio. 
+Senza avere nessun predittore stimeremmo la probabilità che una persona che lavora all'università sia un maschio con: 
+
+```{r}
+sum(salaries$sex == "Male")/length(salaries$sex) # sample proportion
+```
+
+Se sapessimo che una persona lavora nell'università da 10 o da 45 anni questa stima sarebbe diversa? Potremmo provare ad usare un modello lineare:
+
+```{r}
+par(mfrow = c(1,1))
+plot(salaries$yrsService, jitter(as.numeric(salaries$sex == "Male")), pch = 16, col = "grey40")
+abline(lm(as.numeric(salaries$sex == "Male") ~ salaries$yrsService), col = 2, lwd = 2)
+abline(h = 1, lty = 2, col = 4)
+```
+
+Notiamo che il modello stimato predice probabilità al di fuori del range (0,1), ma la probabilità che qualcosa succeda non può essere più grande di 1 (o più piccola di 0).
+
+Dobbiamo quindi utilizzare modelli che permettano di stimare probabilità nell'intervallo (0,1): questo tipo di modelli ha il nome di _modelli lineari generalizzati_ (Generalised Linear Models, GLMs)
+
+

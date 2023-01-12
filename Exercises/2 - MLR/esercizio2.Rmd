@@ -1,0 +1,32 @@
+---
+title: "Esercizio 2 - Regressione Lineare Multipla"
+author: "Inserite il vostro nome"
+output: html_document
+---
+
+Si prenda in esame il dataset `salaries`: 
+
+```{r}
+salaries <- read.csv("Salaries.txt")
+salaries <- salaries[order(salaries$sex,decreasing = TRUE),]
+```
+
+Il dataset comprende informazioni raccolte da un college americano che desidera monitorare la parità salariale tra i generi. In particolare il dataset contiene le seguenti variabili: 
+
+* rank: a factor with levels AssocProf AsstProf Prof
+* discipline: a factor with levels A (“theoretical” departments) or B (“applied” departments).
+* yrsSincePhd: years since PhD.
+* yrsService: years of service.
+* sex: a factor with levels Female Male
+* salary: nine-month salary, in 1000s dollars.
+
+
+1. Si verifichi se i salari medi sono uguali per uomini e donne. 
+
+2. Si verifichi usando dei modelli lineari semplici se vi è una relazione tra salario e anni di carriera (`yrsService`) e salario ed anni di esperienza (`yrsSincePhd`). 
+
+3. Si valuti se la variabile `rank` può aggiungere capacità predittiva al modello stimato al punto 2.: si stimi un modello in cui `rank` entra solo in maniera additiva nel modello e uno in cui `rank` interagisce con `yrsService`. Si crei una visualizzazione che mostra l'effetto di `yrsService` sui salari per i diversi gradi di carriera in entrambi i modelli. 
+
+4. Si stimi un modello in cui tutti i predittori a disposizione vengono inseriti in maniera additiva nel modello lineare: si valuti se, a parità di altre condizioni, vi è una differenza negli stipendi medi di uomini e donne. Come è cambiata l'interpretazione dell'effetto del sesso rispetto al punto 1.?
+
+5. Domanda extra: è possibile usare la variabile `yrsService` per predire se una persona è uomo o donna? 

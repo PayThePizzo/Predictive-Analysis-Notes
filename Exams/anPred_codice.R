@@ -1,6 +1,6 @@
 ## Questo file riassume alcune funzioni/elementi di codice usati frequentemente
-## nel corso Analaisi Predittiva 
-## Il file non è esautivo - indica solo alcune funzioni usate frequentemente 
+## nel corso Analisi Predittiva 
+## Il file non è esaustivo - indica solo alcune funzioni usate frequentemente 
 
 ## posizione della working directory 
 getwd()
@@ -17,7 +17,7 @@ confint(fit) ## intervalli di confidenza per i coefficienti del modello
 
 ## per aggiungere trasformazioni di X come predittori si usa la funzione I(.)
 ## fit <- lm(y~x1+x2+I(x2^2), data = df) 
-## per polinommi 
+## per polinomi 
 ## fit <- lm(y~x1+poly(x2,2), data = df)
 ## fit <- lm(y~x1+poly(x2,2, raw=TRUE), data = df)
 
@@ -36,11 +36,11 @@ predict(fit, newdata = nd)
 
 # residui 
 residuals(fit) ## these are y - fitted(fit)
-rstandard(fit) ##  standardised residuals 
-rstudent(fit) ## studentized residuals 
+rstandard(fit) ## standardised residuals 
+rstudent(fit)  ## studentized residuals 
 
 # goodness of fit/ bontà di adattamento 
-plot(fit) # grafici riassiuntivi
+plot(fit) # grafici riassuntivi
 AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazione
 hatvalues(fit) ##  leverages - punti di leva 
 car::vif(fit) ## variance inflation factors - ci sono problemi di colinearità? 
@@ -65,12 +65,6 @@ step(object = lm(y~1, data = df),
      k = 2
 ) ## 
 
-# ricerca esaustiva exhaustive search 
-# nel pacchetto leaps 
-library(leaps)
-all.mod <-summary(regsubsets(y ~ ., data = df))
-all.mod
-
 
 ## trasformazione di Box-Cox 
 ## da usare se y|X risulta non-normale 
@@ -81,11 +75,11 @@ all.mod
 
 ##in questo esempio usiamo una Poisson 
 
-df <- data.frame(x1 = runif(15), x2 <- runif(15), y  = rpois(15, 6))
+df <- data.frame(x1 = runif(15), x2 = runif(15), y  = rpois(15, 6))
 
 ## stima del modello 
 fit <- glm(y~x1+x2, data = df, family = poisson()) 
-## di dafault si usa la funzione legame canonica
+## di default si usa la funzione legame canonica
 poisson()$link
 summary(fit) ## varie informazioni riassuntive sulla stima
 coef(fit) ## valori stimati dei coefficienti del modello 
@@ -94,7 +88,7 @@ confint.default(fit) ## intervalli di confidenza per i coefficienti del modello
 ## predizione 
 # per i valori osservati delle X
 fitted(fit) ## predizione sulla scale di Y (exp(linear.predictor))
-predict(fit) ## predict di dafult mostra il predittore linare
+predict(fit) ## predict di default mostra il predittore lineare
 predict(fit, type = "response") ## predict accetta un'opzione type per mostrare i valori stimati sulla scala delle Y 
 ## per un oggetto glm predict non può costruire intervalli di confidenza (e non si possono costruire intervalli di predizione)
 predict(fit, se.fit = TRUE) # con opzione se.fit si ottiene lo standard error per il predittore lineare 
@@ -108,11 +102,11 @@ cbind(a$fit + qnorm(alpha/2) * a$se.fit,
       
         
 # residui 
-residuals(fit) ## di dafult deviance residuals 
+residuals(fit) ## di default deviance residuals 
 residuals(fit, type = "pearson") ## type = c("deviance", "pearson", "response"))
 
 # goodness of fit/ bontà di adattamento 
-plot(fit) # grafici riassiuntivi
+plot(fit) # grafici riassuntivi
 AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazione
 
 ## test anova per modelli annidati 
@@ -123,7 +117,7 @@ anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
 
 ## glm as a classifier ------------- 
 
-## funzioni implementate nelle sldies/laboratorio 
+## funzioni implementate nelle slides/laboratorio 
 
 
 cv_class <- function(K=5, dat, model, cutoff = 0.5){

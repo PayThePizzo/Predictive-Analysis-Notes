@@ -1,0 +1,149 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 21/22 - Appello IV"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilate il file la prima volta usando il comando `getwd()`. 
+
+```{r}
+getwd()
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.02$
+
+
+# Esercizio 1
+
+Un app di smart-mobility desidera indagare quali fattori influenzino l'utilizzo degli utenti dei mezzi messi a disposizione dalla app. Per un campione di 70 giorni in diverse città nei mesi di Aprile e Maggio vengono misurate le seguenti informazioni: 
+
+* `n_mezzi`: il numero minimo di mezzi funzionanti e operativi nella giornata 
+* `temp`: la temperatura media della giornata
+* `weekend`: una variabile che indica se la giornata era un sabato o domenica 
+* `usage`: una variabile che indica il numero di chilometri (in migliaia) coperto dagli utenti nella giornata. Questa è la variabile risposta
+
+Le informazioni sulle variabili sono disponibili nel dataset `dex1` che si può caricare usando il seguente codice: 
+
+```{r,cache=TRUE}
+dex1 <- read.csv("ex1_data.csv", header = TRUE)
+```
+
+
+
+### Es. 1.a 
+
+```{asis}
+Si costruisca un primo modello lineare multiplo `fit1` in cui tutte le variabili esplicative vengono utilizzate. Si commenti la significatività del modello e dei singoli predittori. Si verifichi l'opportunità di proporre un modello più parsimonioso di `fit1`. 
+```
+
+
+
+
+
+
+
+### Es. 1.b 
+
+```{asis}
+Si derivino intervalli di confidenza (a livello di confidenza 98\%) per il coefficiente angolare relativo alla variabile `temp` nel modello `fit11`. Si verifichi inoltre il sistema di ipotesi $H_0: \beta_{temp} = 1$ VS $H_1: \beta_{temp} \neq 1$
+```
+
+
+
+
+
+
+
+
+### Es. 1.c
+
+```{asis}
+Si produca una visualizzazione che mostri i valori stimati dal modello prescelto per giornate feriali con 20 e 25 gradi e tra i 150 e i 210 mezzi disponibili. 
+```
+
+
+
+
+
+### Es. 1.d
+
+```{asis}
+Il CEO dell'azienda desidera valutare l'opportunità di aumentare il numero di mezzi nelle città per il prossimo inverno: è possibile utilizzare il modello selezionato per predirre il numero di chilometri che saranno coperti dagli utenti nei mesi di Dicembre e Gennaio? 
+```
+
+
+
+
+# Esercizio 2
+
+Un ristoratore monitora il numero di ordini fatti tramite un app di food-delivery e desidera indagare quali siano i fattori che inducono gli utenti ad ordinare presso il suo ristorante. Le variabili che prende in considerazione sono 
+
+
+* `domenica`: una variabile che indica se la giornata è una Domenica
+* `temp`: la temperatura media giornaliera 
+* `nOrd`: il numero di ordini ricevuti in una serata. Questa è la variabile risposta. 
+
+
+Si carichi il dataset usando il codice seguente:  
+
+```{r,cache=TRUE}
+dex2 <- read.csv("ex2_data.csv", header = TRUE)
+dex2$domenica <- factor(dex2$domenica) 
+```
+
+Si desidera costruire un modello predittivo per la variabile `nOrd`, un modello cioè che predica il numero di ordini, usando un modello lineare generalizzato usando una distribuzione di Poisson con funzione legame canonica in cui la variabile `nOrd` è la variabile risposta. 
+
+
+### Es. 2.a 
+
+```{asis}
+Si verifichi se la temperatura è un predittore significativo, verificando inoltre se è conveniente usare termini polinomiali di ordine superiore ad uno (questo si può fare usando la funzione `I` o la funzione `poly`). 
+```
+
+
+
+
+
+### Es. 2.b
+
+```{asis}
+Usando il modello migliore che si è scelto al punto a) si verifichi se, a parità di temperatura, vi è una qualche differenza nel numero di ordini effettuati la domenica o nelle altre giornate. 
+```
+
+
+
+
+
+### Es. 2.c 
+
+```{asis}
+Usando il modello che si ritiene migliore si produca una stima del numero medio di ordini attesi per le giornate nel dataset `nd`. Si produca anche una stima intervallare usando un livello di confidenza pari al 98\%.
+```
+
+```{r}
+nd <- data.frame(temp = c(16, 16, 26, 26), domenica = factor(c(0,1,0,1)))
+rownames(nd) <- c("g16","d16","g26","d26")
+```
+
+
+
+
+
+### Es. 2.d
+
+```{asis}
+Quale è la funzione legame usata quando si usa la funzione legame canonica per la distribuzione Poisson? Per il modello utilizzato al punto c) si provi ad usare la funzione legame radice quadrata (`link = sqrt`) e si verifichi se i valori puntuali stimati del numero di ordini differiscono quando si usa una diversa funzione legame. 
+```
+
+
+
+
