@@ -1,13 +1,28 @@
-# Formulas Handbook
+---
+title: "Formulas Handbook"
+author: "Gianmaria Pizzo"
+output:
+  html_document:
+    fig_caption: yes
+    theme: flatly
+    highlight: pygments
+    code_folding: show
+    toc: yes
+    toc_depth: 1
+    number_sections: yes
+    toc_float:
+      smooth_scroll: no
+---
 
-To better
+Get some more context by looking up the more complete version at [Handbook Formulas for Predictive Analysis](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/Analisi_Predittiva.pdf)
 
-## Setting Up and Basic commands
+# Setting Up, Basics and Plots
 
-Get and Set working directory.
+Make sure to set the working directory properly. You can even create the file inside the folder to reach datasets from other sources. 
 ```{r, eval=FALSE}
-# getwd()
 # setwd()
+
+# getwd()
 ```
 
 Import dataset
@@ -25,20 +40,13 @@ Show a summary of the data
 ```{r, eval=FALSE}
 summary(pengs)
 ```
+
 Remove all missing values
 
 ```{r}
 pengs <- na.omit(pengs)
 ```
 
-Define 
-
-
-```{r}
-
-```
-
----
 
 ## Plots
 
@@ -86,7 +94,6 @@ Plot
 #title(main = "relazione tra area e affitto")
 ```
 
----
 
 ## Some Statistics
 
@@ -96,33 +103,176 @@ Plot
 
 ---
 
-## SLR - Least Squares
+# SLR - Least Squares
 
 $$Y = \beta_{0} + \beta_{1}X + \epsilon$$
+In R we use: `fit <- lm(formula = target ~ predictor, data = dataset)`
 
-```{r, eval=FALSE}
-fit <- lm(formula = target ~ predictor, data = dataset)
+```{r}
+# If not done before
+# pengs <- na.omit(pengs)
+
+fit <- lm(flipper_length_mm ~ body_mass_g , data = pengs)
 ```
 
-### $\hat{\beta}$ parameters estimates
+Manually we estimate the coefficients through:
 
 $$\hat{\beta}_1 = \frac{c_{XY}}{s^2_{X}} =  r_{XY} \frac{s_{Y}}{s_{X}},\quad \mbox{and} \quad \hat{\beta}_0 = \overline{y}-\hat{\beta}_1 \overline{x}$$
 
-```{r, eval=False}
+```{r}
+empirical_variance<- function(x, n){
+    sum((x-mean(x))^2)/n
+}
+
+
+slr_lse_coefficients <- function(predictor , target){
+
+    # Define basic data
+    x <- predictor
+    y <- target
+    n <- length(x)
+    
+    # Find plugin variance
+    s2x <- empirical_variance(x,n)
+    s2y <- empirical_variance(y,n)
+
+    rxy <- cor(x,y)
+
+    mx <- mean(x)
+    my<- mean(y)
+
+    # Angular coefficient
+    # Dictates how the y changes in proportion to x
+    beta1_hat <- rxy * sqrt(s2y/s2x)
+    # Alternatively
+    # covxy <- cov(x,y) 
+    # beta1_hat <- covxy/s2x
+    
+    # Intercept
+    # Forces the regression to pass by the sample mean of x and y.
+    beta0_hat <- my - beta1_hat *mx
+    # Alternatively
+    # beta0 _hat <- se * sqrt (1/n + mean (x) ^2/(n * s2x ))
+
+    
+    # Estimated values
+    yhat <- beta0_hat + beta1_hat * x
+    
+    # Empirical MSE
+    mse_hat<-(sum((y-yhat)^2))
+    
+    # Residuals
+    res_hat <- y-yhat
+    
+    # Std. Error
+    se_hat <- sqrt(sum((yhat - y)^2)/(n-2))
+    
+    c(beta0_hat, beta1_hat, yhat, mse_hat, res_hat, se_hat)
+}
 
 ```
 
+The result will not change:
+```{r}
+c(slr_lse_coefficients(pengs$body_mass_g, pengs$flipper_length_mm)[1], coefficients(fit)[1])
+c(slr_lse_coefficients(pengs$body_mass_g, pengs$flipper_length_mm)[2], coefficients(fit)[2])
+```
+
+### Visualize estimated model
+
+```{r}
+scatterplot_slr_model <- function(dataset, target, predictor, xlabel, ylabel, title=NULL){
+    # Plot 
+    dataset <- na.omit(dataset)
+    # targe is y, predictor is x
+    plot(target ~ predictor, data = dataset,
+         xlab=xlabel, ylab=ylabel, main=title)
+    # Fit model
+    fit <- lm(formula = target ~ predictor, data = dataset)
+    # Extract B0
+    beta0_hat <- coefficients(fit)[1]
+    # Extract B1
+    beta1_hat <- coefficients(fit)[2]
+    # Plot SLR
+    abline(beta0_hat, beta1_hat, col = 2, lwd = 1.4)
+}
+
+scatterplot_slr_model(pengs, pengs$flipper_length_mm, pengs$body_mass_g, ylabel = "Flipper Length in mm", xlabel = "Body Mass in grams", title = "flipper_length_mm vs body_mass_g")
+```
+
+
+##
+
+This is considered interpolation as 3420 is not an observed value of x. (But is in the data
+range.)
+An estimation for the mean of the flipper of a penguin who weights 3420gr
+```{r}
+# beta_0_hat + beta_1_hat * 3420
+coefficients(fit)[1] + coefficients(fit)[2] * 3420
+```
+
+This is considered extrapolation as 7500 is not an observed value of x and is outside data
+range.
+
+```{r}
+# beta_0_hat + beta_1_hat * 3420
+coefficients(fit)[1] + coefficients(fit)[2] * 7500
+```
+
+### 
+
+
+## Residuals
+
+## Goodness of fit
+
+### Sum of Squares decomposition
+
+### $R^{2}$ the coefficient of determination
+
+### Plot of the residuals against the predictor X and other variables
+
+
+---
 
 ## SLR - Gaussian Noise
 
-$$$$
+$$\widehat{m}(x) \sim \mathcal{N}\left(\beta_{0}+\beta_{1}x, \sigma^{2}\left( \frac{1}{n}+\frac{(x-\bar{x})^2}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2} \right) \right) $$
+
+$$\downarrow$$
+
+$$\frac{\widehat{m}(x)-Y}{SE[\widehat{m}(x)]} \sim t_{n-2}$$
+
+$$\downarrow$$
+
+$$SE[\widehat{m}(x)] = s_{e}\sqrt{\frac{1}{n} + \frac{(x-\bar{x})^2}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2}}$$
 
 
 ```{r, eval=FALSE}
 fit <- lm(formula = target ~ predictor, data = dataset)
 ```
 
+$$\widehat{\beta}_{0} = \sum_{i=1}^{n}w_{i}^{*}Y_{i} = \bar{Y} - \widehat{\beta}_{1}\bar{x} \sim \mathcal{N}\left(\beta_{0},\sigma^2 \left( \frac{1}{n} + \frac{\bar{x}^2}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2}\right) \right)$$
 
+$$\downarrow$$
+
+$$\frac{\widehat{\beta}_{0}-\beta_{0}}{SE[\widehat{\beta}_{0}]} \sim t_{n-2}$$
+
+$$\downarrow$$
+
+$$SE[\widehat{\beta}_{0}] = s_{e}\sqrt{\frac{1}{n} + \frac{\bar{x}^2}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2}}$$
+
+$$\widehat{\beta}_{1} = \sum_{i=1}^{n}w_{i}Y_{i} = \frac{\sum_{i=1}^{n}(x_{i}-\bar{x})Y_{i}}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2} \sim \mathcal{N}\left(\beta_{1}, \frac{\sigma^2}{\sum_{i=1}^{n} (x_{i}-\bar{x})^2 } \right)$$
+
+$$\downarrow$$
+
+$$\frac{\widehat{\beta}_{1}-\beta_{1}}{SE[\widehat{\beta}_{1}]} \sim t_{n-2}$$
+
+$$\downarrow$$
+
+$$SE[\widehat{\beta}_{1}] = s_{e}\frac{1}{\sqrt{ \sum_{i=1}^{n}(x_{i}-\bar{x})^2}}$$
+
+$$s_e^2 = \frac{\sum_{i=1}^{n}(y_{i} - \hat{y}_{i})^2}{n-2} $$
 
 ```{r}
 #x <- pengs$body_mass_g
@@ -158,20 +308,20 @@ computeSumSquares <- function(bs, y, x){
 }
 ```
 
-###
+##
 
-### Inference
+## Inference
 
-#### Confidence Intervals
+### Confidence Intervals
 
-#### Prediction Intervals
+### Prediction Intervals
 
-#### Hypothesis Testing
+### Hypothesis Testing
 
 
 ---
 
-## MLR
+# MLR
 
 $$$$
 
@@ -244,7 +394,7 @@ step(object = lm(y~1, data = df),
 
 ---
 
-## GLM
+# GLM
 
 $$$$
 
