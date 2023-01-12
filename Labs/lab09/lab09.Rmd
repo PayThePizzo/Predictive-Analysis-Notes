@@ -62,13 +62,14 @@ Come abbiamo intuito, al crescere dei valori del colesterolo, cresce il rischio 
 Purtroppo pero', non sappiamo interpretare gli `0.27466` punti di crescita, per questo ci serve utilizzare un grafico o guardare dei punti di interesse.
 
 ```{r}
-par(mfrow=c(1,1))
+plot(jitter(chd, factor = 0.1) ~ ldl, data = SAheart, pch = 20, 
+     ylab = "Probability of CHD", xlab = "Low Density Lipoprotein Cholesterol")
 
-plot(SAheart$ldl, jitter(SAheart$chd, amount = 0.14), pch = 16)
+grid()
 
-lines(sort(SAheart$ldl), 
-      predict(chd_mod_ldl, newdata = data.frame(ldl = sort(SAheart$ldl)),
-             type = "response"), col = "red")
+lines(sort(SAheart$ldl),
+      predict(chd_mod_ldl, data.frame(ldl = sort(SAheart$ldl)), type = "response"), 
+      col = "dodgerblue", lty = 2, lwd = 2)
 ```
 E' interessante vedere che non si raggiungono mai gli estremi della probabilita' (ne' 0, ne' 1) e che la crescita, sebbene sia positiva, non e' lineare nella scala della probabilita'. 
 
@@ -79,8 +80,15 @@ E' interessante vedere che non si raggiungono mai gli estremi della probabilita'
 
 Se vogliamo verificare l'intervallo di confidenza per il valore, possiamo usare:
 ```{r}
-confint.default(chd_mod_ldl, level = 0.99, parm = "ldl")
+confint.default(chd_mod_ldl, level = 0.95, parm = "ldl")
 ```
+Oppure con
+
+```{r}
+## based on asymptotic normal distribution
+coef(chd_mod_ldl)[2] + summary(chd_mod_ldl)$coef[2,2] * qnorm(c(0.025,0.975))
+```
+
 E' fortemente significativo, sebbene piccolo e' distante da `0`. L'intervallo e' costruito a partire dal fatto che l'aprossimazione di una normale (che deriva dal fatto che il modello e' approssimato tramite massima verosimiglianza).
 
 * Per costruire l'intervallo si usa il quantile della normale, quindi e' simmetrico.
@@ -100,8 +108,22 @@ Confrontiamo le devianze dei due modelli
 
 ### LRT
 
+C'è una certa differenza nella devianza residua dei modelli: è una differenza importante? Possiamo usare il likelihood ratio test per verificare la cosa. Il test verifica l'ipotesi nulla 
+
+\[H_0: \beta_{\texttt{sbp}} = \beta_{\texttt{tobacco}} = \beta_{\texttt{adiposity}} = \beta_{\texttt{famhist}} = \beta_{\texttt{typea}} = \beta_{\texttt{obesity}} = \beta_{\texttt{alcohol}} = \beta_{\texttt{age}} = 0 \]
+
+contro l'alternativa 
+
+\[H_1: \text{any } \beta_{\texttt{sbp}} \text{ or } \beta_{\texttt{tobacco}}  \text{ or }  \beta_{\texttt{adiposity}}  \text{ or }  \beta_{\texttt{famhist}}  \text{ or }  \beta_{\texttt{typea}}  \text{ or }  \beta_{\texttt{obesity}}  \text{ or } \beta_{\texttt{alcohol}}  \text{ or } \beta_{\texttt{age}} \neq 0 \]
+
 ```{r}
 anova(chd_mod_ldl, chd_mod_additive, test = "LRT")
+
+## or manually
+# 2*as.numeric(logLik(chd_mod_additive)-logLik(chd_mod_ldl))
+# chd_mod_ldl$deviance - chd_mod_additive$deviance
+# pchisq(2*as.numeric(logLik(chd_mod_additive)-logLik(chd_mod_ldl)), lower.tail = FALSE, 
+#        df = chd_mod_ldl$df.residual-chd_mod_additive$df.residual)
 ```
 
 Il modello additivo e' significativamente diverso e ci dovrebbe, percio', essere un modello intermedio che sia significativo. 
@@ -109,7 +131,9 @@ Il modello additivo e' significativamente diverso e ci dovrebbe, percio', essere
 
 ### Stepwise Selection
 
-Utilizziamo una selezione del modello tramite *Stepwise selection* basata su *AIC*
+La differenza è significativa: possiamo rigettare $H_0$ e sospettiamo che almeno qualcuno dei predittori aggiuntivi oltre a `ldl` spieghi della variabilità nei dati. 
+
+Come possiamo trovare un sottoinsieme in qualche modo ottimale di predittori? Possiamo usare AIC o BIC e applicare gli algoritmi backward, forward o step-wise usando la funzione `step`:
 
 ```{r}
 # Backward
@@ -125,17 +149,20 @@ step(chd_mod_ldl, direction = "both",
 
 ```
 
-Togliendo un elemento alla volta, la selezione arriva ad un modello che ha `AIC=487.69` con la formula `chd ~ ldl + age + famhist + tobacco + typea`
+Togliendo un elemento alla volta, la selezione arriva ad un modello che ha `AIC=487.69` con la formula `chd ~ ldl + age + famhist + tobacco + typea` per entrambi i metodi.
 
 ```{r}
 chd_mod_select
 ```
+
 Vediamo quindi che vi sono delle relazioni positive per quasi tutti i predittori.
 
 * In particolare quando `famhist` e' `present`, il coefficiente e' molto positivo. Stiamo stimando due predittori lineari paralleli tra loro (perche e' una variabile categorica). 
 
 
 ### LRT
+
+Di nuovo scegliamo lo stesso sottoinsieme di predittori. La devianza di questo modello selezionato automaticamente differisce dalla varianza spiegata dal modello più complesso?
 
 ```{r}
 anova(chd_mod_ldl, chd_mod_select, test = "LRT")
@@ -145,10 +172,15 @@ Troviamo un miglioramento significativo rispetto al modello piu' semplice
 ```{r}
 anova(chd_mod_additive, chd_mod_select, test = "LRT")
 ```
-Purtroppo rispetto al modello adittivo, non vi e' grande evidenza statistica di miglioramento.
+Purtroppo rispetto al modello adittivo, non vi e' grande evidenza statistica di miglioramento e quindi non possiamo rigettare l'ipotesi nulla
+
+$$
+H_0: \beta_{\texttt{sbp}} = \beta_{\texttt{adiposity}} = \beta_{\texttt{obesity}} = \beta_{\texttt{alcohol}} = 0
+$$
 
 ### Interpretazione ed Incertezza
-Come nei MLR, l'interpretazione dei predittori e' la seguente: il valore (positivo o negativo) e' l'effetto che ha il predittore `beta` sul log-odd-ratio, assumendo che tutti gli altri predittori abbiano valori fissi. Infatti, per visualizzare questi effetti tramite grafici, si devono prima fissare i valori dei predittori.
+Come nei MLR, l'interpretazione dei predittori e' la seguente: il valore (positivo o negativo) e' l'effetto che ha il predittore `beta` sul log-odd-ratio, assumendo che tutti gli altri predittori abbiano valori fissi. 
+Infatti, per visualizzare questi effetti tramite grafici, si devono prima fissare i valori dei predittori.
 
 
 ```{r}
