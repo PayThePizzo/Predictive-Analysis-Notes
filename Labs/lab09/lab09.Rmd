@@ -300,13 +300,13 @@ hcrabs <- hcrabs[order(hcrabs$Wt),]
 plot(hcrabs$Wt, hcrabs$Sat, col = as.numeric(hcrabs$Col), pch = 16)
 # 4 different curves
 lines(hcrabs$Wt[hcrabs$Col =="LM"], 
-       predict(selAIC, type = "response")[hcrabs$Col =="LM"], col = 1, lwd = 2)
+       predict(selAIC, type = "response", newdata= hcrabs)[hcrabs$Col =="LM"], col = 1, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="M"], 
-       predict(selAIC, type = "response")[hcrabs$Col =="M"], col = 2, lwd = 2)
+       predict(selAIC, type = "response", newdata= hcrabs)[hcrabs$Col =="M"], col = 2, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="DM"], 
-       predict(selAIC, type = "response")[hcrabs$Col =="DM"], col = 3, lwd = 2)
+       predict(selAIC, type = "response", newdata= hcrabs)[hcrabs$Col =="DM"], col = 3, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="D"], 
-       predict(selAIC, type = "response")[hcrabs$Col =="D"], col = 4, lwd = 2)
+       predict(selAIC, type = "response", newdata= hcrabs)[hcrabs$Col =="D"], col = 4, lwd = 2)
 ```
 Dal risultato vediamo che non ci sono punti neri (granchi `lM`), la stima per questi punti avra' ovviamente una grande varianza, sebbene sia comunque contenuta perche' non vengono stimate separatamente le categorie riguardo al colore.
 
@@ -317,13 +317,13 @@ Vediamo lo stesso con il modello che include le interazioni.
 ```{r}
 plot(hcrabs$Wt, hcrabs$Sat, col = as.numeric(hcrabs$Col), pch = 16)
 lines(hcrabs$Wt[hcrabs$Col =="LM"], 
-       predict(modelInteract, type = "response")[hcrabs$Col =="LM"], col = 1, lwd = 2)
+       predict(modelInteract, type = "response", newdata= hcrabs)[hcrabs$Col =="LM"], col = 1, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="M"], 
-       predict(modelInteract, type = "response")[hcrabs$Col =="M"], col = 2, lwd = 2)
+       predict(modelInteract, type = "response", newdata= hcrabs)[hcrabs$Col =="M"], col = 2, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="DM"], 
-       predict(modelInteract, type = "response")[hcrabs$Col =="DM"], col = 3, lwd = 2)
+       predict(modelInteract, type = "response", newdata= hcrabs)[hcrabs$Col =="DM"], col = 3, lwd = 2)
 lines(hcrabs$Wt[hcrabs$Col =="D"], 
-       predict(modelInteract, type = "response")[hcrabs$Col =="D"], col = 4, lwd = 2)
+       predict(modelInteract, type = "response", newdata= hcrabs)[hcrabs$Col =="D"], col = 4, lwd = 2)
 ```
 
 Le curve stimate ci confermano gli effetti del peso per ogni categoria, visti precedentemente nel summary.

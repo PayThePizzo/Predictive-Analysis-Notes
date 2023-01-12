@@ -361,6 +361,12 @@ display: none;
 # setwd(&quot;my/long/path&quot;)</code></pre>
 <p>Import dataset</p>
 <pre class="r"><code># mrents &lt;- read.table(&quot;rent99.raw&quot;, header = TRUE)</code></pre>
+</div>
+<div id="basic-commands" class="section level2">
+<h2>Basic commands</h2>
+</div>
+<div id="plots" class="section level2">
+<h2>Plots</h2>
 <pre class="r"><code>#summary(mrents)
 # head(mrents)</code></pre>
 <p>Histogram</p>
@@ -382,11 +388,20 @@ display: none;
 <p>Plot</p>
 <pre class="r"><code>#plot(rent~area, data = mrents, pch =16, bty = &quot;l&quot;,col=&quot;darkorange2&quot;)
 #title(main = &quot;relazione tra area e affitto&quot;)</code></pre>
+<hr />
 </div>
-<div id="slr" class="section level2">
-<h2>SLR</h2>
+<div id="slr---least-squares" class="section level2">
+<h2>SLR - Least Squares</h2>
+<pre class="r"><code>fit &lt;- lm(formula = target ~ predictor, data = dataset)</code></pre>
+<div id="beta-parameters" class="section level3">
+<h3><span class="math inline">\(\beta\)</span> Parameters</h3>
+<hr />
+</div>
+</div>
+<div id="slr---gaussian-noise" class="section level2">
+<h2>SLR - Gaussian Noise</h2>
 <p>$$$$</p>
-<pre class="r"><code>#fit &lt;- lm(formula = target ~ predictor, data = dataset)</code></pre>
+<pre class="r"><code>fit &lt;- lm(formula = target ~ predictor, data = dataset)</code></pre>
 <pre class="r"><code>#x &lt;- pengs$body_mass_g
 #y &lt;- pengs$flipper_length_mm
 #n &lt;- length(x)
@@ -415,16 +430,183 @@ display: none;
   squares &lt;- (observed - modelled)^2
   sum(squares)
 }</code></pre>
+<div id="section" class="section level3">
+<h3></h3>
+</div>
+<div id="inference" class="section level3">
+<h3>Inference</h3>
+<div id="confidence-intervals" class="section level4">
+<h4>Confidence Intervals</h4>
+</div>
+<div id="prediction-intervals" class="section level4">
+<h4>Prediction Intervals</h4>
+</div>
+<div id="hypothesis-testing" class="section level4">
+<h4>Hypothesis Testing</h4>
 <hr />
+</div>
+</div>
 </div>
 <div id="mlr" class="section level2">
 <h2>MLR</h2>
 <p>$$$$</p>
+<pre class="r"><code>##lm - modelli lineari  -------
+df &lt;- data.frame(x1 = runif(15), x2 = runif(15), y  = rnorm(15))
+
+## stima del modello 
+fit &lt;- lm(y~x1+x2, data = df)
+summary(fit) ## varie informazioni riassuntive sulla stima
+coef(fit) ## valori stimati dei coefficienti del modello 
+confint(fit) ## intervalli di confidenza per i coefficienti del modello 
+
+## per aggiungere trasformazioni di X come predittori si usa la funzione I(.)
+## fit &lt;- lm(y~x1+x2+I(x2^2), data = df) 
+## per polinomi 
+## fit &lt;- lm(y~x1+poly(x2,2), data = df)
+## fit &lt;- lm(y~x1+poly(x2,2, raw=TRUE), data = df)
+
+## la matrice di disegno usata nella stima
+model.matrix(fit)
+
+## predizione 
+# per i valori osservati delle X
+fitted(fit)
+predict(fit) ## predict produce anche intervalli di confidenza e predizione
+predict(fit, interval = &quot;confidence&quot;) 
+predict(fit, interval = &quot;prediction&quot;) 
+## per un nuovo set di punti 
+nd &lt;- data.frame(x1 = c(0.2,0.8), x2 = c(0.3,0.6))
+predict(fit, newdata = nd)
+
+# residui 
+residuals(fit) ## these are y - fitted(fit)
+rstandard(fit) ## standardised residuals 
+rstudent(fit)  ## studentized residuals 
+
+# goodness of fit/ bontC  di adattamento 
+plot(fit) # grafici riassuntivi
+AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazione
+hatvalues(fit) ##  leverages - punti di leva 
+car::vif(fit) ## variance inflation factors - ci sono problemi di colinearitC ? 
+cooks.distance(fit) # outliers/punti particolari 
+
+## test anova per modelli annidati 
+# anova(small_model, big_model)
+anova(lm(y~x1, data = df), fit)
+
+
+## model selection 
+## la funzione step qui usata per un algoritmo forward come esempio 
+## opzioni importanti 
+# scope per delineare l&#39;ambito della ricerca
+# k: per definire la penalizzazione del criterio di informazione
+# direction: per la direzione: forward, backward, both
+
+step(object = lm(y~1, data = df), 
+     scope = list(lower = lm(y~1, data = df), 
+                  upper = fit), 
+     direction = &quot;forward&quot;,
+     k = 2
+) ## 
+
+
+## trasformazione di Box-Cox 
+## da usare se y|X risulta non-normale 
+## MASS::boxcox</code></pre>
 <hr />
 </div>
 <div id="glm" class="section level2">
 <h2>GLM</h2>
 <p>$$$$</p>
+<pre class="r"><code>##glm - modelli lineari generalizzati -------
+
+##in questo esempio usiamo una Poisson 
+
+df &lt;- data.frame(x1 = runif(15), x2 = runif(15), y  = rpois(15, 6))
+
+## stima del modello 
+fit &lt;- glm(y~x1+x2, data = df, family = poisson()) 
+## di default si usa la funzione legame canonica
+poisson()$link
+summary(fit) ## varie informazioni riassuntive sulla stima
+coef(fit) ## valori stimati dei coefficienti del modello 
+confint.default(fit) ## intervalli di confidenza per i coefficienti del modello 
+
+## predizione 
+# per i valori osservati delle X
+fitted(fit) ## predizione sulla scale di Y (exp(linear.predictor))
+predict(fit) ## predict di default mostra il predittore lineare
+predict(fit, type = &quot;response&quot;) ## predict accetta un&#39;opzione type per mostrare i valori stimati sulla scala delle Y 
+## per un oggetto glm predict non puC2 costruire intervalli di confidenza (e non si possono costruire intervalli di predizione)
+predict(fit, se.fit = TRUE) # con opzione se.fit si ottiene lo standard error per il predittore lineare 
+## per un nuovo set di punti 
+nd &lt;- data.frame(x1 = c(0.2,0.8), x2 = c(0.3,0.6))
+a &lt;- predict(fit, newdata = nd, se.fit = TRUE); a
+# intervalli di confidenza manuali
+alpha = 0.05
+cbind(a$fit + qnorm(alpha/2) * a$se.fit, 
+      a$fit + qnorm(1-alpha/2) * a$se.fit)
+      
+        
+# residui 
+residuals(fit) ## di default deviance residuals 
+residuals(fit, type = &quot;pearson&quot;) ## type = c(&quot;deviance&quot;, &quot;pearson&quot;, &quot;response&quot;))
+
+# goodness of fit/ bontC  di adattamento 
+plot(fit) # grafici riassuntivi
+AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazione
+
+## test anova per modelli annidati 
+# anova(small_model, big_model)
+anova(glm(y~x1, data = df, family=poisson()), fit, test = &quot;LRT&quot;)
+
+
+
+## glm as a classifier ------------- 
+
+## funzioni implementate nelle slides/laboratorio 
+
+
+cv_class &lt;- function(K=5, dat, model, cutoff = 0.5){
+  assign_group &lt;- rep(seq(1,K), each = floor(nrow(dat)/K))
+  ### this ensures we use all points in the dataset
+  ### this way we might have subgroups of different size 
+  if(length(assign_group) != nrow(dat)) assign_group &lt;- c(assign_group, sample(seq(1,K)))[1:nrow(dat)] 
+  assign_group &lt;- sample(assign_group, size = nrow(dat))
+  error &lt;- 0
+  for(j in 1:K){
+    whichobs &lt;- (assign_group == j)
+    ## fit a model WITHOUT the hold-out data
+    folded_model &lt;- suppressWarnings(glm(model$formula, 
+                                         data = dat[!whichobs,], 
+                                         family = &quot;binomial&quot;))
+    ## evaluate the model on the hold-out data
+    fitted &lt;- suppressWarnings(predict(folded_model,
+                                       dat[whichobs,], 
+                                       type=&quot;response&quot;))
+    observed &lt;- dat[whichobs, strsplit(paste(model$formula), &quot;~&quot;)[[2]]]
+    error &lt;- error + mean(observed != (fitted&gt;cutoff))/K 
+    ### in cv.glm the actual error is calculated as (y - p(y=1)) 
+    # error &lt;- error + mean((observed - fitted)^2)/K 
+    ### the mis-classification rate will depend on how we decide what is assigned to each category 
+  }
+  error
+}
+
+
+make_conf_mat &lt;- function(predicted, actual) {
+  table(predicted = predicted, actual = actual)
+}
+
+get_sens &lt;- function(conf_mat) {
+  conf_mat[2, 2] / sum(conf_mat[, 2])
+}
+# Note that this function is good for illustrative purposes, but is easily broken. (Think about what happens if there are no &quot;positives&quot; predicted.)
+
+
+get_spec &lt;-  function(conf_mat) {
+  conf_mat[1, 1] / sum(conf_mat[, 1])
+}</code></pre>
 <hr />
 </div>
 <div id="glm---classifier" class="section level2">
