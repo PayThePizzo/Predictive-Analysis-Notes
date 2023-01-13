@@ -7,7 +7,7 @@ output: html_document
 Si prenda in esame il dataset `salaries`: 
 
 ```{r}
-salaries <- read.csv("Salaries.txt")
+salaries <- read.csv("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Exercises/datasets/Salaries.txt")
 salaries <- salaries[order(salaries$sex,decreasing = TRUE),]
 ```
 
