@@ -50,7 +50,7 @@ $$time = \beta_{0} + \beta_{1}age + \beta_{2}numAccess$$
 fit1 <- lm(time ~ age + numAccess, data = dex1)
 summary(fit1)
 ```
-Nel `summary` del modello troviamo un valore particolarmente alto dell' $R^{2}$ e della F-statistic, per un p-value molto piccolo. Percio', il modello sembra essere particolarmente significativo.
+Nel `summary` del modello troviamo un valore particolarmente alto dell' $R^{2}$ (il modello spiega una ampia proporzione della variabilità nei dati) e della F-statistic, per un p-value molto piccolo. Percio', il modello sembra essere particolarmente significativo.
 
 
 ### Es. 1.b 
@@ -95,6 +95,17 @@ Considerando un intervallo di confidenza al livello di significativita' del 98%,
 # Confidence Intervals
 confint(fit1, level=0.98)[2,]
 ```
+```{r,solution=TRUE}
+fit2 <- lm(time ~ numAccess, data = dex1)
+anova(fit2, fit1)
+```
+
+Usando anova per confrontare fit1 e fit2 (che sono due modelli annidati) si verifica l'ipotesi nulla: \[H_0: \beta_{age} = 0 \]
+contro l'ipotesi alternativa 
+\[H_1: \beta_{age} \neq 0 \]
+Si verifica cioè se è possibile eliminare un predittore dal modello (e stimare un parametro in meno) ed ottenere una stima comparabile in termine di errore quadratico medio (RSS). 
+Dato che il p-value del test `anova` è molto alto non si può rifiutare l'ipotesi nulla: non vi è evidenza che mantenere la variabile `age` migliori la stima del modello e possiamo quindi eliminare la variabile. 
+
 
 ### Es. 1.c
 
@@ -118,6 +129,10 @@ pi_vals[,3]-pi_vals[,2]
 ```
 
 Nell'intervallo di confidenza, ci interessiamo all'incertezza intorno a $\mathbb{E}[\hat{y}(x_{0})]$, ovvero rispetto ai tipici valori che un predittore $x_{0}$ assume. Normalmente si utilizzano per valori che sono nel range dei valori osservati. Al contrario, nell'intervallo di predizione ci concentriamo sull'incertezza intorno a $Y_{0}$ una nuova osservazione di $Y$ dato il predittore $x_{0}$ e questo aumenta la variabilita' della stima, aumentando anche l'ampiezza dell'intervallo di predizione.
+
+Il secondo intervallo di confidenza è più ampio del primo: questo perché non ci sono utenti nel campione che abbiano eseguito 200 accessi: per fare una stima per quel tipo di utente è necessario estrapolare la stima ben oltre i valori con cui il modello è stato stimato e quindi vi è molta incertezza nella stima. 
+Questo è vero sia per gli intervalli di confidenza che per gli intervalli di predizione. 
+Gli intervalli di confidenza danno un'indicazione dell'incertezza attorno al valore medio del tempo passato da ogni utente nell'app; gli intervalli di predizione invece danno un'indicazione dell'incertezza per quelli che possono essere gli effettivi valori del tempo passato da un utente nell'app. Dato che la media è per definizione meno variabile delle singole osservazioni gli intervalli di confidenza sono meno ampi degli intervalli di predizione.  
 
 ### Es. 1.d
 
@@ -251,6 +266,8 @@ lines(sort(nd$numRequests), cint_response[,1], lty = 2, col = "purple")
 lines(sort(nd$numRequests), cint_response[,2], lty = 2, col = "purple")
 ```
 
+La stima dei parametri che descrivono l'effetto di numAccess e numRequests è di segno opposto: si stima che al crescere del numero di accessi aumenta la probabilità che si verifichi un guasto, mentre questa probabilità diminuisce all'aumentare del numero di richieste. Quest'ultimo effetto però viene stimato essere poco significativo (quindi non si può rifiutare $H_0: \beta_{numRequests} = 0$).  
+
 ### Es. 2.b
 
 Usando un approccio backward si parta dal modello `fitTot` per individuare dei modelli che risultino in qualche senso ottimali. Si utilizzi sia AIC che BIC per l'individuazione di questo modello ottimale. Si nota una qualche differenza nella scelta effettuata usando i due criteri? Si commenti il risultato della selezione delineando le differenze tra i due criteri. 
@@ -293,7 +310,11 @@ nd <- data.frame(numAccess = c(10,5290),
                  durationMin = c(9,5))
 rownames(nd) <- c("day1","day2")
 
-rpred <- predict(fitTot, type = "response", newdata = nd, level=0.95)
+# Predicted probabilities
+predict(fitTot, type = "response", newdata = nd)
+preds <- predict(fitTot, type = "link", newdata = nd, se.fit = TRUE)
+cbind(binomial()$linkinv(preds$fit + qnorm(0.025)*preds$se.fit),
+      binomial()$linkinv(preds$fit + qnorm(0.975)*preds$se.fit))
 ```
 
 
@@ -301,6 +322,17 @@ rpred <- predict(fitTot, type = "response", newdata = nd, level=0.95)
 
 Usando il modello `fitTot` si predica per ogni giornata del dataset `dex2` se ci si aspetta che avvenga un guasto. Per definire se per una giornata viene predetto un guasto si usi un livello di probabilità pari a 0.5, cioè si definisce che per una giornata viene predetto l'evento `guasto` se la la probabilità che ci sia un guasto è > 0.5. Si verifichi la proporzione di predizioni corrette e sbagliate prodotte dal modello. 
 
+
+```{r, solution = TRUE}
+## proporzione predizione corrette
+mean(as.numeric(predict(fitTot, type = "response") > 0.5) == dex2$fail)
+## proporzione predizioni sbagliate
+mean(as.numeric(predict(fitTot, type = "response") > 0.5) != dex2$fail)
+## tabella di contiengenza di predizioni corrette e sbaglate
+table(as.numeric(predict(fitTot, type = "response") > 0.5),dex2$fail)
+```
+
+Il modello predice in maniera corretta l'evento `guasto` in circa il `r 100*round(mean(as.numeric(predict(fitTot, type = "response") > 0.5) == dex2$fail),3)` \% dei casi. 
 
 
 
