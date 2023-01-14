@@ -75,7 +75,7 @@ Per stimare come varia la probabilità che ci sia un'opposizione ad un brevetto 
 
 * La distribuzione che si assume per la variabile risposta $Y$ (in questo caso una binomiale, in particolare un Bernoulli, cioè una binomiale in cui vi è un solo "tentativo"): $Y \sim Bin(1, p(x))$, con $\mu(x) = E[Y|X=x] = p(x)$
     + `family`
-* La funzione legame tra $\mu(x)$ e il predittore lineare $\eta(x)$: usiamo in questo caso il legame canonico, cioè la trasformazione logistica: $logit(\mu(x)) = \beta_1 + \beta_1 x$
+* La funzione legame tra $\mu(x)$ e il predittore lineare $\eta(x)$: usiamo in questo caso il legame canonico, cioè la trasformazione logistica: $logit(\mu(x)) = \beta_0 + \beta_1 x$
     + Da specificare in `family`
 * La specificazione del predittore lineare: in questo modello usiamo un solo predittore, `year` 
 

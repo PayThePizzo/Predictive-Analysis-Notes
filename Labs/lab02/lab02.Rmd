@@ -266,7 +266,7 @@ Possiamo derivare anche l'intera matrice di varianza covarianza di $\beta$:
 
 ```{r}
 #variance-covariance matrix
-# The main diagonal represents the Std. Error for each beta_{j}
+# The main diagonal represents the variance for each beta_{j}
 (est_sigma^2) * (solve(t(X) %*% X))
 vcov(fit)
 ```
