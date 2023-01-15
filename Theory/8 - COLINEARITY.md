@@ -169,12 +169,16 @@ F-statistic: 316.6 on 3 and 379 DF, p-value: < 2.2e-16
 $\beta_{hp}$ now is negative and significant. However we lost predictive ability
 
 ---
-## Is multicollinearitya problem?
+## Is multicollinearity a problem?
 Multicollinearity is another instance of the model correctness vs. usefulness
 
 A model with multicollinearity might be perfectly valid in the sense of respecting the assumptions of the model. It does not matter whether the predictors are related or not. At least for the verification of the assumptions
 
-But the model will be useless if the multicollinearity is high, since it can inflate the variability of the estimation without any kind of bound
+But the model will be useless if the multicollinearity is high, since **it can inflate the variability of the estimation** without any kind of bound. Furthermore, **this influences negatively the precision of the beta parameters' estimates** and the effect the predictors have on the target variable.
+
+Normally we can quantify the impact of collinearity on the target,through 
+* VIF: Large values of VIFs indicate the variability of the estimate is larger than what it would be by using a model with independent predictors.
+* Verification of model assumptions "L.I.N.E"
 
 Some more advanced methods do exist to deal with multicollinearity, for example **ridge regression** or **Priciple Components Regression**, we do not discuss these in the course
 
