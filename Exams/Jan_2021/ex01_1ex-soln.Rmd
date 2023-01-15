@@ -91,6 +91,7 @@ nd <- dex1[1,1:4]; nd[1,] <- rep(2.3,4)
 
 (ci_f1 <- predict(fit_f1, newdata = nd, interval = "confidence"))
 (pi_f1 <- predict(fit_f1, newdata = nd, interval = "prediction"))
+
 ci_all[,3]-ci_all[,2]; ci_f1[,3]-ci_f1[,2]
 pi_all[,3]-pi_all[,2]; pi_f1[,3]-pi_f1[,2]
 ```

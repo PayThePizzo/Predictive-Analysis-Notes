@@ -36,17 +36,28 @@ Il dataset `dex1` contiene informazioni sulla resa ottenuta in diversi lotti in 
 Si carichi il dataset usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
 
 ```{r,cache=TRUE}
-# dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex1.txt"))
-dex1 <- dget(paste0(your_path,matricola,"_a1ex1.txt"))
+dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex1.txt"))
+# dex1 <- dget(paste0(your_path,matricola,"_a1ex1.txt"))
 ```
 
 Si desidera indagare come la resa sia influenzata dalla quantità di fertilizzante usata in ogni campo. 
+
+```{r,cache=TRUE}
+summary(dex1)
+```
+
 
 ### Es. 1.a 
 
 Si stimi un modelli di regressione (chiamato `fit_all`) il cui la variabile `resa` dipenda linearmente da tutti i fertilizzanti usati nei campi: si verifichi se il modello stimato è significativo. 
 
 
+```{r,cache=TRUE}
+fit_all <- lm(resa ~ ., data=dex1)
+summary(fit_all)
+```
+
+La statistica F ha un p-value piccolo, possiamo quindi rifiutare l' ipotesi nulla che tutti i coefficienti di regressione lineare siano nulli. Il modello stimato risulta particolarmente significativo.
 
 
 
@@ -55,12 +66,25 @@ Si stimi un modelli di regressione (chiamato `fit_all`) il cui la variabile `res
 
 Si stimi un modelli di regressione (chiamato `fit_f1`) il cui la variabile `resa` dipenda linearmente dalla quantità di fertilizzante `fert1` usata nel campo: si confronti la bontà di adattamento (goodness of fit) di questo modello con il modello stimato al punto 1.a, indicando quale modello sia preferibile usare e perché.  
 
+```{r}
+fit_f1 <- lm(resa~fert1, data=dex1)
+summary(fit_f1)
+```
+
+Il modello stimato sembra essere molto significativo, rispetto a prima il valore di $R^{2}$ non e' diminuito di molto, sebbene ci siano ben tre parametri stimati in meno. Inoltre il valore della statistica F e' aumentato, mantenendo un p-value molto piccolo: possiamo rifiutare l' ipotesi nulla che il modello nullo (con solo l' intercetta) sia piu' significativo di questo. Il modello risulta essere quindi significativo.
 
 
+La bontà d'adattamento si può confrontare in molti modi: si può usare $R^2_{Adj}$, un criterio d'informazione (BIC o AIC) o fare un test anova che confronti i due modelli. 
 
+```{r}
+summary(fit_f1)$adj.r.square;  summary(fit_all)$adj.r.square
+AIC(fit_f1,fit_all)
+BIC(fit_f1,fit_all)
+anova(fit_f1,fit_all)
+```
+Sia AIC e BIC sono piu' bassi per il modello `fit_f1`. Inoltre, l'ANOVA conferma che il miglioramento da questo al modello piu' complesso sia poco signficativo, dal momento che vi e' un basso valore della statistica F ed un p-value non rilevante. Questo e' corroborato dal fatto che il valore $R^2_{Adj}$ cambia di poco tra i due modelli e quello piu' complesso si dimostra sovra-parametrizzato.
 
-
-
+Il modello migliore e'dunque `fit_f1`
 
 
 ### Es. 1.c
@@ -68,18 +92,48 @@ Si stimi un modelli di regressione (chiamato `fit_f1`) il cui la variabile `resa
 Per entrambi i modelli di regressione stimati, si stimino valori puntuali, e degli intervalli di confidenza e di predizione della resa in un campo in cui vengono usati 2.3 mg/l di ogni fertilizzante. Si commentino le stime ottenute.  
 
 
+```{r}
+nd <- dex1[1,1:4]; nd[1,] <- rep(2.3,4)
 
+(ci_all <- predict(fit_all, newdata = nd, interval = "confidence"))
+(pi_all <- predict(fit_all, newdata = nd, interval = "prediction"))
+
+(ci_f1 <- predict(fit_f1, newdata = nd, interval = "confidence"))
+(pi_f1 <- predict(fit_f1, newdata = nd, interval = "prediction"))
+
+ci_all[,3]-ci_all[,2]; ci_f1[,3]-ci_f1[,2]
+pi_all[,3]-pi_all[,2]; pi_f1[,3]-pi_f1[,2]
+```
+
+Per entrambi i modelli gli intervalli di predizione sono molto più ampi degli intervalli di confidenza. Inoltre gli intervalli ottenuti usando il modello `fit_all` sono più ampi degli intervalli ottenuti usando `fit_f1`: il modello `fit_all` è sovraparametrizzato, questo rende la predizione di nuovi punti più variabile. 
 
 ### Es. 1.d
 
 Si specifichino le assunzioni sottostanti il modello di regressione `fit_f1`.
 
+Nel modello `fit_f1` si assume che: 
+\[ \text{resa}_i = \beta_0 + \beta_1   \text{fert1}_i + \epsilon_i \quad \quad \text{per } i=1, \ldots, n \]
+dove 
+\[\epsilon_i \sim N(0, \sigma) \]
+
+Le assunzioni sottostanti il modello sono: 
+  
+  * che il rapporto tra `fert1` e `resa` sia lineare
+  * che i residui $\epsilon_i$ siano indipendenti e seguano una distribuzione normale a media zero e varianza costante (siano cioè omoschedastici) 
 
 
 ### Es. 1.e
 
 Utilizzando grafici basati sui residui, si verifichino le assunzioni sottostanti il modello `fit_f1`.
 
+```{r}
+plot(fit_f1)
+```
+I residui sembrano verificare le ipotesi sottostanti il modello. 
+
+* Nel grafico il altro a sinistra non si nota nessuna forte relazione residua tra i  valori stimati e i residui: la forma funzionale che descrive la relazione tra `resa` e `fert1` è ben rappresentata dalla relazione lineare. 
+* Il grafico in basso a sinistra non evidenzia nessun problema di eteroschedasticità: la varianza dei residui è costante. 
+* Il qqplot in alto a destra da un'indicazione che l'ipotesi che i residui seguano una normale sembra essere verificata.
 
 
 # Esercizio 2
