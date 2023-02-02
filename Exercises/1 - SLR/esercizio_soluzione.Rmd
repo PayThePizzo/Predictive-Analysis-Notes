@@ -247,4 +247,5 @@ summary(fit)
 ```
 
 Le stime dei parametri cambiano, ma rimangono nel range dato dalla stima originale. Quello che cambia molto è la stima della variabilità delle stime, che aumenta. Da questo segue che il p-value per il test della significatività dei parametri sia leggermente più alto. Questo è legato al fatto che la variabilità delle stime è legata alla numerosità campionaria: con un campione con meno osservazioni si ottengono stime più variabili. 
+
 Cambia invece di poco il valore di $R^2$: avendo preso un sottocampione casuale non cambia di molto cosa capiamo della relazione tra X e Y: la proporzione di variabilità di $y$ spiegata da $x$ rimane simile [questo potrebbe non sempre essere vero a seconda del sottocampione].  

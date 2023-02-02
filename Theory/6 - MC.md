@@ -1,7 +1,7 @@
 # Model Checking
 A great problem when dealing with any kind of model is to check whether our assumptions are correct.
 
-## Recap
+### Recap
 The least square estimate is “optimal” if the relationship betweem Y and $(X_{1},..., X_{p})$ is approximately linear.
 
 We have discussed methods to test for significance and for estimating the variability of
@@ -17,8 +17,6 @@ $$\varepsilon_{i} = (Y_{i} - (\beta_{0} + \beta_{1}x_{1,i} + ... + \beta_{p}x_{p
 
 If the assumptions are not valid we can not rely on the theory to do inference.
 
----
-
 ## Model Assumptions
 Often, the assumptions of linear regression, are stated as:
 * **L**inearity: the response can be written as a linear combination of the predictors. (With noise about this true linear relationship.)
@@ -31,12 +29,35 @@ Often, the assumptions of linear regression, are stated as:
   * Homoscedasticity
 
 There are a number of statistical tests and graphical approaches to verify the validity of
-these assumptions.
-
-Notice that other things can go wrong and make the model not valid: statistical modeling
+these assumptions. Notice that other **things can go wrong** and make the model not valid: statistical modeling
 is a craft more than a science
 
 ---
+
+## Linearity
+For each possible predictor we want to know whether there could be a **statistically relevant linear relationship with the target**. 
+
+This is an easy procedure when we take the SLR or some simple MLR, but 
+* It can be tricky as we add layers of complexity through categorical variables, interactions, transformations etc...
+* Single predictors can show significative linear relationships with the target even though they become less significative when the model includes other predictors.
+* Non-linearity is very common and sometimes reiterating the models will be necessary.
+
+To verify this we want to plot $Y \text{ vs } \beta_{j}$ and see whether the pattern between them shows linearity. If so, we need to verify how much this is relevant for the final prediction, but this depends on the model and the goals.
+
+For example:
+```r
+# Given this
+fit <- lm(Weight~Height, data = bodyfat)
+
+# We can plot
+plot(bodyfat$Weight~bodyfat$Height, pch=16)
+abline(fit$coefficients[1], fit$coefficients[2], col=2)
+```
+
+![exline](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/exline.png?raw=TRUE)
+
+This represents the case where there's an evident linear relationship between the target and the predictor.
+
 ## Residuals & Residuals-based displays
 We use the residuals to prove our assumptions.
 
@@ -70,6 +91,13 @@ Goal: There should not be a discernible patter in the data (no systematic under 
 * If the linear terms capture the entire relationship between $X$ and $Y$, $r_{i}$ should be no systematic under or over estimation for some values of $X$
 
 Let's use an example:
+
+```r
+# Generally in R we can plot it through
+plot(fit$residuals~fitted.values(fit), pch=16 
+  xlab="Fitted", ylab="Residuals", main="Fitted vs Residuals")
+abline(a=0, b=0, col=2) 
+```
 
 ![residualplotex](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/resources/residualplotex.png?raw=TRUE)
 

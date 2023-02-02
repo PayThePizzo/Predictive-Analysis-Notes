@@ -101,16 +101,63 @@ Nell'intervallo di predizione invece la differenza tra la grandezza dei due inte
 
 Si elenchino le assunzioni fatte per poter stimare il modello. Si usino dei grafici utili ad investigare se le assunzioni risultano essere valide per il modello stimato.  
 
+Le assunzioni si possono scrivere in maniera sintetica come $Y_i|X=x_i \stackrel{iid}{\sim} N(\beta_0 + \beta_1 x_i, \sigma)$ per ogni $i= 1, \ldots, n$. 
+
+Si deve quindi verificare che la relazione tra X ed Y sia costante e che le osservazioni seguano una normale a varianza costante.
 
 ```{r}
-plot(fit)
+plot(bodyfat$Weight~bodyfat$Height, pch=16)
+abline(fit$coefficients[1], fit$coefficients[2], col=2)
 ```
+Dal momento che il dataset si limita a due colonne, di cui una rappresenta il predittore e l'altra il target, non ci e' possibile verificare se altri predittori possano essere rilevanti per il modello. 
+
+```{r}
+plot(fit$residuals~bodyfat$Height, pch=16)
+abline(h=0, col=2)
+```
+Dal grafico tra la variabile predittore e i residui non emerge nessuna forte indicazione di una qualche forma relazionale tra `Height` e `Weight` non spiegata dal modello lineare.
+
+Per quello che riguarda la normalita', nel grafico precedente notiamo valori alti per alcuni residui. Questi sono visibili anche tramite il qqplot che aiuta a verificare proprio la normalita' dei residui.
+
+```{r}
+qqnorm(resid(fit))
+qqline(resid(fit))
+```
+Sebbene si notino i valori alti e una leggera curvatura dei punti, il qqplot risulta abbastanza soddisfacente e i residui sembrano comportarsi come un campione di una normale.
+
+Infine, il grafico di valori stimati contro residui è spesso utile per controllare l'assunzione di varianza costante:
+
+```{r}
+plot(fit$residuals~fitted.values(fit), pch=16, xlab="Fitted", ylab="Residuals",
+     main = "Fitted vs Residuals")
+abline(a=0, b=0, col=2)
+```
+Dal grafico, vediamo che i residui sono incentrati attorno alla media 0, ed hanno una varianza costante. Possiamo quindi confermare che gli errori siano omoschedastici.
+
+Verificare che le osservazioni siano indipendenti è complicato in questo caso: non abbiamo un test per farlo. Possiamo sperare che lo schema di campionamento usato abbia evitato per esempio di inserire persone della stessa famiglia (fratelli, cugini, etc...) o non abbiano selezionato molti giocatori di basket professionisti (alti e probabilmente con una costituzione corporea diversa da quella della popolazione generale). Con le informazioni disponibili possiamo sperare che il campione sia composto da osservazioni indipendenti e rappresentative della popolazione generale. 
 
 ---
 
 ## Esercizio 6 - Extra
 
-Qual è l'interpretazione dell'intercetta nel modello? Cosa succede se si stima un modello usando una nuova variabile `HightCentred = Height - mean(Height)`. 
+Qual è l'interpretazione dell'intercetta nel modello? Cosa succede se si stima un modello usando una nuova variabile `HeightCentred = Height - mean(Height)`. 
+
+L'intercetta del modello e' riscrivibile come $\beta_{0} = \mathbb{E}[Y|X=0]$, percio' la regressione passa per il punto (`r c(0, fit$coefficients[1])`). Dal momento che non vi persone alte 0 pollici, la sua interpretazione e' poco utile. 
+
+```{r}
+bodyfat$HeightCentred <- bodyfat$Height - mean(bodyfat$Height)
+
+fit2 <- lm(Weight~HeightCentred, data = bodyfat)
+
+summary(fit2)
+
+colMeans(bodyfat)
+```
+Stimando un modello con una nuova variabile `HeightCentred = Height - mean(Height)`, l'intercetta diventa $\beta_{0} = \mathbb{E}[Y|X =\bar{x} = 0] = \bar{y}$, facendo passare la regressione per il punto $(\mathbb{E}[X],\mathbb{E}[Y])$, ovvero (`r c(0, fit2$coefficients[1])`).
+
+L'intercetta ora descrive il valore medio del peso ($\bar{y}$) di un uomo di statura media ($\beta_{0} = \mathbb{E}[Y|X = 0]$. 
+
+Il valore del coefficiente angolare non cambia: questo perché non cambiano la covarianza tra i due campioni e la somma dei scarti quadrati di $x$ (per le proprietà di varianza e covarianza). Questo implica che non cambia la differenza di peso tra due uomini la cui altezza differisce per un pollice.  
 
 ---
 
@@ -118,11 +165,13 @@ Qual è l'interpretazione dell'intercetta nel modello? Cosa succede se si stima 
 
 Si creino le variabili `HightScale = (Height - mean(Height))/sd(Height)` e `WeightScale = (Weight - mean(Weight))/sd(Weight)`. Come si possono interpretare intercetta a coefficiente angolare per questo modello? Si confronti il valore di $R^2$ e il p-value del test di significatività per $\beta_1$ nel modello stimato usando i dati modificati e i dati originali: cosa si può notare? [Per creare le nuove variabili si può anche usare direttamente la funzione `scale`.]
 
+
 ---
 
 ## Esercizio 8 - Extra
 
 Le variabili sono state misurate rispettivamente in pollici e libbre. Si trasformino i dati in centimetri e chilogrammi: come cambiano le stime dei parametri del modello lineare? Come cambia la loro interpretazione? [Nota: per passare da pollici a cm è necessario moltiplicare i valori originali per 2.54; per passare da libbre a chilogrammi è necessario dividere i valori originali per 2.205]. 
+
 
 ---
 
@@ -130,10 +179,26 @@ Le variabili sono state misurate rispettivamente in pollici e libbre. Si trasfor
 
 Quale potrebbe essere l'intervallo di confidenza del peso di una donna alta 72 pollici? 
 
+Il dataset include esclusivamente osservazioni riguardanti uomini. I valori stimati dal modello, pertanto, non sono applicabili ad una popolazione diversa da quella campionata.
+
 ---
 
 ## Esercizio 10 - Extra
 
 - Si estragga (usando in maniera appropriata la funzione `sample`) un sottocampione del dataset di 50 osservazioni: si confrontino le stime ottenute usando tutto il campione e le stime ottenute usando il sottocampione. 
+
+```{r}
+# Seed
+set.seed(178)
+# Random rows to choose
+sampledObs <- sample(seq(1, 250), size = 50)
+# Fit
+fitSub <- lm(Weight ~ Height, data = bodyfat[sampledObs,])
+
+summary(fitSub)
+```
+```{r}
+plot(Weight ~ Height, data = bodyfat[sampledObs,])
+```
 
 
