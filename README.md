@@ -11,11 +11,31 @@ I tried to assemble some formulas and their translation to R, obviously there ar
 [Formulas Handbook](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/Formulas.html)
 
 ---
-## Visualize the course's notes!
-...Coming soon.
 
+## Visualize the notes!
+Some of the notes are not done since I recently switch from taking notes on my portable devices, to my laptop.
+
+* [Basics of Probability and Statistics](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/0%20-%20BASICS.md)
+* [Simple Linear Regression](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/1%20-%20SLR.md)
+* [Multiple Linear Regression](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/2%20-%20MLR.md)
+* [Model Selection](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/3%20-%20MS.md)
+* [Quality Criterion](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/4%20-%20QC.md)
+* [Variable Selection](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/4.1%20-%20VS.md)
+  * [Validation Based Selection](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/4.2%20-%20VBS.md)
+* [Categorical Predictors and Interactions](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/5%20-%20CPI.md)
+  * [Categorical Predictors and Interactions 2](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/5.1%20CPI2.md)
+* [Model Checking](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/6%20-%20MC.md)
+* [Transformations](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/7%20-%20TRANSFORMATIONS.md)
+  * [Transformations 2](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/7.1%20-%20TRANSFORMATIONS2.md)
+* [Collinearity](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/8%20-%20COLINEARITY.md)
+* [Influence](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/9%20-%20INFLUENCE.md)
+* [GLM](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/10%20-%20GLM.md)
+  * [Inference](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/10.1%20-%20INFERENCE.md)
+  * [Residuals](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/10.2%20-%20GLM%20RES.md)
+* [Classification](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/11%20-%20CLASSIFICATION.md)
 
 ---
+
 ## Visualize the labs!
 The labs are organized with the following hierarchy, if possible:
 * Lab X, the version of the document with additional notes, which are added to the professor's solution (I suggest to follow this)
@@ -44,6 +64,13 @@ If you want to visualize the labs without having to download and run the Rmd fil
 * [Lab 09](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab09/lab09.html) - More about GLM
   * [Lab 09 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab09/lab09_glmSelection.html)
 * [Lab10](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab10/lab10.html) - Spam Detection
+---
+
+## Visualize some exercises
+* SLR
+* MLR
+* GLM
+
 ---
 ## Resources 
 The course's page and the slides specify the material used already, but I will try to cite it wherever possible.
