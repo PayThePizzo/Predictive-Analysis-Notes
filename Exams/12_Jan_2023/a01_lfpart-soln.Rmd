@@ -1,0 +1,241 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 22/23 - Appello I"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilate il file la prima volta usando il comando `getwd()`. 
+
+```{r}
+getwd()
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.02$
+
+
+# Esercizio 1
+
+Si desidera indagare quali caratteristiche di un'azienda possono risultare utili per predire il valore dell'azienda sul mercato. Per un campione di 75 aziende vengono raccolte le seguenti informazioni: 
+
+* `MarketValue`; il valore di mercato dell'azienda 
+* `Assets`: il valore del patrimonio dell'azienda (in migliaia di dollari)
+* `Sales`: il totale delle vendite  (in migliaia di dollari)
+* `Profits`: i profitti (in migliaia di dollari)
+* `CashFlow`: il flusso di cassa (in migliaia di dollari)
+* `Employees`: il numero di dipendenti 
+* `Banks`: una variabile che indica se l'azienda è una banca 
+
+
+I dati sono contenuti del dataset `dex1` che si può caricare usando il seguente codice: 
+
+```{r,cache=TRUE}
+dex1 <- read.csv("a01ex12_data.csv", header = TRUE)
+```
+
+
+### Es. 1.a 
+
+Si costruisca un primo modello lineare semplice `fit1` in cui la variabile risposta `MarketValue` viene spiegata in funzione del predittore `CashFlow`. Si commenti la significatività del modello e si derivi un intervallo di confidenza (a livello di confidenza 98\%) per il coefficiente angolare relativo alla variabile `CashFlow` nel modello `fit11`. Si verifichi inoltre il sistema di ipotesi $H_0: \beta_{CashFlow} = 10$ VS $H_1: \beta_{CashFlow} \neq 10$
+
+
+```{r, solution = TRUE}
+fit1 <- lm(MarketValue~CashFlow, data = dex1)
+summary(fit1)
+confint(fit1, parm = "CashFlow",level = .98)
+tstat <- (coef(fit1)[2] - 10)/summary(fit1)$coef[2,2]
+2*pt(abs(tstat), lower.tail = FALSE, df = fit1$df.residual)
+```
+
+
+Il modello è altamente significativo: il p-value legato alla statistica F è molto piccolo. 
+L'intervallo di confidenza non contiene il valore 10: si può rifiutare $H_0$. 
+
+
+
+### Es. 1.b
+
+Si produca una visualizzazione che mostri come la relazione tra la variabile `MarketValue` e `CashFlow`, mostrando la relazione stimata dal modello `fit1` e un intervallo di confidenza per il valore atteso di `MarketValue` in funzione della variabile `CashFlow`. Per quale valore di `CashFlow` è più stretto l'intervallo di confidenza? 
+
+```{r,solution = TRUE}
+plot(MarketValue~CashFlow, data = dex1, pch = 16)
+abline(fit1,col=2)
+ci <- predict(fit1, interval = "confidence")
+lines(dex1$CashFlow, ci[,2],lty = 2, col = 2)
+lines(dex1$CashFlow, ci[,3],lty = 2, col = 2)
+```
+
+L'intervallo è più stretto per il valore di `CashFlow` pari alla media campionaria, i.e. CashFlow = `r mean(dex1$CashFlow)`. 
+
+
+
+### Es. 1.c
+
+Si elenchino le assunzioni sottostanti il modello lineare semplice e si verifichi se queste sono soddisfatte per il modello `fit1`. Si suggerisca eventualmente come modificare il modello. 
+
+
+Le assunzioni del modello lineare semplice sono: 
+
+* linearità della relazione tra X e Y
+* Indipendenza delle osservazioni 
+* Normalità degli errori 
+* Eguaglianza delle varianza: omoschedasticità 
+
+Queste assunzioni vengono tipicamente verificate tramite lo studio dei residui. Dalle informazioni a nostra disposizione non c'è modo di sapere se le aziende in esame sono indipendenti tra loro. Dai grafici dei residui si nota che le altre assunzioni sembrano non essere valide per il modello `fit1`: i residui dimostrano di non essere sparsi in maniera casuale in funzione dei valori stimati, indicando problemi con l'assunzione di linearità della relazione (che già si notava nel grafico fatto al punto b), la varianza cresce al crescere dei valori stimati, le code della distribuzione dei residui sono più pesanti di quelle che ci si aspetterebbe da un campione estratto da una normale. Inoltre ci sono alcuni punti che hanno una forte influenza sulla stima, come evidenziato dal fatto che per alcuni punti la distanza di Cook e molto grande. 
+
+
+```{r,solution = TRUE}
+par(mfrow=c(2,2)); plot(fit1)
+```
+
+
+```{r,solution = TRUE}
+fitl <- lm(log(MarketValue) ~ log(CashFlow),data = dex1)
+par(mfrow=c(2,2)); plot(fitl)
+par(mfrow=c(1,1))
+plot(log(MarketValue) ~ log(CashFlow),data = dex1)
+abline(fitl, col = 2)
+```
+
+
+Il modello su scala log-log rispetta in maniera più soddisfacente le assunzioni del modello lineare semplice sebbene dal grafico dei residui si può notare che sembra sussistere una debole relazione quadratica tra `log(CashFlow)` e `log(MarketValue)` e la varianza risulti lievemente più alta per valori alti e bassi dei valori stimati. 
+
+
+### Es. 1.d
+
+Si stimi un modello lineare multiplo in cui tutte le variabili sono utilizzati come predittori. Si confronti il valore stimato di $\beta_{CashFlow}$ e la sua significatività nei due modelli: come si può interpretare il valore del parametro dei due modelli? Quale potrebbe essere la causa di una eventuale differenza del valore stimato per il parametro nei due modelli?  
+
+
+```{r, solution = TRUE}
+fitA <- lm(MarketValue~., data = dex1)
+summary(fitA)$coef
+coef(fit1)
+signif(cor(fitA$model[,-7]),2) # remove banks for simplicity
+car::vif(fitA)
+```
+
+
+La stima di $\beta_{CashFlow}$ cambia di segno dei due modelli: quando si tengono in considerazione tutte le altre variabili l'effetto del flusso di cassa diventa negativo (e non significativo): le altre variabili incluse nel modello catturano la variabili spiegata da `CashFlow`. Questo avviene quando i predittori inseriti nel modello sono fortemente correlati tra loro e si ha il problema della multi-colinearità, come evidenziato anche dai valori alti dei variance inflation factors.
+
+
+# Esercizio 2
+
+
+Si usi ora lo stesso dataset `dex1` usato nell'esercizio 1 per individuare quali fattori possono permettere di predire se un'azienda è una banca, i.e. se la variabile `Banks` ha valore `Bank`: 
+
+
+```{r,cache=TRUE}
+dex1 <- read.csv("a01ex12_data.csv", header = TRUE)
+```
+
+La variabile risposta ora è la variabile `Bank`, che può prendere valore `Bank` o `Not`: codifichiamo la variabile come un `factor` che abbia il valore `Not` come baseline: 
+
+```{r}
+dex1$Banks <- factor(dex1$Banks, ordered = TRUE, levels = c("Not","Bank")) 
+table(dex1$Banks)
+```
+
+
+### Es. 2.a 
+
+Si stimi un modello `fit1` utile a verificare se la variabile `Assets` è un predittore significativo per predire se un'azienda è o meno una banca. Che effetto ha la variabile `Assets` sulla probabilità che un'azienda sia una banca? 
+
+```{r, solution = TRUE}
+fit1 <- glm(Banks ~ Assets, data = dex1, family = "binomial")
+summary(fit1)
+```
+
+
+La variabile `Assets` non è molto significativa: non aiuta molto a spiegare se un'azienda è una banca. Il valore del coefficiente di regressione tuttavia è positivo: al crescere della variabile `Assets` cresce la probabilità che un'azienda sia una banca. 
+
+
+
+### Es. 2.b
+
+Si usi il modello stimato al punto precedente (2.a) per derivare un intervallo di confidenza al 98\% per la probabilità che due aziende con un valore di `Assets` pari a 2000 e 20000 siano banche. Si produca inoltre una visualizzazione che mostri come varia la stima della probabilità che un'azienda sia una banca in funzione di `Assets` con un intervallo di confidenza al 98\%. 
+
+```{r, solution = TRUE}
+nd <- data.frame(Assets = c(2000,20000))
+preds <- predict(fit1, newdata = nd, type = "link", se.fit = TRUE)
+# LOWER BOUNDS 
+cbind(binomial()$linkinv(preds$fit + qnorm(0.01) * preds$se.fit),
+# UPPER BOUNDS 
+      binomial()$linkinv(preds$fit + qnorm(0.99) * preds$se.fit))
+nd <- data.frame(Assets = seq(0,60000))
+preds <- predict(fit1, newdata = nd, type = "link", se.fit = TRUE)
+plot(dex1$Assets, jitter(as.numeric(dex1$Banks == "Bank"),amount = 0.05), 
+     ylab = "P(Azienda = Bank)" ,pch = 16)
+lines(nd$Assets, binomial()$linkinv(preds$fit), col = 2)
+lines(nd$Assets, binomial()$linkinv(preds$fit + qnorm(0.01) * preds$se.fit), col = 2, lty = 2)
+lines(nd$Assets, binomial()$linkinv(preds$fit + qnorm(0.99) * preds$se.fit), col = 2, lty = 2)
+```
+
+
+
+
+### Es. 2.c
+
+Si stimi ora un modello `fit2` utile a verificare se la variabile `Profits` è un predittore significativo per predire se un'azienda è o meno una banca: si commenti il risultato del modello. Come è possibile confrontare la bontà di adattamento dei due modelli `fit1` e `fit2`. 
+
+
+```{r, solution = TRUE}
+fit2 <- glm(Banks ~ Profits, data = dex1, family = "binomial")
+summary(fit2)
+AIC(fit1, fit2)
+```
+
+La variabile `Profits` non risulta significativa. I modelli `fit1` e `fit2` non sono annidati: per confrontarli si può utilizzare AIC o BIC. Usando AIC si trova che il modello `fit2` ha una bontà di adattamento migliore. 
+
+
+
+### Es. 2.d
+
+Si prenda in considerazione il dataset `X` specificato nel codice seguente: questi dati sono un dataset diverso da quello `dex1` e non sono stati usati per stimare i modelli stimati fino ad ora. 
+Usando il modello che si è trovato avere una migliore bontà di adattamento al punto precedente (2.c), si costruisca una matrice di confusione che permetta di valutare la capacità di predizione out-of-sample del modello calcolando il tasso di errore di classificazione (mis-classification rate).    
+
+```{r}
+### è semplicemnte necessario far girare questo codice 
+testData <- data.frame(
+  Assets = c(630, 6650, 7850, 1840, 1470, 144, 1430, 
+8580, 1460, 1090, 6180, 2650, 15100, 1030, 2220, 4520, 2120, 
+2240, 8280, 3020), 
+  Sales = c(212, 1690, 14700, 641, 1110, 899, 
+975, 3020, 2720, 267, 3030, 592, 2170, 931, 4540, 1010, 589, 
+491, 2320, 7780), 
+  MarketValue = c(141, 1040, 3480, 677, 878, 
+804, 185, 1910, 3210, 361, 1170, 680, 222, 728, 2060, 2030, 492, 
+510, 2560, 3400), 
+  Profits = c(2.3, 241, 381, 72.7, 109, 55.2, 
+21.7, 156, 247, 35.9, 168, 76, 48, 38.4, 128, 229, 17.8, 38.1, 
+175, 207), 
+  CashFlow = c(46.5, 237, 802, 71.3, 227, 149, 37.1, 
+358, 361, 33.6, 315, 73.5, 91.3, 106, 367, 165, 46.3, 93.1, 304, 
+438), 
+  Employees = c(0.877, 2.75, 109, 9.4, 9.84, 4.1, 2.89, 30.7, 
+32.4, 1.77, 9.71, 3.89, 6.04, 5.2, 48.6, 7.13, 5.09, 4.54, 21.1, 
+30), 
+  Banks = c("Bank", "Not", "Not", "Not", "Not", "Bank", 
+"Not", "Not", "Not", "Not", "Not", "Not", "Bank", "Bank", "Not", 
+"Bank", "Not", "Bank", "Bank", "Not"))
+
+testData[1:2,]
+```
+
+
+
+```{r, solution = TRUE}
+predictedBinary <- ifelse(predict(fit2, newdata = testData, type = "response") > 0.5, "predBank", "predNot")
+table(predictedBinary, testData$Banks)
+7/20 # no predicted Banks 
+```
+
+
+L'evento che stiamo cercando di stimare è raro: potrebbe convenire cambiare il limite della probabilità per il quale si considera che un'azienda è probabilmente una banca. 

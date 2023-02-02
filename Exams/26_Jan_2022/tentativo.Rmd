@@ -1,0 +1,130 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 21/22 - Appello II"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilate il file la prima volta usando il comando `getwd()`. 
+
+```{r, eval=TRUE}
+getwd()
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.02$
+
+
+# Esercizio 1
+
+Un docente di un corso di laurea desidera costruire un modello predittivo per predirre il voto atteso di uno studente in un determinato esame basandosi sui voti ottenuti in altri 9 esami. Tramite il gestionale dell'ateneo scarica i risultati dei voti ottenuti dagli studenti che hanno superato tutti i 9 esami nello scorso anno accademico e costruisce un dataset che contiene le seguenti variabili
+
+* `x1`-`x9`: il voto ottenuto nei 9 altri esami presi in considerazione
+* `y`: il voto dell'esame per cui si desidera costruire un modello predittivo
+
+Tutte le informazioni a disposizione dell'analista sono disponibili nel dataset `dex1` che si può caricare usando il seguente codice: 
+
+```{r,cache=TRUE}
+dex1 <- read.csv("ex1_data.csv", header = TRUE)
+```
+
+
+### Es. 1.a 
+
+Si costruisca un primo modello `fitALL` in cui i voti di tutti i 9 esami presi in considerazione sono usati come predittori: si indichi se il modello è significativo contro il modello nullo e se qualche predittore sembra essere particolarmente rilevante in termini di significatività. 
+
+
+
+
+
+### Es. 1.b 
+
+
+Che tipo di problematicità potrebbe minare la bontà della stima per il modello `fitAll`? Si verifichi se la stima del modello potrebbe risultare problematica spiegando brevemente i metodi usati per fare questa verifica. 
+
+
+
+
+
+
+
+### Es. 1.c
+
+
+Si costruisca un modello `fit2` in cui solo le variabili `x1` e `x3` sono usate come predittori. Si discuta quale modello tra `fit2` e `fitAll` risulti avere una migliore bontà di adattamento usando i valori di $R^2$ e Adjusted-R$^2$, indicando quale tra i due indicatori è più appropriato usare per confrontare i due modelli. 
+
+
+
+
+
+### Es. 1.d
+
+La proporzione media di studenti che in un anno passa l'esame `x8` è del 40\%, mentre per gli altri esami questa media si attesta sul valore di 70\%. A prescindere dal modello che si è indicato come quello con una migliore bontà di adattamento al punto precedente, quale vantaggio potrebbe avere usare il modello `fit2` invece che il modello `fitAll` per implementare una previsione del voto d'esame per tutti gli studenti iscritti al corso di interesse? 
+
+
+
+
+# Esercizio 2
+
+Un docente universitario desidera costruire un modello predittivo per predirre se uno studente iscritto ad un corso passerà l'esame al primo appello. Per gli studenti iscritti al primo appello di un esame raccoglie quindi le seguenti informazioni:
+
+
+* `altriEsami`: il numero di esami diversi da quello di interesse a cui è iscritto lo studente 
+* `mediaVoti`: la media dei voti degli esami registrati fino ad ora in libretto
+* `votoQuiz`: il voto massimo ottenuto dallo studente in un quiz moodle per l'autovalutazione 
+* `tutorato`: una variabile che indica se lo studente ha partecipato alle attività di tutorato (valore `si` per studenti che hanno partecipato al tutorato)  
+* `promozione`: una variabile che indica se lo studente ha passato l'esame al primo appello (valore `1` per studenti che hanno passato l'esame al primo appello). Questa è la variabile risposta.  
+
+Si carichi il dataset usando il codice seguente:  
+
+```{r,cache=TRUE}
+dex2 <- read.csv("ex2_data.csv", header = TRUE)
+```
+
+Si desidera costruire un modello predittivo per la variabile `promozione`, un modello cioè che predica se uno studente passerà l'esame al primo appello.  
+
+### Es. 2.a 
+
+Si stimi il modello `fit1`, un modello lineare generalizzato in cui le variabili `mediaVoti` e `tutorato` sono usate come predittori e la variabile risposta è la variabile (`promozione`): si usi la distribuzione Binomiale con legame canonico. 
+Si stimi inoltre un modello `fitAll` in cui tutti le variabili sono usate come predittori. 
+Si verifichi tramite una verifica di ipotesi se il modello `fitAll` è significativo rispetto al modello `fit1` specificando quale sia il sistema di verifica di ipotesi preso in considerazione. Si usi un livello di significatività $\alpha = 0.01$. 
+
+
+
+
+
+### Es. 2.b
+
+Usando il criterio AIC si individui un modello che risulti in qualche senso ottimale. Si utilizzino gli algoritmi backward e forward descrivendo brevemente il loro funzionamento. 
+
+
+
+
+
+### Es. 2.c 
+
+Usando il modello `fit1`, si stimi la probabilità che gli studenti con caratteristiche elencate nel dataset `nd` passino l'esame al primo appello, commentando il risultato ottenuto. Si produca anche una stima intervallare per la probabilità usando un livello di confidenza pari al 99\%. 
+
+```{r}
+nd <- data.frame(altriEsami = c(7,4,4), 
+                 mediaVoti = c(25,25,25), 
+                 tutorato = c("si","si","no"), 
+                 votoQuiz = c(29,28,28))
+```
+
+
+
+
+
+### Es. 2.d
+
+Per il modello `fit1` si mostri in un grafico l'effetto che ha la media dei voti sulla probabilità che uno studente passi l'esame al primo appello, sia per studenti che seguono il tutorato che per studenti che non seguono il tutorato. 
+
+

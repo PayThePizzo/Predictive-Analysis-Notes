@@ -1,0 +1,143 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 20/21 - Appello I"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilare il file la prima volta usando il comando `getwd()`. 
+
+```{r, eval=TRUE}
+getwd()
+
+## da cancellare quando siete sicuri di dove è il file
+```
+
+[Attenzione - per il compito i file sono disponibili in un url esterno. Per questo file - si scarichi i file 1235_a1ex1.txt e 1235_a1ex2.txt da Moodle]
+
+```{r}
+# Per poter leggere i dati corretti - cambiare il valore nel numero di matricola qui sotto:
+matricola <- 12345
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.05$
+
+# Esercizio 1
+
+Il dataset `dex1` contiene informazioni sulla resa ottenuta in diversi lotti in una azienda agricola che coltiva patate. Il dataset contiene informazioni sulla resa (in quintali) ottenuta in ognuno dei lotti (variabile `resa`) e sulla quantità di fertilizzante usato per 4 diversi fertilizzanti (in mg/l). 
+
+Si carichi il dataset usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
+
+```{r,cache=TRUE}
+# dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex1.txt"))
+dex1 <- dget(paste0(your_path,matricola,"_a1ex1.txt"))
+```
+
+Si desidera indagare come la resa sia influenzata dalla quantità di fertilizzante usata in ogni campo. 
+
+### Es. 1.a 
+
+Si stimi un modelli di regressione (chiamato `fit_all`) il cui la variabile `resa` dipenda linearmente da tutti i fertilizzanti usati nei campi: si verifichi se il modello stimato è significativo. 
+
+
+
+
+
+### Es. 1.b 
+ 
+
+Si stimi un modelli di regressione (chiamato `fit_f1`) il cui la variabile `resa` dipenda linearmente dalla quantità di fertilizzante `fert1` usata nel campo: si confronti la bontà di adattamento (goodness of fit) di questo modello con il modello stimato al punto 1.a, indicando quale modello sia preferibile usare e perché.  
+
+
+
+
+
+
+
+
+
+### Es. 1.c
+
+Per entrambi i modelli di regressione stimati, si stimino valori puntuali, e degli intervalli di confidenza e di predizione della resa in un campo in cui vengono usati 2.3 mg/l di ogni fertilizzante. Si commentino le stime ottenute.  
+
+
+
+
+### Es. 1.d
+
+Si specifichino le assunzioni sottostanti il modello di regressione `fit_f1`.
+
+
+
+### Es. 1.e
+
+Utilizzando grafici basati sui residui, si verifichino le assunzioni sottostanti il modello `fit_f1`.
+
+
+
+# Esercizio 2
+
+
+Il data set `dex2` contiene informazioni raccolte da un appassionato di cani sul numero di cani che avvista dalla sua finestra sul parco a ora di pranzo. In particolare il dataset contiene informazioni sulla temperatura registrata alle 12:00 nel giorno (`temp`), l'informazione se il giorno è feriale o festivo (`festivo`) e il numero di cani avvistati (`n_cani`).  
+
+Si carichi il dataset usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
+
+
+```{r,cache=TRUE}
+# dex2 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex2.txt"))
+dex2 <- dget(paste0(your_path,matricola,"_a1ex2.txt"))
+```
+
+### Es. 2.a 
+
+Si producano analisi esplorative volte a identificare che effetto temperatura e tipo di giorno (festivo o feriale) possono avere sul numero di cani avvistato. Si commentino le analisi esplorative.
+
+
+
+
+### Es. 2.b 
+
+Alla luce delle analisi esplorative si usi un modello di regressione di Poisson (un GLM) per modellare come la temperatura influisca sul numero di cani visti dall'appassionato. In particolare si cerchi di ottenere il miglior modello possibile per descrivere la relazione tra temperatura e numero di cani (senza tenere per ora in considerazione la variabile `festivo`).       
+
+
+
+
+
+
+
+
+
+
+
+
+### Es. 2.c 
+
+Si scriva in forma estesa il modello selezionato al punto precedente. Si scriva inoltre la forma estesa di un modello in cui la variabile `festivo` entri in maniera additiva nel predittore lineare senza interagire con la variabile temperatura. 
+
+
+
+### Es. 2.d
+
+Si stimi un modello in cui la variabile `festivo` viene inclusa nel modello in maniera additiva. Si verifichi la significatività della variabile `festivo`, esplicitando il sistema di verifica di ipotesi utilizzato. 
+
+
+
+
+
+
+### Es. 2.e
+
+Utilizzando il miglior modello identificato nei vari punti precedenti - si crei una visualizzazione che mostri come il modello finale si adatti ai dati osservati dando una spiegazione sintetica di quando l'appassionato può predirre di vedere un numero maggiore di cani. 
+
+
+
+
+
+

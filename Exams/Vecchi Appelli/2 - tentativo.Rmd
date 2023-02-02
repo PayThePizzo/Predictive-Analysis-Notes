@@ -44,28 +44,130 @@ dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/febExam/main/",ma
 
 Si stimino due modelli di regressione: un modello (chiamato `fit_qspin`) il cui la variabile `BdF` dipende linearmente dalla quantità di spinaci mangiata; e un modello (chiamato `fit_marca`) il cui la variabile `BdF` dipende linearmente dalla marca di spinaci mangiata. Per entrambi i modelli si commenti la significatività del modello. 
 
+$$Bdf = \beta_{0} + \beta_{1}QSpin + \varepsilon$$
+
+```{r}
+fit_qspin <- lm(BdF ~ QSpin, data=dex1)
+summary(fit_qspin)
+```
+
+Per il primo modello, abbiamo un $R^{2}$ particolarmente basso (normale per un SLR con un solo predittore), ma una statistica F con un p-value particolarmente significativo. Cio' significa che il modello spiega piu' variabilita' del modello nullo (che contiene solo l'intercetta come parametro).
+
+
+$$Bdf = \beta_{0} + \beta_{1}v_{1}+ \beta_{2}v_{2} + \varepsilon$$
+Nel secondo modello abbiamo tre casi:
+
+* Ancora $Bdf = \beta_{0} + \varepsilon$
+* Timone $Bdf = \beta_{0} + \beta_{1} + \varepsilon$
+* Vela $Bdf = \beta_{0} + \beta_{2} + \varepsilon$
+
+```{r}
+fit_marca <- lm(BdF ~ Marca, data=dex1)
+summary(fit_marca)
+```
+
+Anche il modello due e' particolarmente significativo, dal momento che troviamo un valore piccolo del p-value e cio' indica ancora che il modello spieghi piu'varianza del modello nullo.
+Purtroppo il livello MarcaVela sembra mostrare poca significativita' e potrebbe essere collassato in un altro livello.
 
 
 ### Es. 1.b 
 
 Si stimi un modello di regressione (chiamato `fit_qm`) il cui la variabile `BdF` dipenda linearmente dalla quantità di spinaci mangiata `QSpin` e dalla marca di spinaci `Marca`. Si verifichi se il modello risulta significativo rispetto al modello `fit_qspin` e al modello `fit_marca`. Si commenti il risultato delle verifiche. [Suggerimento - sia faccia un grafico dei dati per studiare le relazioni tra predittori]. 
 
+$$Bdf = \beta_{0} + \beta_{1}QSpin+ \beta_{2}v_{MarcaTimone} + \beta_{3}v_{MarcaVela} + \varepsilon$$
+
+````{r}
+fit_qm <- lm(BdF ~ QSpin + Marca, data=dex1)
+summary(fit_qm)
+```
+
+Il valore di $R^{2}$ sembra essere aumentato di relativamente poco rispetto all'aggiunta dei parametri. Sebbene i parametri creati sulla variabile `Marca` sembrino essere poco signficativi, la statistica F conferma che il modello sia significativo con un p-value importante. Questo e'probabilmente dovuto al fatto che `QSpin` rimane un predittore importante. 
+
+Si può verificare se questo modello con due variabili abbia una migliore bontà di adattamento rispetto ai modelli stimati in precedenza usando `anova`(essendo nested-models):
+```{r}
+anova(fit_qspin, fit_qm)
+
+anova(fit_marca, fit_qm)
+```
+
+A quanto pare il nuovo modello non risulta piu' significativo di `fit_qspin`, ma e' molto piu' significativo del modello `fit_marca`, evidenziato dal p-value molto piccolo della statistica F e dalla riduzione importante del RSS.
+
+```{r}
+plot(dex1$QSpin, dex1$BdF)
+
+# Level Ancora
+nd <- data.frame(QSpin = seq(min(dex1$QSpin), max(dex1$QSpin)), Marca = "Ancora")
+lines(nd$QSpin, predict(fit_qm, newdata = nd), col = 1)
+points(dex1$QSpin[dex1$Marca == "Ancora"], 
+       dex1$BdF[dex1$Marca == "Ancora"], col = 1, pch = 16)
+
+# Level Timone
+nd <- data.frame(QSpin = seq(min(dex1$QSpin), max(dex1$QSpin)), Marca = "Timone")
+lines(nd$QSpin, predict(fit_qm, newdata = nd), col = 2)
+points(dex1$QSpin[dex1$Marca == "Timone"], 
+       dex1$BdF[dex1$Marca == "Timone"], col = 2, pch = 17)
+
+# Level Vela
+nd <- data.frame(QSpin = seq(min(dex1$QSpin), max(dex1$QSpin)), Marca = "Vela")
+lines(nd$QSpin, predict(fit_qm, newdata = nd), col = 3)
+points(dex1$QSpin[dex1$Marca == "Vela"], 
+       dex1$BdF[dex1$Marca == "Vela"], col = 3, pch = 18)
+
+legend("topleft", col = c(1,2,3), pch = c(16,17,18), bty = "n", 
+       legend = c("Marca = Ancora", "Marca = Timone","Marca = Vela"))
+
+# Curva modello fit_qspin
+abline(coefficients(fit_qspin)[1],coefficients(fit_qspin)[2], col=4, pch=19)
+```
+
+Mentre i modelli stimati al punto 1.a indicano che i singoli predittori hanno una buona capacità di catturare la variabilità dei dati, quando entrambi vengono inseriti nel modello si nota che `Marca` risulta non significativo: questo è dovuto al fatto che le due variabili sono correlate tra loro. 
+Usare `Marca` corrisponde parzialmente ad indicare la quantità di spinaci mangiata, dato che quando `Marca` ha il valore "Timone" `QSpin` è molto alta. Essenzialmente è impossibile separare l'effetto della Marca Timone dall'effetto "tanti spinaci".   
 
 ### Es. 1.c
 
 Si identifichi un modello che si ritene migliore tra i tre modelli stimati fino ad ora (esplicitando la motivazione/misura che ha portato alla scelta). 
 
 
+```{r}
+AIC(fit_marca, fit_qspin, fit_qm)
+
+BIC(fit_marca, fit_qspin, fit_qm)
+```
+
+Secondo AIC e BIC, infatti, `fit_qspin` risulta essere il modello migliore tra i tre.
+
+Potrebbe darsi che la marca non influisca particolarmente sulla predizione. Proviamo a vedere come risultano le varie rette stimate dal modello `fit_qm`, rispetto a quella stimata dal primo.
+
+Si scriva il modello selezionato in forma esplicita facendo attenzione a mettere in evidenza le assunzioni sottostanti al modello. 
+
+Il modello scelto è quindi: 
+$$(BdF_i|QSpin_i) = \beta_0+\beta_1*\text{QSpin}_i + \varepsilon_i  \quad \quad \text{per } i= 1, \ldots, n$$
+dove $(\varepsilon_1, \ldots, \varepsilon_n)$ è un campione iid $\varepsilon_i \sim N(0,\sigma)$. 
+
+
 ### Es. 1.d
 
 Utilizzando grafici basati sui residui, si verifichino le assunzioni sottostanti il modello selezionato come migliore al punto 1.c.
 
+```{r}
+plot(fit_qspin)
+```
+
+La forma ad imbuto dei residui, evidenzia una crescente varianza e simbolo di eteroschedasticita'. 
 
 ### Es. 1.e
 
 Nel caso di problemi evidenziati al punto 1.d si verifichi se è possibile apportare cambiamenti al modello selezionato che risultino in un modello per cui le assunzioni sottostanti il modello siano meglio rispettate. Se non è stato riscontrato nessun problema nel modello non occorre rispondere a questa domanda. 
 
+Nel punto precedente è stato riscontrato un problema di eteroschedasticità. Una possibile soluzione è usare il logaritmo di `BdF` invece che `BdF` come variabile risposta. Usare il logaritmo di `BdF` ovvierebbe anche al problema che i modelli specificati fino ad ora possono in linea teorica risultare in stime di durata minori di 0, un evento impossibile. 
+I residui ottenuti usando `log(BdF)` come variabile risposta non evidenziano nessun problema.
 
+                     
+```{r, solution = TRUE}
+lfit_qspin <- lm(log(BdF)~QSpin, data = dex1)
+par(mfrow=c(2,2))
+plot(lfit_qspin) 
+```
 
 # Esercizio 2
 
@@ -101,6 +203,12 @@ nd <- data.frame(Living.Area = c(1810,1825,1840))
 
 
 
+
+
+
+
+
+
 ### Es. 2.d
 
 Si specifichi quale è il valore di `Living.Area` per cui l'ampiezza dell'intervallo di confidenza è la minore ampiezza possibile. 
@@ -110,6 +218,9 @@ Si specifichi quale è il valore di `Living.Area` per cui l'ampiezza dell'interv
 ### Es. 2.e
 
 Si crei una visualizzazione che mostri la relazione tra `Living.Area` e il valore atteso di `Price` stimata dal modello `fit_area`. Si mostrino anche gli intervalli di predizione e confidenza per il range di valori del predittore osservati nel campione. 
+
+
+
 
 
 

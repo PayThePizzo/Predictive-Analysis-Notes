@@ -504,12 +504,13 @@ I(y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}})) =
 0 &amp; y_i = \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}) \\
 1 &amp; y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}) \\
 \end{cases}
-\]</span></p>
-<p>Se usiamo questi due tassi per valutare un classificatore sul dataset
-usato per stimare il modello abbiamo lo stesso problema già discusso per
-il modelli lineari e il RSS: modelli più complessi tenderanno ad avere
-risultati migliori ma hanno una performance peggiore quando vengono
-usati su campioni diversi (non sono cioè generalizzabili).</p>
+\]</span> Se usiamo questi due tassi per valutare un classificatore sul
+dataset usato per stimare il modello abbiamo lo stesso problema già
+discusso per il modelli lineari e il RSS: modelli più complessi
+tenderanno ad avere risultati migliori ma hanno una performance peggiore
+quando vengono usati su campioni diversi (non sono cioè
+generalizzabili).</p>
+<p>Valutiamo la misclassification rate.</p>
 <pre class="r"><code>mean(ifelse(predict(fit_caps) &gt; 0, 1, 0) != spam_trn$type)</code></pre>
 <pre><code>## [1] 0.3515</code></pre>
 <pre class="r"><code>mean(ifelse(predict(fit_selected) &gt; 0, 1, 0) != spam_trn$type)</code></pre>

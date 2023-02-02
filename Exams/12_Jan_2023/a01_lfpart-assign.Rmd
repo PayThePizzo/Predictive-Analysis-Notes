@@ -1,0 +1,181 @@
+---
+title: "CT0429 - Analisi Predittiva - aa 22/23 - Appello I"
+author: "Nome Cognome - matricola"
+output: 
+  html_document: 
+    toc: yes
+---
+
+# Istruzioni
+
+Salvate questo file con il nome `matricola.Rmd`. Questo sarà il file che dovrete consegnare. Il file deve compilare senza problemi: files che non possono essere compilati correttamente saranno penalizzati. 
+
+
+Per essere sicuri di poter trovare il file al momento della consegna potete controllare dove è il file quando compilate il file la prima volta usando il comando `getwd()`. 
+
+```{r}
+getwd()
+## da cancellare quando siete sicuri di dove è il file
+```
+
+
+Attenzione - per tutto l'esame, se non specificato esplicitamente, il livello di significatività da usare è $\alpha = 0.02$
+
+
+# Esercizio 1
+
+Si desidera indagare quali caratteristiche di un'azienda possono risultare utili per predire il valore dell'azienda sul mercato. Per un campione di 75 aziende vengono raccolte le seguenti informazioni: 
+
+* `MarketValue`; il valore di mercato dell'azienda 
+* `Assets`: il valore del patrimonio dell'azienda (in migliaia di dollari)
+* `Sales`: il totale delle vendite  (in migliaia di dollari)
+* `Profits`: i profitti (in migliaia di dollari)
+* `CashFlow`: il flusso di cassa (in migliaia di dollari)
+* `Employees`: il numero di dipendenti 
+* `Banks`: una variabile che indica se l'azienda è una banca 
+
+
+I dati sono contenuti del dataset `dex1` che si può caricare usando il seguente codice: 
+
+```{r,cache=TRUE}
+dex1 <- read.csv("a01ex12_data.csv", header = TRUE)
+```
+
+
+### Es. 1.a 
+
+```{asis}
+Si costruisca un primo modello lineare semplice `fit1` in cui la variabile risposta `MarketValue` viene spiegata in funzione del predittore `CashFlow`. Si commenti la significatività del modello e si derivi un intervallo di confidenza (a livello di confidenza 98\%) per il coefficiente angolare relativo alla variabile `CashFlow` nel modello `fit11`. Si verifichi inoltre il sistema di ipotesi $H_0: \beta_{CashFlow} = 10$ VS $H_1: \beta_{CashFlow} \neq 10$
+```
+
+
+
+
+
+
+
+### Es. 1.b
+
+```{asis}
+Si produca una visualizzazione che mostri come la relazione tra la variabile `MarketValue` e `CashFlow`, mostrando la relazione stimata dal modello `fit1` e un intervallo di confidenza per il valore atteso di `MarketValue` in funzione della variabile `CashFlow`. Per quale valore di `CashFlow` è più stretto l'intervallo di confidenza? 
+```
+
+
+
+
+
+### Es. 1.c
+
+```{asis}
+Si elenchino le assunzioni sottostanti il modello lineare semplice e si verifichi se queste sono soddisfatte per il modello `fit1`. Si suggerisca eventualmente come modificare il modello. 
+```
+
+
+
+
+
+
+
+
+
+
+### Es. 1.d
+
+```{asis}
+Si stimi un modello lineare multiplo in cui tutte le variabili sono utilizzati come predittori. Si confronti il valore stimato di $\beta_{CashFlow}$ e la sua significatività nei due modelli: come si può interpretare il valore del parametro dei due modelli? Quale potrebbe essere la causa di una eventuale differenza del valore stimato per il parametro nei due modelli?  
+```
+
+
+
+
+
+
+# Esercizio 2
+
+
+Si usi ora lo stesso dataset `dex1` usato nell'esercizio 1 per individuare quali fattori possono permettere di predire se un'azienda è una banca, i.e. se la variabile `Banks` ha valore `Bank`: 
+
+
+```{r,cache=TRUE}
+dex1 <- read.csv("a01ex12_data.csv", header = TRUE)
+```
+
+La variabile risposta ora è la variabile `Bank`, che può prendere valore `Bank` o `Not`: codifichiamo la variabile come un `factor` che abbia il valore `Not` come baseline: 
+
+```{r}
+dex1$Banks <- factor(dex1$Banks, ordered = TRUE, levels = c("Not","Bank")) 
+table(dex1$Banks)
+```
+
+
+### Es. 2.a 
+
+```{asis}
+Si stimi un modello `fit1` utile a verificare se la variabile `Assets` è un predittore significativo per predire se un'azienda è o meno una banca. Che effetto ha la variabile `Assets` sulla probabilità che un'azienda sia una banca? 
+```
+
+
+
+
+
+
+### Es. 2.b
+
+```{asis}
+Si usi il modello stimato al punto precedente (2.a) per derivare un intervallo di confidenza al 98\% per la probabilità che due aziende con un valore di `Assets` pari a 2000 e 20000 siano banche. Si produca inoltre una visualizzazione che mostri come varia la stima della probabilità che un'azienda sia una banca in funzione di `Assets` con un intervallo di confidenza al 98\%. 
+```
+
+
+
+
+
+### Es. 2.c
+
+```{asis}
+Si stimi ora un modello `fit2` utile a verificare se la variabile `Profits` è un predittore significativo per predire se un'azienda è o meno una banca: si commenti il risultato del modello. Come è possibile confrontare la bontà di adattamento dei due modelli `fit1` e `fit2`. 
+```
+
+
+
+
+
+
+### Es. 2.d
+
+```{asis}
+Si prenda in considerazione il dataset `X` specificato nel codice seguente: questi dati sono un dataset diverso da quello `dex1` e non sono stati usati per stimare i modelli stimati fino ad ora. 
+Usando il modello che si è trovato avere una migliore bontà di adattamento al punto precedente (2.c), si costruisca una matrice di confusione che permetta di valutare la capacità di predizione out-of-sample del modello calcolando il tasso di errore di classificazione (mis-classification rate).    
+```
+
+```{r}
+### è semplicemnte necessario far girare questo codice 
+testData <- data.frame(
+  Assets = c(630, 6650, 7850, 1840, 1470, 144, 1430, 
+8580, 1460, 1090, 6180, 2650, 15100, 1030, 2220, 4520, 2120, 
+2240, 8280, 3020), 
+  Sales = c(212, 1690, 14700, 641, 1110, 899, 
+975, 3020, 2720, 267, 3030, 592, 2170, 931, 4540, 1010, 589, 
+491, 2320, 7780), 
+  MarketValue = c(141, 1040, 3480, 677, 878, 
+804, 185, 1910, 3210, 361, 1170, 680, 222, 728, 2060, 2030, 492, 
+510, 2560, 3400), 
+  Profits = c(2.3, 241, 381, 72.7, 109, 55.2, 
+21.7, 156, 247, 35.9, 168, 76, 48, 38.4, 128, 229, 17.8, 38.1, 
+175, 207), 
+  CashFlow = c(46.5, 237, 802, 71.3, 227, 149, 37.1, 
+358, 361, 33.6, 315, 73.5, 91.3, 106, 367, 165, 46.3, 93.1, 304, 
+438), 
+  Employees = c(0.877, 2.75, 109, 9.4, 9.84, 4.1, 2.89, 30.7, 
+32.4, 1.77, 9.71, 3.89, 6.04, 5.2, 48.6, 7.13, 5.09, 4.54, 21.1, 
+30), 
+  Banks = c("Bank", "Not", "Not", "Not", "Not", "Bank", 
+"Not", "Not", "Not", "Not", "Not", "Not", "Bank", "Bank", "Not", 
+"Bank", "Not", "Bank", "Bank", "Not"))
+
+testData[1:2,]
+```
+
+
+
+
+
