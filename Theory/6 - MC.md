@@ -9,7 +9,7 @@ estimates/predictions which is based on the assumption of iid normal errors
 
 This is typically expressed as:
 
-$$Y_{i} \thicksim \mathcal{N}(\beta_{0} + \beta_{1}x_{1,i} + ... + \beta_{p}x_{p,i}, \sigma)$$
+$$Y_{i} \stackrel{iid}{\thicksim} \mathcal{N}(\beta_{0} + \beta_{1}x_{1,i} + ... + \beta_{p}x_{p,i}, \sigma) \text{  } \forall i=1, \ldots, n$$
 
 Which can be rewritten as 
 
