@@ -20,23 +20,240 @@ summary(dat)
 
 Ci concentriamo ora sulla variabile `opposed`, un indicatore che ha valore "opposed" e "not-opposed". Diamo un'occhiata alle caratteristiche della variabile: 
 
+```{r}
+summary(dat$opposed)
+table(dat$opposed)
+```
+
+```{r}
+glm(opposed ~ year, data = dat, family = binomial)
+plot(opposed ~ year, data = dat)
+dat$numopp <- ifelse(dat$opposed == "opposed", 1, 0)
+plot(jitter(numopp, amount = 0.2) ~ 
+       jitter(year, amount = 0.2), data = dat)
+```
+
+```{r}
+dat$fopp <- factor(dat$opposed)
+glm(numopp ~ year, data = dat, family = binomial, 
+    weights = rep(1, nrow(dat)))
+fit_bin <- glm(fopp ~ year, data = dat, family = binomial)
+```
+
+```{r}
+summary(fit_bin)
+dat$yearsSince1979 <- dat$year - 1979
+fit_bin <- glm(fopp ~ yearsSince1979, data = dat, family = binomial)
+summary(fit_bin)
+```
+
+Da dove arrivano gli standard error? 
+
+```{r}
+X <- model.matrix(fit_bin)
+lpred <- coef(fit_bin)[1] + coef(fit_bin)[2] * dat$yearsSince1979
+V <- diag(exp(lpred)/((1+exp(lpred))^2) ) 
+solve(t(X)  %*% V %*% X)
+vcov(fit_bin)
+sqrt(diag(vcov(fit_bin)))
+```
+
+Possiamo costruire intervalli di confidenza: 
+
+```{r}
+confint.default(fit_bin)
+fit_bin$coefficients[2] + qnorm(c(.025, 0.975)) * sqrt(diag(vcov(fit_bin)))[2] 
+# un intervallo approssimato 
+```
+
+```{r}
+nd <- data.frame(yearsSince1979 = c(1,2,17,18))
+lpred <- coef(fit_bin)[1] + coef(fit_bin)[2] * nd$yearsSince1979
+lpred[2] - lpred[1]; lpred[4] - lpred[3]
+predict(fit_bin, newdata = nd)
+predict(fit_bin, newdata = nd, type = "link")
+
+(rpred <- predict(fit_bin, newdata = nd, type = "response"))
+diff(rpred)
+exp(lpred)/(1+exp(lpred))
+(rpred/(1-rpred))[2]/(rpred/(1-rpred))[1]
+(rpred/(1-rpred))[4]/(rpred/(1-rpred))[3]
+exp(coef(fit_bin)[2])
+```
+
+
+```{r}
+plot(jitter(dat$yearsSince1979, amount = 0.2), 
+     jitter(dat$numopp, amount = 0.2))
+lines(dat$yearsSince1979, 
+      predict(fit_bin, type = "response"), col = 2)
+```
+
+```{r}
+nd <-data.frame(yearsSince1979 = seq(-100, 100))
+plot(nd$yearsSince1979, 
+      predict(fit_bin, newdata = nd, type = "response"), 
+     type = "l", col = 2)
+```
+
+```{r}
+fit_bin2 <- glm(fopp ~ yearsSince1979 * biopharm, 
+                data = dat, family = binomial)
+summary(fit_bin2)
+```
 
 
 # Un modello per il numero di citazioni 
 
 Ci concentriamo ora sulla variabile `ncit`, il numero di citazioni ricevute da un brevetto. Le citazioni sono in qualche modo una misura del successo di un brevetto: desideriamo verficare se i brevetti depositati recentemente hanno più successo. 
 `ncit` è una variabile che misura dei conteggi: possiamo assumere che segua una distribuzione di Poisson. Diamo un'occhiata ai dati: 
+
 ```{r}
 # notice we already use yearSince1979
-plot(ncit~yearSince1979, data = dat) 
+plot(ncit~yearsSince1979, data = dat) 
 ```
 
 Difficile sapere quanti punti ci sono in ogni combinazione - usiamo jitter
 
 ```{r}
-plot(jitter(ncit, amount = 0.2)~jitter(yearSince1979, amount = 0.2), 
+plot(jitter(ncit, amount = 0.2)~jitter(yearsSince1979, amount = 0.2), 
      data = dat) 
 ```
 
 Non un effetto chiarissimo, ma forse le citazioni di brevetti presentati di recente sono relativamente meno (hanno avuto meno tempo per essere citate). Iniziamo comunque con un modello semplice per capire come lavorare con modelli con dati di conteggio: 
+
+```{r}
+fit_pois <- glm(ncit ~ yearsSince1979, data=dat,
+                family = poisson)
+summary(fit_pois)
+```
+
+```{r}
+X <- model.matrix(fit_pois)
+lpred <- coef(fit_pois)[1] + coef(fit_pois)[2] * dat$yearsSince1979
+V <- diag(exp(lpred)) 
+solve(t(X)  %*% V %*% X)
+vcov(fit_pois)
+sqrt(diag(vcov(fit_pois)))
+confint.default(fit_pois)
+```
+
+```{r}
+plot(dat$yearsSince1979, predict(fit_pois), type = "l")
+plot(dat$yearsSince1979, 
+     predict(fit_pois, type = "r"))
+```
+
+```{r}
+nd <- data.frame(yearsSince1979 = c(1,2,17,18))
+(lpred <- predict(fit_pois, newdata = nd))
+diff(lpred)
+(rpred <- predict(fit_pois, newdata = nd, type = "response"))
+rpred[2]/rpred[1]
+rpred[4]/rpred[3]
+exp(coef(fit_pois)[2])
+```
+
+
+```{r}
+fit_pois_quad <- glm(ncit ~ fopp+biopharm+
+                      poly(yearsSince1979,degree = 2), 
+                       # yearsSince1979+I(yearsSince1979^2), 
+                     family = poisson, 
+                     data = dat)
+summary(fit_pois_quad)
+```
+
+```{r}
+nd <- data.frame(yearsSince1979 = seq(0,20), 
+                 biopharm = "0", fopp = "not-opposed")
+plot(nd$yearsSince1979, 
+     predict(fit_pois_quad, type = "response", newdata = nd), 
+     type = "l", ylim = c(0, 4))
+nd <- data.frame(yearsSince1979 = seq(0,20), 
+                 biopharm = "0", fopp = "opposed")
+lines(nd$yearsSince1979, 
+      predict(fit_pois_quad, type = "response", newdata = nd), 
+      col = 2)
+nd <- data.frame(yearsSince1979 = seq(0,20), 
+                 biopharm = "1", fopp = "not-opposed")
+lines(nd$yearsSince1979, 
+      predict(fit_pois_quad, type = "response", newdata = nd), 
+      col = 4)
+nd <- data.frame(yearsSince1979 = seq(0,20), 
+                 biopharm = "1", fopp = "opposed")
+lines(nd$yearsSince1979, 
+      predict(fit_pois_quad, type = "response", newdata = nd), 
+      col = 6)
+```
+
+
+```{r}
+anova(fit_pois, fit_pois_quad, test = "LRT")
+deviance(fit_pois)
+fit_pois$deviance
+fit_pois$null.deviance
+fit_pois_quad$deviance
+fit_pois_quad$null.deviance
+(fit_pois$deviance - fit_pois_quad$deviance)
+pchisq((fit_pois$deviance - fit_pois_quad$deviance), 
+       df = 3, lower.tail = FALSE)
+2*(logLik(fit_pois_quad) - logLik(fit_pois))
+```
+
+
+## modellazione di proporzioni 
+
+
+```{r}
+byYear <- data.frame(
+  npatent = tapply(dat$numopp, dat$year, length),
+  numopposed = tapply(dat$numopp, dat$year, sum), 
+  year = tapply(dat$year, dat$year, unique))
+byYear$notOpposed <- byYear$npatent - byYear$numopposed
+byYear$propOpposed <- byYear$numopposed/byYear$npatent
+summary(glm(propOpposed ~ year, data = byYear, family = binomial, 
+            weights = npatent))
+summary(glm(cbind(numopposed, notOpposed) ~ year, data = byYear, family = binomial))
+plot(byYear$year, byYear$propOpposed)
+```
+
+
+# verifica della teoria tramite simulazione 
+
+In un GLM dobbiamo fare due scelte: 
+
+* distribuzione 
+* funzione legame 
+* (i predittori)
+
+Simuliamo dati da una Binomiale con funzione legame logit e un predittore: 
+
+```{r}
+n <- 6000
+set.seed(12)
+x <- sort(runif(n, 0,1))
+beta_true <- c(-5,10)
+plot(x, beta_true[1]+beta_true[2]*x)
+plot(x, exp(beta_true[1]+beta_true[2]*x)/(1+exp(beta_true[1]+beta_true[2]*x)))
+lines(x, binomial()$linkinv(beta_true[1]+beta_true[2]*x))
+plot(x, y_sim)
+
+beta_sim <- NULL
+for(i in 1:500){
+  y_sim <- rbinom(n,5,binomial()$linkinv(beta_true[1]+beta_true[2]*x))
+  beta_sim <- rbind(beta_sim, 
+                    coef(glm(cbind(y_sim, 5-y_sim) ~ x, family = binomial)))
+}
+colMeans(beta_sim)
+apply(beta_sim, 2, sd)
+cov(beta_sim)
+X <- cbind(rep(1, n), x)
+V <- diag(exp(beta_true[1]+beta_true[2]*x)/((1+exp(beta_true[1]+beta_true[2]*x))^2))
+solve((t(X) %*% V %*% X))/5
+par(mfrow=c(1,2))
+hist(beta_sim[,1])
+hist(beta_sim[,2])
+```
+
 

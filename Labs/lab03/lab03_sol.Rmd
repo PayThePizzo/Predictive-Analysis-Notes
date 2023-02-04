@@ -8,12 +8,12 @@ output:
 ---
 
 
-# The data 
+# Dataset
 
 Usiamo i dati di automobili visti nel lab precedente: leggiamo direttamente i dati usando il file in Moodle: 
 
 ```{r}
-autompg <- read.csv(file = "autompg.csv")
+autompg <- read.csv(file = "../data/autompg.csv")
 ```
 
 Abbiamo 7 variabili: una variabile risposta (`mpg`) e 6 predittori: 
@@ -40,168 +40,456 @@ Specifichiamo un modello con due predittori `hp` e `year`:
 \[
 Y_i = \beta_0 + \beta_{hp} \text{hp}_{i} + \beta_{year} \text{year}_{i} + \epsilon_i, \qquad i = 1, 2, \ldots, n
 \]
-con $\varesilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
+con $\epsilon_i \sim \mathcal{N}(0, \sigma^2)$ (errori indipendenti). 
 
 
 ```{r, class.source = "fold-show"}
 fit1 <- lm(mpg~hp+year, data = autompg)
-fit_null <- lm(mpg~1, data = autompg)
 ```
 
+Per i singoli parametri $\beta_j$ vediamo nel `summary` la significatività per il test $H_0: \beta_j = 0$. Ma questo ci dice quanto è significativo ogni singolo $\beta_j$ quando anche le altre variabili sono incluse nel modello. Cosa possiamo dire della significatività del modello intero? Il modello è in grado di spiegare una parte rilevante della variabilità di $Y$ o non si comporta poi in maniera diversa da un modello in cui la stima per ogni $Y|X$ è sempre lo stesso scalare? 
+
+Formalizziamo questa domanda con un sistema di verifica di ipotesi: 
+$$ H_0: \beta_{hp} = \beta_{year} = 0 \quad VS \quad H_1: \text{ any of } \beta_{hp} \text{ or } \beta_{year} \neq 0 $$
+
+Sotto l'ipotesi nulla il modello si riduce a 
+\[
+Y_i = \beta_0 + \epsilon_i, \qquad i = 1, 2, \ldots, n
+\]
+un modello con un solo parametro (i.e. un modello in cui la stima per ogni $Y|X$ è uno scalare). 
+
+Per confrontare i due modelli confrontiamo i residui ottenuti sotto i due modelli e si può mostrare che si può costruire una statistica test così definita: 
+
+\[
+F = \frac{\sum_{i=1}^{n}(\hat{Y}_{A,i} - \bar{Y})^2 / (p - 1)}{\sum_{i=1}^{n}(Y_i - \hat{Y}_{A,i})^2 / (n - p)},
+\]
+
+questa va poi confrontata con una distribuzione $F_{p-1, n-p}$. Il tutto viene spesso presentato in una tavola `anova`: 
+
 ```{r}
-summary(fit1)
+fit_null <- lm(mpg ~ 1, data = autompg)
+anova(fit_null,fit1)
 ```
 
-$$H_0: \beta_{hp} =  \beta_{year} = 0$$
+Vediamo da dove vengono i vari numeri. Partiamo dalle somme dei quadrati dei residui:
 
 ```{r}
-anova(fit_null, fit1)
+### SS under null 
+sum(fit_null$residuals^2); sum((autompg$mpg - mean(autompg$mpg))^2)
+## SS under alternative
+sum(fit1$residuals^2)
+## difference in Sum of Squares 
+sum(fit_null$residuals^2) - sum(fit1$residuals^2)
+## this is equivalent to 
+sum((fit_null$fitted.values - fit1$fitted.values)^2)
+### to compute the F: 
+# scale each Sum of Squares by the appropriate number of degrees of freedom 
 ```
 
+Quanti gradi di libertà sono collegati ad ognuno dei componenti delle somme dei quadrati? 
+
 ```{r}
-sum(residuals(fit_null)^2)
-sum(residuals(fit1)^2)
-sum(residuals(fit_null)^2) - sum(residuals(fit1)^2)
-sum((fitted(fit_null)-fitted(fit1))^2)
+## null model 
+fit_null$df.residual
+## larger model (alternative)
+fit1$df.residual
+## their difference 
+fit_null$df.residual - fit1$df.residual
+```
 
+Scaliamo ognuno dei componenti della somma dei quadrati per il corretto numero di gradi di libertà: 
 
-num <- (sum(residuals(fit_null)^2) - sum(residuals(fit1)^2))/(fit_null$df.residual - fit1$df.residual)
-den <- sum(residuals(fit1)^2)/fit1$df.residual
-(fobs <- num/den)
-# pvalue 
-pf(fobs, df1 = (fit_null$df.residual - fit1$df.residual), 
-   df2 = fit1$df.residual, 
-   lower.tail = FALSE)
-1-pf(fobs, df1 = (fit_null$df.residual - fit1$df.residual), 
+```{r}
+## Alternative model
+sum(fit1$residuals^2)/fit1$df.residual
+## difference in Sum of Squares 
+(sum(fit_null$residuals^2) - sum(fit1$residuals^2))/(fit_null$df.residual - fit1$df.residual)
+```
+
+La statistica test quindi è: 
+
+```{r}
+num <- (sum(fit_null$residuals^2) - sum(fit1$residuals^2))/(fit_null$df.residual - fit1$df.residual)
+den <- sum(fit1$residuals^2)/fit1$df.residual
+(Fstat <- num/den)
+```
+
+Per valutare la significatività del test possiamo calcolare il p-value usando `pf` o controllare se $F_{obs}$  è grande rispetto ad una distribuzione F con `r fit_null$df.residual-fit1$df.residual` e  `r fit1$df.residual` gradi di libertà:
+
+```{r}
+## p-value
+pf(Fstat, df1 = fit_null$df.residual-fit1$df.residual,
+   df2 = fit1$df.residual, lower.tail = FALSE) 
+### very small p-value
+# same as (except for numerical issues) 
+1 - pf(Fstat, df1 = fit_null$df.residual-fit1$df.residual,
+       df2 = fit1$df.residual)
+## Find the rejection region for the 1% significance test
+qf(0.99,  df1 = fit_null$df.residual-fit1$df.residual,
    df2 = fit1$df.residual)
-# conforntare fobs con fcrit - specificando il livello di significatività 
-qf(.98, df1 = (fit_null$df.residual - fit1$df.residual), 
-   df2 = fit1$df.residual)
-curve(df(x,df1 = (fit_null$df.residual - fit1$df.residual), 
-   df2 = fit1$df.residual), from = 0, to = 10)
+### reject H_0 at 1% if Fstat > 4.666
+## definitely reject 
 ```
+
+Tipicamente non specificheremo il modello `fit_null` ma potremo usare direttamente la statistica stampata nel `summary`: 
 
 ```{r}
 summary(fit1)$fstatistic
 ```
 
+dove per altro viene anche stampato il p-value legato alla statistica: 
+
+```{r}
+summary(fit1)
+```
+
+Il test `anova` è un test generale che può essere usato per confrontare qualunque modello annidato, per esempio potremmo pensare di confrontare un modello molto complesso in cui inseriamo tutti i predittori e un modello con due soli predittori: per esempio `wt` e `year`. 
+
 ```{r}
 fit_base <- lm(mpg~wt+year, data = autompg)
-fit_all <- lm(mpg~., data = autompg)
+fit_all <- lm(mpg~.,data = autompg) 
+### using the . (dot) is a shortcut to say: include everything
+fit_all <- lm(mpg~cyl+disp+hp+wt+acc+year,data = autompg) 
 summary(fit_all)
 ```
 
+Vediamo che il modello `fit_all` è molto significativo: è un modello che cattura più variabilità di un modello in cui si una un unico parametro. La domanda è ora se questo modello complesso che usa 7 parametri cattura molta più variabilità del modello più semplice in cui usiamo solo due variabili `wt` e `year`. è veramente necessario avere un modello così più complesso o l'aggiunta di parametri non mi porta ad un vantaggio considerevole? Se usassimo il valori di MSE e $R^2$ per giudicare la bontà di adattamento di un modello penseremmo che il modello complesso sia migliore: 
+
 ```{r}
+## rsquare and mse for two models 
+summary(fit_base)$r.square; sum(fit_base$residuals^2)
+summary(fit_all)$r.square; sum(fit_all$residuals^2)
+```
+
+ma guardiamo ad esempio a cosa succede agli intervalli di confidenza della media:
+
+
+```{r}
+nd <- data.frame(apply(autompg,2,quantile,c(0.01,0.5,0.9)))
+(ci_all <- predict(fit_all,newdata = nd,interval = "conf"))
+(ci_base <- predict(fit_base,newdata = nd,interval = "conf"))
+ci_all[,3]-ci_all[,2]
+ci_base[,3]-ci_base[,2]
+# (ci_null <- predict(fit_null,newdata = nd,interval = "conf"))
+```
+
+Quando usiamo troppi parametri facciamo aumentare l'incertezza nella stima: stiamo inserendo troppe variabili che non spiegano variabilità generale dei dati ma seguono caratteristiche di alcune osservazioni. Dobbiamo bilanciare la necessità di "spiegare bene" i dati con la capacità del modello di fare predizioni non troppo incerte: per ottenere questo bilanciamento cerchiamo di specificare modelli **parsimoniosi**. 
+
+Per verificare se la parte di variabilità catturata dal modello più complesso è decisamente più grande di quella catturata dal modello più semplice utilizziamo una verifica di ipotesi in cui formalizziamo in confronto tra i due modelli notando che il modello `fit_base` è annidato in `fit_all` e che può quindi essere derivato da `fit_all` quando $\beta_{cyl} = \beta_{disp} = \beta_{hp}= \beta_{acc} = 0$. 
+Costruiamo quindi un test per il seguente sistema di verifica di ipotesi: 
+$$H_0: \beta_{cyl} = \beta_{disp} = \beta_{hp}= \beta_{acc} = 0$$
+a cui contrastiamo 
+$$H_1: \text{ any of } \beta_{cyl} \text{ or } \beta_{disp}  \text{ or } \beta_{hp} \text{ or } \beta_{acc} \neq 0$$ 
+
+Usiamo quindi il test ANOVA
+
+```{r}
+anova(fit_base,fit_all)
+```
+
+Da dove vengono i numeri nella tabella? 
+
+```{r}
+## sumsq under null
 sum(residuals(fit_base)^2)
+## sumsq under alternative
 sum(residuals(fit_all)^2)
+### their difference 
+sum(residuals(fit_base)^2) - sum(residuals(fit_all)^2) 
+# equivalent to 
+sum((fitted(fit_base) - fitted(fit_all))^2) 
 ```
+
+Vediamo che la differenza tra le somme dei residui/i valori stimati al quadrato non è così grande: ma come dire se un valore è effettivamente piccolo o grande? Standardizziamo i valori per i giusti gradi di libertà e deriviamo $F_{obs}$ 
 
 
 ```{r}
-nd <- data.frame(apply(autompg, 2, quantile, c(0.1, 0.5, 0.9)))
-(ci_all <- predict(fit_all , newdata = nd, interval = "conf"))
-(ci_base <- predict(fit_base , newdata = nd, interval = "conf"))
-ci_all[,3]- ci_all[,2]
-ci_base[,3]- ci_base[,2]
+## df of the null
+fit_base$df.residual
+## df of the alternative
+fit_all$df.residual
+### their difference 
+fit_base$df.residual - fit_all$df.residual
 ```
+
+La statistica F-osservata
 
 ```{r}
-anova(fit_base, fit_all)
-
-num <- (sum(residuals(fit_base)^2) - sum(residuals(fit_all)^2))/(fit_base$df.residual - fit_all$df.residual)
-den <- sum(residuals(fit_all)^2)/fit_all$df.residual
-fobs <- num/den
-# pvalue
-pf(fobs, lower.tail = FALSE, df1 = (fit_base$df.residual - fit_all$df.residual),
-   df2 = fit_all$df.residual)
-# reject H0 if fobs > fcri
-qf(.98, , df1 = (fit_base$df.residual - fit_all$df.residual),
-   df2 = fit_all$df.residual)
-curve(df(x, df1 = (fit_base$df.residual - fit_all$df.residual),
-   df2 = fit_all$df.residual), from = 0, to = 10)
-points(fobs, 0 , col = 2, pch = 4)
+dfnum <- fit_base$df.residual-fit_all$df.residual
+dfden <- fit_all$df.residual
+num <- (sum(fit_base$residuals^2) - sum(fit_all$residuals^2))/dfnum
+den <- sum(fit_all$residuals^2)/dfden
+(Fstat <- num/den)
 ```
 
-# bontà di adattemnto: confornto tra modelli non annidati 
+Per valutare la significatività del test possiamo calcolare il p-value usando `pf` o controllare se $F_{obs}$  è grande rispetto ad una distribuzione F con `r fit_null$df.residual-fit_base$df.residual` e  `r fit_base$df.residual` gradi di libertà:
 
+```{r}
+## p-value
+pf(Fstat, df1 = dfnum, df2 = dfden, lower.tail = FALSE) 
+### very small p-value
+## Find the rejection region for the 10% significance test
+qf(0.9, df1 = dfnum, df2 = dfden)
+### reject H_0 at 10% if Fstat > 1.96
+## definitely can not reject 
+```
+
+Guardimao un attimo la distribuzione F con `r fit_null$df.residual-fit_base$df.residual` e  `r fit_base$df.residual` gradi di libertà:
+
+```{r}
+curve(df(x, df1 = dfnum, df2 = dfden),from=0,to=5, ylab="density", lwd = 1.5)
+reg_cutoff <- qf(0.9, df1 = dfnum, df2 = dfden)
+segments(x0 = reg_cutoff, y0=0,y1=df(reg_cutoff, df1 = dfnum, df2 = dfden))
+points(Fstat, 0, col=2, pch=4)
+### Fstat is within the non-rejection region
+```
+
+Non possiamo rifiutare l'ipotesi nulla che i quattro parametri del modello siamo pari a zero: sotto questo modello più semplice otteniamo una somma dei quadrati dei residui che è comparabile a quella ottenuta con il modello più complesso `fit_all`. Decidiamo quindi che sia più conveniente tenere il modello `fit_base` come modello da usare per fare predizione dato che questo è parsimonioso. 
+
+# Bontà di adattamento 
+
+L'approccio ANOVA può essere usato per confrontare con un test formale modelli annidati, cioè modelli in cui il modello più parsimonioso può essere derivato ponendo uno o più dei parametri $\beta_j$ del modello pari a 0. Spesso però ci troviamo a voler confrontare modelli che non siano annidati: come si può fare? Possiamo usare usare dei criteri di bontà di adattamento quali l'adjusted $R^2$ e i criteri di informazione come AIC and BIC. 
+
+## Adjusted $R^2$ 
+
+Abbiamo definito il coefficiente di determinazione $R^2$ come segue  
+\[R^2 = 1-\frac{SS_{res}}{SS_{tot}}\]
 
 ```{r}
 summary(fit_base)$r.square
-summary(fit_base)$adj.r.square
-1-sum(residuals(fit_base)^2)/(sum((autompg$mpg - mean(autompg$mpg))^2))
-1-(sum(residuals(fit_base)^2)/fit_base$df.residual)/(sum((autompg$mpg - mean(autompg$mpg))^2)/fit_null$df.residual)
+## derived as 
+1- sum(fit_base$residuals^2)/sum(fit_null$residuals^2)
+```
 
-summary(fit1)$adj.r.square
+ma questo coefficiente aumenta sempre quando si aggiungono predittori al modello (il valore di $R^2$ per il modello `fit_all` è `r summary(fit_all)$r.square`). Per constatare questa caratteristica utilizziamo il valore *adjusted* $R^2$ - che penalizza modelli molto complessi: 
+\[R_{Adj}^2 = 1-\frac{SS_{res}/(n-p-1)}{SS_{tot}/(n-1)}\]
+
+```{r}
+##  add useless variables and R2 increases! 
+## set.seed(134); fit_useless <- lm(autompg$mpg~cbind(autompg$wt,autompg$year,matrix(rnorm(390*40),ncol=40)))
+## summary(fit_useless)$r.square
+## summary(fit_useless)$adj.r.square
 summary(fit_base)$adj.r.square
+1- (sum(fit_base$residuals^2)/(fit_base$df.residual))/(sum(fit_null$residuals^2)/fit_null$df.residual)
 summary(fit_all)$adj.r.square
 ```
 
+Il valore di adjusted $R^2$ è più piccolo per il modello più complesso: sebbene il valore di $R^2$ aumenti per il modello più complesso, questo incremento è mitigato quando si tiene in considerazione la complessità del modello.
 
-# Criteri di informazione 
+## Criteri di informazione
 
-Aic 
+Un altro approccio utile a misurare la bontà di adattamento dei modelli in cui si tiene conto della complessità del modello sono i criteri di informazione legati alla verosimiglianza: 
+\[IC = -2*logLik(M) + k * p(M) \]
 
+Quando $k=2$ si ha AIC, quando $k=log(n)$ si ha BIC (quindi quando $n$ e grande BIC penalizza di più).
+
+R permette di derivare la verosimiglianza dei modelli stimati: 
 
 ```{r}
 logLik(fit_base)
-logLik(fit_all)
-sum(dnorm(autompg$mpg, mean = fitted(fit_base), 
-           sd = summary(fit_base)$sigma, log = TRUE))
--2*logLik(fit_base)+2*(length(coef(fit_base))+1)
--2*logLik(fit_all)+2*(length(coef(fit_all))+1)
+## can be directly calculated as 
+sum(dnorm(autompg$mpg, fit_base$fitted.values, summary(fit_base)$sigma,log = TRUE))
+```
+
+da cui è possibile derivare i criteri (esistono poi funzioni specifiche)
+
+```{r}
+## AIC 
+- 2*as.numeric(logLik(fit_base)) + 2 * (1+length(fit_base$coef))
 AIC(fit_base)
+- 2*as.numeric(logLik(fit_all)) + 2 * (1+length(fit_all$coef))
 AIC(fit_all)
+### one can fit many models and then compare them
+AIC(fit_null,fit1,fit_base,fit_all)
+which.min(AIC(fit_null,fit1,fit_base,fit_all)$AIC)
 ```
 
 
-Bic 
-
 ```{r}
--2*logLik(fit_base)+log(nrow(autompg))*(length(coef(fit_base))+1)
--2*logLik(fit_all)+log(nrow(autompg))*(length(coef(fit_all))+1)
+## BIC
+n <- nrow(autompg)
+- 2*as.numeric(logLik(fit_base)) + log(n) * (1+length(fit_base$coef))
 BIC(fit_base)
+- 2*as.numeric(logLik(fit_all)) + log(n)  * (1+length(fit_all$coef))
 BIC(fit_all)
-AIC(fit_base, k = log(nrow(autompg)))
+BIC(fit_null,fit1,fit_base,fit_all)
+which.min(BIC(fit_null,fit1,fit_base,fit_all)$BIC)
+```
+
+Sia AIC che BIC indicano che `fit_base` sia il modello preferibile. 
+
+Questi criteri possono essere utilizzati per scegliere quali variabili inserire in un modello predittivo. 
+
+
+# Verifica della teoria tramite simulazione
+
+Nelle slide vengono presentati i seguenti risultati: 
+
+\[
+\text{E}[\hat{\beta}_j] = \beta_j.
+\quad \text{ and } \quad 
+\text{Var}[\hat{\beta}] = \sigma^2 \left(  X^\top X  \right)^{-1}
+\]
+
+Vediamo se questi sono validi (quando il modello è specificato correttamente). Prendiamo `fit_base` come ispirazione e creiamo un modello _vero_ da cui possiamo generare dati: 
+
+```{r}
+X <- model.matrix(fit_base); beta_true <- c(-14.6,-0.006,0.75)
+colnames(X) <- c("Int","x1","x2")
+sigma_true <- 3.4; n <- nrow(X)
+set.seed(374)
+fake_y <- X %*% beta_true + rnorm(n,0,sigma_true)
+fake_auto <- data.frame(y = fake_y, X[,-1])
+par(mfrow=c(1,2),pch=16,col="grey40")
+plot(X[,2],fake_y)
+plot(X[,3],fake_y)
+summary(lm(y~x1+x2,data=fake_auto))
+## results are in line with true values
 ```
 
 
-# verificare la teoria tramite simulazione 
+Ripetiamo questo esperimento più volte: 
+
 
 ```{r}
-X <- model.matrix(fit_base) 
-colnames(X) <- c("Int", "x1","x2")
-sigma_true <- 3.4
-beta_true <- c(-14, -0.006, .74)
-n <- nrow(X)
-# set.seed(8686)
-y_alternative <- X %*% beta_true+  rnorm(n, 0, sigma_true)
-autodf_alterntive <- data.frame(y = y_alternative, X[,-1])
-lm(y~x1+x2, data = autodf_alterntive)
-```
-
-```{r}
-generate_and_estimate <- function(X, truebeta, truesigma){
-  n <- nrow(X)
-  y_alternative <- X %*% truebeta+  rnorm(n, 0, truesigma)
-  autodf_alterntive <- data.frame(y = y_alternative, X[,-1])
-  estimate <- coef(lm(y~x1+x2, data = autodf_alterntive))
-  estimate
+generate_and_estimate <- function(X,trueBetas,trueSigma){
+  fake_y <- X %*% trueBetas + rnorm(n,0,trueSigma)
+  fake_data <- data.frame(y = fake_y, X[,-1])
+  fake_fit <- lm(y~.,data=fake_data)
+  fake_fit$coef
 }
-generate_and_estimate(X = X, truebeta = beta_true, truesigma = sigma_true)
-out <- replicate(n = 500, generate_and_estimate(X = X, truebeta = beta_true, truesigma = sigma_true))
-hist(out[1,])
-hist(out[2,])
-hist(out[3,]); abline(v = beta_true[3], col = 2)
-mean(out[3,])
+generate_and_estimate(X=X,trueBetas = beta_true,trueSigma = sigma_true)
+NSIM = 500; set.seed(40366)
+out_sim <- t(replicate(n = NSIM,generate_and_estimate(X=X,trueBetas = beta_true,trueSigma = sigma_true)))
+```
+
+`out_sim` contiene `NSIM` repliche della stima di $\beta$ nel modello: possiamo usare queste ripetizioni per generare la distribuzione campionaria di $\hat{\beta}$. 
+
+Gli stimatori sono non-distorti? 
+
+```{r}
+colMeans(out_sim)
+beta_true
+```
+
+Non male. La teoria dice che la matrice di varianza covarianza degli stimatori è: 
+
+```{r}
+sigma_true^2 * solve(t(X) %*% X)
+```
+
+Dalla simulazione deriviamo 
+
+```{r}
+cov(out_sim)
+```
+
+Non male: se aumentiamo `NSIM` possiamo probabilmente migliorare la precisione della stima. 
+
+
+Possiamo usare le stime dei parametri per valutare l'incertezza nella stima della funzione predittiva: 
+
+
+```{r}
+par(mfrow=c(1,2),col="gray40")
+### fix x2 to its mean
+Xnd <- as.matrix(cbind(rep(1,nrow(X)),X[,2],mean(X[,3])))
+## rgb takes red - green - blue proportions; the fourth parameter is a transparency parameter
+plot(mpg~wt,data=autompg,col=rgb(0.9,0.9,0.9),pch=16, type ="n")
+set.seed(4854)
+for(j in sample(seq(1,NSIM), size = 50)) lines(Xnd[,2],Xnd%*%out_sim[j,]) # 50 lines is already enough
+### fix wt to its mean
+Xnd <- as.matrix(cbind(rep(1,nrow(X)),mean(X[,2]),X[,3]))
+plot(mpg~year,data=autompg,col=rgb(0.9,0.9,0.9),pch=16, type ="n")
+for(j in sample(seq(1,NSIM), size = 50))  lines(Xnd[,3],Xnd%*%out_sim[j,])
+```
+
+Queste possono essere confrontate con le stime dell'incertezza ottenute tramite le forme specificate nelle slides: 
+
+
+\[SD[\hat{y}(x_0)] = \sigma \sqrt{x_{0}^\top\left(X^\top X\right)^{-1}x_{0}}\]
+
+```{r}
+par(mfrow=c(1,2),col="gray40")
+### fix x2 to its mean
+Xnd <- as.matrix(cbind(rep(1,nrow(X)),sort(X[,2]),mean(X[,3])))
+## rgb takes red - green - blue proportions; the fourth parameter is a transparency parameter
+plot(mpg~wt,data=autompg,col=rgb(0.9,0.9,0.9),pch=16, type ="n", ylim  = c(0,35))
+set.seed(4854)
+for(j in sample(seq(1,NSIM), size = 50)) lines(Xnd[,2],Xnd%*%out_sim[j,]) # 50 lines is already enough
+lines(Xnd[,2],Xnd %*% beta_true + qnorm(0.975) * sigma_true * sqrt(diag(Xnd %*% solve(t(X) %*% X) %*% t(Xnd))), col = 2, lwd = 2)
+lines(Xnd[,2],Xnd %*% beta_true + qnorm(0.025) * sigma_true * sqrt(diag(Xnd %*% solve(t(X) %*% X) %*% t(Xnd))), col = 2, lwd = 2)
+### fix wt to its mean
+Xnd <- as.matrix(cbind(rep(1,nrow(X)),mean(X[,2]),sort(X[,3])))
+plot(mpg~year,data=autompg,col=rgb(0.9,0.9,0.9),pch=16, type ="n")
+for(j in sample(seq(1,NSIM), size = 50))  lines(Xnd[,3],Xnd%*%out_sim[j,])
+lines(Xnd[,3],Xnd %*% beta_true + qnorm(0.975) * sigma_true * sqrt(diag(Xnd %*% solve(t(X) %*% X) %*% t(Xnd))), col = 4, lwd = 2)
+lines(Xnd[,3],Xnd %*% beta_true + qnorm(0.025) * sigma_true * sqrt(diag(Xnd %*% solve(t(X) %*% X) %*% t(Xnd))), col = 4, lwd = 2)
+```
+
+La predizione di $Y|X$ è abbstanza precisa, c'è poca variabilità nella stima. guardiamo ora cosa succede se uno dei predittori ha poco effetto, prendiamo ad esempio la variabile `cyl` e assumiamo che non abbia quasi alcun effetto:
+
+```{r}
+NSIM = 500; set.seed(554)
+X2 <- cbind(X, x3 = autompg$cyl)
+beta_true2 <-  c(beta_true,-0.1)
+added_out_sim <- t(
+  replicate(n = NSIM,
+            generate_and_estimate(X= X2, trueBetas = beta_true2,
+                                  trueSigma = sigma_true)))
+cov(added_out_sim); sigma_true^2 * solve(t(X2) %*% X2) # ok 
 ```
 
 ```{r}
-cov(t(out))
+### fix year and cyl to their mean
+par(mfrow=c(1,3),col="gray40")
+### fix x2 to its mean
+Xnd <- as.matrix(cbind(rep(1,nrow(X2)),sort(X2[,2]),mean(X2[,3]),mean(X2[,4])))
+## rgb takes red - green - blue proportions; the fourth parameter is a transparency parameter
+plot(mpg~wt,data=autompg,col=rgb(0.9,0.9,0.9),pch=16, type ="n", ylim  = c(0,35))
+set.seed(4854)
+for(j in sample(seq(1,NSIM), size = 50)) lines(Xnd[,2],Xnd%*%added_out_sim[j,]) # 50 lines is already enough
+### fix wt to its mean
+Xnd <- as.matrix(cbind(rep(1,nrow(X2)),mean(X2[,2]),sort(X2[,3]),mean(X2[,4])))
+## rgb takes red - green - blue proportions; the fourth parameter is a transparency parameter
+plot(mpg~year,data=autompg,col=rgb(0.9,0.9,0.9),pch=16, type ="n", ylim  = c(0,35))
+set.seed(4854)
+for(j in sample(seq(1,NSIM), size = 50)) lines(Xnd[,3],Xnd%*%added_out_sim[j,]) # 50 lines is already enough
+### fix wt and year to their mean
+Xnd <- as.matrix(cbind(rep(1,nrow(X2)),mean(X2[,2]),mean(X2[,3]),sort(X2[,4])))
+plot(mpg~cyl,data=autompg,col=rgb(0.9,0.9,0.9),pch=16,type="n")
+for(j in sample(seq(1,NSIM), size = 50)) lines(Xnd[,4],Xnd%*%added_out_sim[j,]) # 50 lines is already enough
 ```
+
+
+
+We can use the simulation-based approach to see what happens to the estimation when some of the assumptions are not met. For example, what happens if the errors are not normally distributed? 
+
 
 ```{r}
-sigma_true^2 * solve(t(X) %*%X)
+generateT_and_estimate <- function(X,trueBetas,trueSigma){
+  fake_data <- data.frame(X[,-1])
+  nobs <- nrow(X)
+  fake_data$y <- X %*% trueBetas + trueSigma * rt(n,df=3)
+  fake_fit <- lm(y~.,data=fake_data)
+  fake_fit$coef
+}
+NSIM = 500; set.seed(4836)
+Tout_sim <- t(replicate(n = NSIM,generateT_and_estimate(X=X,trueBetas = beta_true,trueSigma = sigma_true)))
 ```
 
+The errors still have 0 mean but are generated using a T with 3 degrees of freedom: this produces many points in the tails of the distribution. We can first check that the estimation is unbiased
+
+```{r}
+colMeans(Tout_sim)
+```
+
+and that seems to be OK, but when we look at the covariance matrix 
+
+```{r}
+cov(Tout_sim)
+```
+
+we see that errors become inflated. 
 
 

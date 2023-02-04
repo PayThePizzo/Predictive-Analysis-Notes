@@ -1,5 +1,5 @@
 ---
-title: "Lab 8 - transformation, model selection and estimation"
+title: "Lab 7 - transformation, model selection and estimation"
 author: "Ilaria Prosdocimi"
 output: 
   html_document: 

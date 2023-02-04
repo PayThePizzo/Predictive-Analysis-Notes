@@ -1,0 +1,382 @@
+---
+title: "Lab 10 - classification for binary classifiers"
+output: 
+  html_document: 
+    toc: yes
+---
+
+
+# La regressione logistica: un classificatore
+
+Fino ad ora quando abbiamo stimato modelli logistici per dati binari ci siamo concentrati sulla stima della funzione che descrive la probabilità di osservare un "successo". Possiamo anche usare i modelli logistici per fare predizione su nuove osservazioni e in particolare per predire se appartengono alla categoria "successo" o "insuccesso": in pratica possiamo usare la regressione logistica come un classificatore (classifier) che predica a che categoria ($Y=1$ o $Y=0$) apparterranno nuove osservazioni.  
+
+Sapendo che 
+$$
+p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 1 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}]
+$$
+and
+$$
+1 - p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 0 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+
+possiamo predire come classe di appartenenza di un'osservazione la classe a cui più probabile che appartenga l'osservazione. In generale questo tipo di classificatore è detto **the Bayes Classifier**:
+
+$$
+C^B(x_1,\ldots,x_{p - 1}) = \underset{k}{\mathrm{argmax}} \ P[Y = k \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+
+Per una risposta binaria quindi: 
+
+$$
+{C}^B( x_1,\ldots,x_{p - 1}) = 
+\begin{cases} 
+1 & p(x_1,\ldots,x_{p - 1}) > 0.5 \\
+0 & p(x_1,\ldots,x_{p - 1}) \leq 0.5 
+\end{cases}
+$$
+
+Il classificatore Bayesiano minimizza la probabilità che un'osservazione venga classificata in maniera errata, classificando un'osservazione nella categoria a cui ha la più alta probabilità di appartenere. 
+
+Sfortunatamente, nel mondo reale non sapremo il vero valore di $p(x_1,\ldots,x_{p - 1})$ da usare per classificare le osservazioni, ma avremo una sua stima che possiamo usare in un classificatore: 
+
+$$
+\hat{C}^B(x_1,\ldots,x_{p - 1}) = \underset{k}{\mathrm{argmax}} \ \widehat{\Pr}[Y = k \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
+$$
+
+Per il caso di risposte binarie $P(Y=1) = 1 - P(Y=0)$ e si ha 
+
+$$
+\hat{C}({x_1,\ldots,x_{p - 1}}) = 
+\begin{cases} 
+1 & \hat{p}({x_1,\ldots,x_{p - 1}}) > 0.5 \\
+0 & \hat{p}({x_1,\ldots,x_{p - 1}}) \leq 0.5 
+\end{cases}
+$$
+
+Possiamo quindi usare la regressione logistica per derivare le stime delle probabilità $\hat{p}({x_1,\ldots,x_{p - 1}})$, da usare poi nella classificazione.
+
+La regressione logistica non è l'unico modo in cui possiamo derivare queste probabilità, esistono altri modelli di stima ed esistono anche altri approcci alla classificazione. Tuttavia, la classificazione è uno degli usi più comuni della regressione logistica, quindi vale la pena soffermarsi su alcune caratteristiche dell'uso della regressione GLM come classificatore. 
+
+Per discutere queste caratteristiche partiamo da un esempio in cui utilizziamo il database `spambase` (descritto in dettaglio [qui](https://archive.ics.uci.edu/ml/datasets/spambase)) e cerchiamo di creare un filtro (classificatore) per rilevare se una mail è spam o meno: 
+
+```{r}
+## data(spam, package = "ElemStatLearn")
+spam <- read.table("spambase.data", header = FALSE,sep=",")
+names(spam) <- c("make", "address", "all", "num3d", "our", "over", "remove", 
+"internet", "order", "mail", "receive", "will", "people", "report", 
+"addresses", "free", "business", "email", "you", "credit", "your", 
+"font", "num000", "money", "hp", "hpl", "george", "num650", "lab", 
+"labs", "telnet", "num857", "data", "num415", "num85", "technology", 
+"num1999", "parts", "pm", "direct", "cs", "meeting", "original", 
+"project", "re", "edu", "table", "conference", "charSemicolon", 
+"charRoundbracket", "charSquarebracket", "charExclamation", "charDollar", 
+"charHash", "capitalAve", "capitalLong", "capitalTotal", "type")
+```
+
+Le prime 48 colonne contengono informazioni sulla frequenza di alcune parole in una mail (le parole sono dettagliate nel file `spambase.names`), mentre le colonne dalla 49 alla 54 contengono informazioni sulla frequenza di parole di una lettera e le ultime tre colonne contengono informazioni sulle parole scritte in maiuscolo. L'ultima colonna `type` è la variable risposta che contiene l'informazione se una mail era spam o una vera mail, dove lo spam è indicato con il valore 1: 
+
+```{r}
+table(spam$type)
+```
+
+Per poter valutare come il classificatore si comporta per dati di cui non ha informazioni creiamo un dataset test che non usiamo per stimare il nostro modello logistico e creare il classificatore: 
+
+```{r}
+set.seed(42)
+spam_idx <- sample(nrow(spam), 2000)
+spam_trn <- spam[spam_idx,]  # train set 
+spam_tst <- spam[-spam_idx,] # test set
+```
+
+Stimiamo quattro modelli di complessità crescente: 
+
+```{r}
+fit_caps <- glm(type ~ capitalTotal, data <- spam_trn, family = binomial)
+fit_selected <- glm(type ~ edu + money + capitalTotal + charDollar, data = spam_trn, family = binomial)
+fit_additive <- glm(type ~ ., data = spam_trn, family = binomial)
+fit_over <- glm(type ~ capitalTotal*(.), data = spam_trn, family = binomial, maxit = 120)
+```
+
+Riceviamo dei warning: i modelli stimati potrebbero avere dei problemi nella stima e non dovremmo fidarci troppo delle stime dei parametri (e della loro variabilità!). Tuttavia possiamo comunque costruire dei classificatori e valuteremo i modelli sulla base di quanto precisi sono i classificatori basati sulle loro stime. Come valutiamo quindi questi modelli? 
+
+## La valutazione di un classificatore 
+
+La metrica più naturale per valutare come si comporti un classificatore è il tasso di errore di classificazione (**misclassification rate**). 
+
+A volte, si trova riportato il tasso di accuratezza, cioè la proporzione di osservazioni classificate correttamente. I due tassi sono complementari e danno quindi la stessa informazione: 
+
+$$
+\text{Misclass}(\hat{C}, \text{Data}) = \frac{1}{n}\sum_{i = 1}^{n}I(y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}))
+$$
+
+$$
+I(y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}})) = 
+\begin{cases} 
+0 & y_i = \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}) \\
+1 & y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}}) \\
+\end{cases}
+$$
+
+Se usiamo questi due tassi per valutare un classificatore sul dataset usato per stimare il modello abbiamo lo stesso problema già discusso per il modelli lineari e il RSS: modelli più complessi tenderanno ad avere risultati migliori ma hanno una performance peggiore quando vengono usati su campioni diversi (non sono cioè generalizzabili). 
+
+```{r}
+mean(ifelse(predict(fit_caps) > 0, 1, 0) != spam_trn$type)
+mean(ifelse(predict(fit_selected) > 0, 1, 0) != spam_trn$type)
+mean(ifelse(predict(fit_additive) > 0, 1, 0) != spam_trn$type)
+mean(ifelse(predict(fit_over) > 0, 1, 0) != spam_trn$type)
+```
+
+Un modello troppo complesso è a rischio di overfitting, un modello troppo semplice è a rischio di underfitting: dobbiamo trovare una via di mezzo. Per trovare un modello che sia un compromesso tra gli estremi tramite la validazione incrociata, ma in questo tipo di applicazioni andiamo a fare la validazioni sul tasso di errore di classificazione. Possiamo usare la funzione `cv.glm` nel pacchetto `boot`, o scrivere direttamente una funzione che implementi la validazione incrociata. Per i glm non esiste un risultato simile a quello visto per i modelli lineari che permetta di derivare con semplici calcoli analitici il valore di $RMSE_{Loo}$, dobbiamo effettivamente togliere un osservazione e ricalcolare la stima del modello. Per evitare il costo computazionale di stimare un modello di regressione $n$ volte usiamo 5-fold o 10-fold cross validation in cui togliamo da campione originale di volta in volta un quinto (o un decimo) del campione che non viene usato per la stima ma che viene usato per calcolare l'errore di stima. In pratica facciamo per 5 volte questa procedura: 
+
+* Togliamo dal campione un quinto delle osservazioni (ogni osservazione verrà tolta una volta soltanto)
+* Stimiamo il modello sui dati rimanenti
+* Valutiamo l'errore di classificazione sui dati tenuti fuori
+
+L'errore stimato dal 5-fold CV sarà la media dei 5 tassi di errore di classificazione derivati nelle 5 ripetizioni delle procedura. In questo modo otteniamo una stima dell'errore stimando il modello 5 volte invece che $n$, risparmiando sforzo computazionale. 
+
+```{r,eval=FALSE}
+n <- 2000
+errorClass <- rep(NA, n)
+for(i in 1:n){
+  fit <- glm(type ~ ., family = binomial, data = spam_trn, subset = -i)
+  errorClass[i] <- spam_trn$type[i] - ifelse(predict(fit, newdata = spam_trn[i,], type ="r") < 0.5, 0, 1)
+  # error[i] <- spam_trn$type[i] - predict(fit, newdata = spam_trn[i,], type ="r")
+}
+
+```
+
+
+
+```{r}
+cv_class <- function(K=5, dat, model, cutoff = 0.5){
+  assign_group <- rep(seq(1,K), each = floor(nrow(dat)/K))
+  ### this ensures we use all points in the dataset
+  ### this way we might have subgroups of different size 
+  if(length(assign_group) != nrow(dat)) assign_group <- c(assign_group, sample(seq(1,K)))[1:nrow(dat)] 
+  assign_group <- sample(assign_group, size = nrow(dat))
+  error <- 0
+  for(j in 1:K){
+    whichobs <- (assign_group == j)
+    ## fit a model WITHOUT the hold-out data
+    folded_model <- suppressWarnings(glm(model$formula, data = dat[!whichobs,], family = "binomial"))
+    ## evaluate the model on the hold-out data
+    fitted <- suppressWarnings(predict(folded_model,dat[whichobs,], type="response"))
+    observed <- dat[whichobs, strsplit(paste(model$formula), "~")[[2]]]
+    error <- error + mean(observed != (fitted>cutoff))/K 
+    ### in cv.glm the actual error is calculated as (y - p(y=1)) 
+    # error <- error + mean((observed - fitted)^2)/K 
+    ### the mis-classification rate will depend on how we decide what is assigned to each category 
+  }
+  error
+}
+set.seed(1)
+cv_class(K=5, dat = spam_trn, model = fit_caps)
+cv_class(K=5, dat = spam_trn, model = fit_selected)
+cv_class(K=5, dat = spam_trn, model = fit_additive)
+cv_class(K=5, dat = spam_trn, model = fit_over)
+# set.seed(1)
+# boot::cv.glm(spam_trn, fit_caps, K = 5)$delta[1]
+# boot::cv.glm(spam_trn, fit_selected, K = 5)$delta[1]
+# boot::cv.glm(spam_trn, fit_additive, K = 5)$delta[1]
+# boot::cv.glm(spam_trn, fit_over, K = 5)$delta[1]
+## to do cross validation on the actual mis-classification rate
+# mycost = function(y, yhat) mean((y != (yhat>0.5)))
+# boot::cv.glm(spam_trn, fit_caps, K = 5, cost = mycost)$delta[1]
+# boot::cv.glm(spam_trn, fit_selected, K = 5, cost = mycost)$delta[1]
+# boot::cv.glm(spam_trn, fit_additive, K = 5, cost = mycost)$delta[1]
+# boot::cv.glm(spam_trn, fit_over, K = 5, cost = mycost)$delta[1]
+```
+
+Confrontando i valori dell'errore  di validazione incrociata per i quattro modelli vediamo che `fit_caps` e `fit_selected` sembrano sottostimare la complessità del modello rispetto a `fit_additive`. In maniera speculare, `fit_over` invece sovrastima rispetto a `fit_additive`. Preferiamo quindi il modello `fit_additive` per stimare un classificatore per i dati. 
+
+Fino ad ora abbiamo usato solo il training dataset per valutare i modelli, prendendo la decisione di non usare mai i dati test nella costruzione del modello. Nella validazione incrociata per ogni iterazione togliamo dei dati che non usiamo nella stima, ma nell'intera procedura utilizziamo tutti i dati almeno una volta. Quindi per scegliere il modello in qualche modo ottimale abbiamo usato la validazione incrociata ed ora per fare delle valutazioni sull'accuratezza del modello usiamo i dati test che non sono mai stati usati nella stima.  
+
+(Per esempio avremmo anche potuto usare BIC per scegliere il modello da usare.... 
+
+```{r}
+AIC(fit_caps, fit_selected, fit_additive, fit_over, k = log(nrow(spam_trn)))
+```
+
+)
+
+Per dare una valutazione del classificatore creiamo la cosiddetta _confusion matrix_, un tabella di contingenza tra categorie osservate e stimate, che permette di differenziare tra i diversi tipi di errore: i falsi positivi (False Positive $\hat{Y} = 1$, while $Y = 0$) e i falsi negativi (False Negative, $\hat{Y} = 0$, while $Y = 1$). Sulla diagonale della matrice troviamo invece i veri positivi e veri negativi. 
+
+```{r}
+make_conf_mat <- function(predicted, actual) {
+  table(predicted = predicted, actual = actual)
+}
+# make_conf_mat(predicted = predict(fit_additive, type = "r", newdata = spam_tst) > 0.5, 
+#               actual = spam_tst$type)
+```
+
+Potremmo derivare le categorie stimate in due modi: 
+
+```{r}
+spam_tst_pred <- ifelse(
+  predict(fit_additive, spam_tst) > 0, 
+                1, 0)
+spam_tst_pred <- ifelse(
+  predict(fit_additive, spam_tst, type = "response") > 0.5, 
+                1, 0)
+```
+
+dato che 
+
+$$
+\beta_0 + \beta_1x_1 + \ldots + \beta_{p - 1}x_{p - 1} = 0 \iff p({x_1,\ldots,x_{p - 1}}) = 0.5
+$$
+
+Creiamo la matrice di confusione: 
+
+```{r}
+conf_mat_50 <- make_conf_mat(predicted = spam_tst_pred,
+     actual = spam_tst$type)
+conf_mat_50     
+```
+
+Definiamo con *Prevalence* il tasso con cui avviene l'evento di interesse (nel nostro esempio che la mail sia spam). Abbiamo quindi: 
+
+$$
+\text{Prev} = \frac{\text{P}}{\text{Total Obs}}= \frac{\text{TP + FN}}{\text{Total Obs}}
+$$
+
+```{r}
+table(spam_tst$type) / nrow(spam_tst)
+```
+
+Il classificatore meno complesso a cui possiamo pensare è quello in cui tutto viene allocato alla categoria più frequente (è quello che farebbe un modello logistico con solo l'intercetta): nel nostro esempio classificheremmo tutte le mail come vere mail (non-spam, $Y=0$), ottenendo un tasso di errore di classificazione di:
+
+```{r}
+round(as.numeric((table(spam_tst$type)[2])) / nrow(spam_tst),3)
+```
+
+che si basa su 993 errori (tutti falsi negativi). 
+
+Se invece usiamo `fit_additive` abbiamo un errore per solo $111 + 82 = 193$ mail su 2601. Abbiamo un accuratezza di 
+
+```{r}
+mean(spam_tst_pred == spam_tst$type)
+```
+
+e il tasso di errore di classificazione è 
+
+```{r}
+mean(spam_tst_pred != spam_tst$type) 
+(conf_mat_50[1,2] + conf_mat_50[2,1])/nrow(spam_tst)
+```
+
+Abbiamo migliorato di molto rispetto al modello base. Tuttavia forse non tutti gli errori sono uguali: avere vere mail che finiscono nello spam ha conseguenze diverse da avere spam che finisce nella casella di posta. Gli 82 falsi negativi sono molti e causano un problema, mentre i 111 falsi positivi delle mail di spam che finiscono della casella di posta possono essere gestiti facilmente dall'utente. 
+
+Definiamo quindi due ulteriori metriche utili per valutare dei classificatori la sensitività e la specificità. Ci sono (molte!) altre metriche che potremmo considerare, ma per ora definiamo queste due: la sensitività e la specificità. 
+
+## Sensitivity and Specificity 
+
+**Sensitivity**
+
+La sensitività è il tasso di veri positivi, quindi se cresce la sensitività diminuiscono i falsi negativi: 
+
+$$
+\text{Sens} = \text{True Positive Rate} = \frac{\text{TP}}{\text{P}} = \frac{\text{TP}}{\text{TP + FN}}
+$$
+
+```{r}
+get_sens <- function(conf_mat) {
+conf_mat[2, 2] / sum(conf_mat[, 2])
+}
+# Note that this function is good for illustrative purposes, but is easily broken. (Think about what happens if there are no "positives" predicted.)
+```
+
+**Specificity**
+
+La specificità è il tasso dei veri negativi: se aumenta la specificità diminuiscono i falsi positivi:
+
+$$
+\text{Spec} = \text{True Negative Rate} = \frac{\text{TN}}{\text{N}} = \frac{\text{TN}}{\text{TN + FP}}
+$$
+
+```{r}
+get_spec <-  function(conf_mat) {
+conf_mat[1, 1] / sum(conf_mat[, 1])
+}
+```
+
+Valutiamo il nostro classificatore in base a queste due metriche usando la matrice di confusione:  
+
+```{r}
+get_sens(conf_mat_50) # true positive rate
+get_spec(conf_mat_50) # true negative rate
+```
+
+Nel costruire il classificatore abbiamo assegnato un'osservazione ad una categoria usando il valore limite di $p = 0.5$, ma volendo potremmo usare altri limiti.
+
+
+$$
+\hat{C}({x_1,\ldots,x_{p - 1}}) = 
+\begin{cases} 
+1 & \hat{p}({x_1,\ldots,x_{p - 1}}) > c \\
+0 & \hat{p}({x_1,\ldots,x_{p - 1}}) \leq c 
+\end{cases}
+$$
+
+
+
+Cambiando questo limite potremmo migliorare sensitività e specificità, ma il prezzo da pagare è peggiorare l'errore di classificazione. Vediamo cosa succede quando cambiamo il limite da 0.5 a 0.1: 
+
+```{r}
+spam_tst_pred_10 = ifelse(predict(fit_additive, spam_tst, type = "response") > 0.1, 1, 0)
+```
+
+In questo caso stiamo diminuendo il livello per cui una mail viene indicata come spam: ci saranno molte più mail indicate come spam (come si vede dalla matrice di confusione):: 
+
+```{r}
+conf_mat_10<-make_conf_mat(predicted = spam_tst_pred_10,
+     actual = spam_tst$type)
+conf_mat_10
+# misclassification rate
+(conf_mat_10[2,1]+conf_mat_10[1,2])/sum(conf_mat_10)
+```
+
+In questo modo riduciamo (di molto) i falsi negativi, ma aumentiamo i falsi positivi: 
+
+
+```{r}
+get_sens(conf_mat_10) # true positive rate
+get_spec(conf_mat_10) # true negative rate
+#  we had 
+c(get_sens(conf_mat_50), get_spec(conf_mat_50))
+```
+
+Quando abbassiamo il limite usato per definire una mail come spam, abbiamo una sensitività più alta, ma si abbassa la specificità. Dovremmo invece cambiare il limite nell'altra direzione, proviamo ad usare $0.9$: 
+
+```{r}
+spam_tst_pred_90 <- ifelse(predict(fit_additive, 
+   spam_tst, type = "response") > 0.9, 
+1, 0)
+```
+
+In questo modo alziamo il livello necessario perché una mail venga indicata come spam: ci saranno meno mail etichettate spam (e alcune mail di spam andranno nella caselle di posta, falso negativi). Vediamo la matrice di confusione:
+
+```{r}
+conf_mat_90 <- make_conf_mat(predicted = spam_tst_pred_90, 
+         actual = spam_tst$type)
+conf_mat_90
+# misclassification rate
+(conf_mat_90[2,1]+conf_mat_90[1,2])/sum(conf_mat_90)
+```
+
+Questo è quello che volevamo ottenere: meno falsi positivi. La specificità è cresciuta un po' e la sensibilità è diminuita di molto: 
+
+```{r}
+get_sens(conf_mat_90) # true positive rate
+get_spec(conf_mat_90) # true negative rate
+#  we had 
+c(get_sens(conf_mat_50), get_spec(conf_mat_50))
+c(get_sens(conf_mat_10), get_spec(conf_mat_10))
+```
+
+Non è possibile migliorare specificità e sensitività allo stesso tempo: si deve decidere quale metrica è più importante e trovare un punto di equilibrio. 
+
+Questo modello è ovviamente molto semplice e sarebbe un pessimo filtro spam, anche perché si basa su un dataset vecchio e probabilmente poco generalizzabile. Possiamo probabilmente cercare di usare modelli più complessi per creare un filtro spam, ma giù usando un modello di regressione logistica riusciamo ad ottenere qualcosa che potrebbe in qualche modo funzionare in pratica. 
+
+
+

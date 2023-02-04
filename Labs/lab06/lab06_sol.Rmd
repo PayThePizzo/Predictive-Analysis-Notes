@@ -1,5 +1,5 @@
 ---
-title: "Lab 6 - things that can go wrong"
+title: "Lab 8 - things that can go wrong"
 author: "Ilaria Prosdocimi"
 output: 
   html_document: 
@@ -8,7 +8,7 @@ output:
 
 # Body fat
 
-Prendiamo in esame il dataset `bodyfat` che abbiamo già usato in un esercizio. Leggiamo i dati e trasformiamo altezza e e peso dalle misure imperiali (libbre e pollici) a misure decimali (Kg e cm). 
+Prendiamo in esame il dataset `bodyfat` che abbiamo già usato in un esercizio. Leggiamo i dati e trasformiamo altezzae e peso dalle misure imperiali (libbre e pollici) a misure decimali (Kg e cm). 
 
 
 ```{r}
@@ -43,120 +43,278 @@ Si desidera costruire un modello per predire la percentuale di materia grassa di
 
 ```{r}
 ## remove density 
-fit_all <- lm(Pct.BF~., data = bodyfat[,c(2:16)])
+fit_all <- lm(Pct.BF~., data = bodyfat[,-1])
 summary(fit_all)
 ```
 
+
+`Waist` e `Abdomen` sono perfettaemnte co-lienari, non è possibile stiamre l'effetto di entrambe le variabili nel modello: 
+
 ```{r}
-fit_all <- lm(Pct.BF~., data = bodyfat[,c(2:7,9:16)])
+summary(lm(Pct.BF~Abdomen, data = bodyfat[,-1]))
+summary(lm(Pct.BF~Waist, data = bodyfat[,-1]))
+cor(bodyfat$Waist, bodyfat$Abdomen)
+plot(Waist~Abdomen, data = bodyfat); abline(lm(Waist~Abdomen, data = bodyfat), col = 2)
+```
+
+
+```{r}
+## remove density and abdomen
+fit_all <- lm(Pct.BF~., data = bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))])
 summary(fit_all)
 ```
 
-```{r}
-summary(lm(Pct.BF~Neck, data = bodyfat[,c(2:7,9:16)]))
-```
-
-C'è una forte correlazione tr i predittori 
+In modello è significativo contro il modello nullo (il p-value per la statistica F è basso) ma solo alcuni dei predittori risultano essere significativi, e alcune stime hanno un segno che indica una relazione opposta a quella che ci si potrebbe aspettare e che si trova quando si stima la relazione tra il singolo predittore e la variabile risposta: 
 
 ```{r}
-signif(cor(bodyfat[,c(2:7,9:16)]),2)
+coef(lm(Pct.BF~Chest, data = bodyfat))
+coef(fit_all)["Chest"]
 ```
 
-```{r}
-summary(lm(Pct.BF~Weight, data = bodyfat[,c(2:7,9:16)]))
-summary(lm(Pct.BF~Hip, data = bodyfat[,c(2:7,9:16)]))
-summary(lm(Pct.BF~Weight+Hip, data = bodyfat[,c(2:7,9:16)]))
-plot(Weight~Hip, data = bodyfat)
-summary(lm(Weight~Hip, data = bodyfat))
-```
+Guardiamo per esempio alle relazioni bivariate tra $X_j$ e $Y$
 
 
 ```{r}
-predict(lm(Pct.BF~Weight, data = bodyfat[,c(2:7,9:16)]), newdata = data.frame(Weight = 90, Hip = 110), se.fit = TRUE)$se.fit
-predict(lm(Pct.BF~Hip, data = bodyfat[,c(2:7,9:16)]), newdata = data.frame(Weight = 90, Hip = 110), se.fit = TRUE)$se.fit
-predict(lm(Pct.BF~Weight+Hip, data = bodyfat[,c(2:7,9:16)]), newdata = data.frame(Weight = 90, Hip = 110), se.fit = TRUE)$se.fit
+par(mfrow= c(3,4))
+for(j in 2:13){
+  plot(bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))][,c(j,1)])
+  title(main = paste("betahat is", signif(coef(fit_all)[j],3)))
+} 
 ```
+
+Vediamo delle relazioni piuttosto forti tra i predittori ed $Y$ anche se alcuni predittori risultano non significativi. Inoltre la direzione della relazione stimata non sempre è quella che si vede nella relazione bivariate (questo ha senso perché la stima che si ottiene nei modelli lineari multipli per una variabile è l'effetto che ha $X_j$ su $Y$ _considerato l'effetto degli altri predittori su $Y$_). Cosa succede? Le variabili esplicative sono fortemente correlate tra loro:  
+
+```{r}
+plot(bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))])
+signif(cor(bodyfat),4)
+```
+
+Le diverse variabili esplicative stanno ''rubando''  capacità predittiva le une: abbiamo un problema di multi-colinearità. 
+
+In realtà questo può già succedere anche con modelli meno complessi, per esempio se prendessimo in considerazione solo `Weight` e `Hip` come variabili esplicative: 
+
+```{r}
+summary(lm(Pct.BF~Weight, data = bodyfat))$coef
+summary(lm(Pct.BF~Hip, data = bodyfat))$coef
+summary(lm(Pct.BF~Weight+Hip, data = bodyfat))$coef
+cor(bodyfat$Weight, bodyfat$Hip)
+```
+
+Includere una variabile esplicativa fortemente correlata ad un predittore già presente nel modello tipicamente riduce la significatività della relazione tra una o più delle variabili esplicative e la variabile risposta: questo avviene perché quando si inseriscono variabili correlate tra lor si _inflaziona_ la variabilità delle stime dei coefficienti di regressione $\beta$.  
+
+Questo ha anche un impatto sulla variabilità della predizione della funzione di regressione:  
+
+```{r}
+predict(lm(Pct.BF~Hip, data = bodyfat),newdata = data.frame(Hip = 110, Weight = 90), se.fit = TRUE)$se.fit
+predict(lm(Pct.BF~Weight, data = bodyfat),newdata = data.frame(Hip = 110, Weight = 90), se.fit = TRUE)$se.fit
+predict(lm(Pct.BF~Hip+Weight, data = bodyfat),newdata = data.frame(Hip = 110, Weight = 90), se.fit = TRUE)$se.fit
+```
+
+Vediamo anche che alcuni degli autovalori della matrice $(X^\top X)$ sono piccoli:
 
 ```{r}
 X <- model.matrix(fit_all)
-eigen(crossprod(X))$values
+format(eigen(crossprod(X))$values,scientific = FALSE)
+```
+
+questo risulta in una difficoltà ad invertire $(X^\top X)$, la cui inversa tenderà ad avere valori grandi e ad "esplodere". Quando si includono variabili correlate infatti si inflaziona la variabilità della stima. 
+Possiamo quantificare di quanto aumenta la variabilità nell'aggiungere predittori aggiuntivi tramite il _Variance Inflation Factor_ (VIF) per valutare se ci sono problematicità legate a multi-colinearità nel modello stimato. Possiamo usare la funzione `vif` nel pacchetto `car`: 
+
+```{r}
+# car::vif(fit_all)
+# mean(car::vif(fit_all))
+```
+
+Se vediamo valori di VIF > 10 si tende a dire che ci sono problemi legati a multi-colinearità: nel modello stimato ci sono molti valori di VIF > 10. 
+
+Questo indica quanto siano sovradimensionate le stime delle varianze per i parametri di regressione stimati $\beta_j$: 
+
+```{r}
+diag(solve(t(X) %*% X))[2]*(sum((bodyfat$Age-mean(bodyfat$Age))^2))
+diag(solve(t(X) %*% X))[3]*(sum((bodyfat$Weight-mean(bodyfat$Weight))^2))
+rm(X)
+```
+
+Un altro modo di interpretare il VIF è l'indicazione di quanto sia possibile stimare una delle variabili esplicative come una funzione delle altre variabili presenti nel dataset: 
+
+```{r}
+1/(1-summary(lm(Age~ Weight+Height+Neck+Chest+Waist+Hip+Thigh+Knee+Ankle+Bicep+Forearm+Wrist, data =bodyfat))$r.squared)
+1/(1-summary(lm(Weight~ Age+Height+Neck+Chest+Waist+Hip+Thigh+Knee+Ankle+Bicep+Forearm+Wrist, data =bodyfat))$r.squared)
+```
+
+In questo modello è chiaro che ci sono alcune variabili che sono combinazioni lineari quasi perfette delle altre variabili: l'informazione è in un qualche modo ridondante. Proviamo a ridurre la complessità del modello e togliamo le variabili con VIF più alto (in alternativa/esercizio - si può usare una selezione stepwise per trovare un sottomodello opportuno):  
+
+```{r}
+sort(car::vif(fit_all))
+fit_sub1 <- lm(Pct.BF ~ Age + Forearm+Wrist+Bicep+Height+Neck+Knee+Thigh, data = bodyfat)
+anova(fit_sub1, fit_all) # The simpler model gives a worse goodness of fit
+car::vif(fit_sub1); mean(car::vif(fit_sub1)) # but we still have multi-collinearity
+X <- model.matrix(fit_sub1)
+eigen(crossprod(X))$values ## still problematic
 ```
 
 ```{r}
-car::vif(fit_all)
-```
-
-
-```{r}
-fit_sub <- lm(Pct.BF ~ Ankle+Age+Forearm+Wrist+Bicep+Height+Neck+Knee+Thigh, 
-              data = bodyfat[, c(2:7, 9:16)])
-summary(fit_sub)
-car::vif(fit_sub)
-anova(fit_sub, fit_all)
-```
-
-
-```{r}
-fit_sub2 <- lm(Pct.BF ~ Age+Forearm, 
-              data = bodyfat[, c(2:7, 9:16)])
+sort(car::vif(fit_sub1))
+fit_sub2 <- lm(Pct.BF ~ Age + Forearm, data = bodyfat)
 summary(fit_sub2)
-car::vif(fit_sub2)
-anova(fit_sub2, fit_sub)
+anova(fit_sub2, fit_sub1)
+car::vif(fit_sub2); mean(car::vif(fit_sub2))
 ```
 
+Il modello `fit_sub2` ha meno problemi legati a multi-colinearità, ma ha comunque un valore più grande di $\hat{\sigma}$ e un valore di $R^2$ abbastanza più basso.  
 
-Concentriamoci ora su alcune varaibili: 
+Non facile bilanciare la necessità di ottenere modelli parsimoniosi, senza problemi legati a co-linearità ma precisi nella predizione. 
+
+Se il focus della nostra stima è la stima precisa dei parametri $\beta_j$ e dei loro errori la co-linearità è un problema che impatta la capactià di stima. Se invece ci interessa di più predirre "out-of-sample" la co-linearità può essere meno problematica, sebbene vada ad impattare la stima che possiamo fare della variabilità della stima. 
+
+## Bodyfat data: un secondo sguardo  
+
+Ci concentriamo ora su un sottoinsieme di variabili: `Weight`, `Forearm`, `Hip`, `Age` e `Ankle` 
 
 ```{r}
 plot(bodyfat[,c("Weight","Hip","Forearm","Age","Ankle","Pct.BF")])
-
-plot(bodyfat[,c("Ankle","Pct.BF")], pch = 16)
-abline(lm(Pct.BF  ~ Ankle, data  = bodyfat[,c("Ankle","Pct.BF")]), col = 1)
-abline(lm(Pct.BF  ~ Ankle, data  = bodyfat[bodyfat$Ankle < 30,c("Ankle","Pct.BF")]), col = 2)
-fit_ankle <- lm(Pct.BF  ~ Ankle, data  = bodyfat[,c("Ankle","Pct.BF")])
-plot(bodyfat$Ankle, hatvalues(fit_ankle))
-X <- model.matrix(fit_ankle)
-plot(bodyfat$Ankle, diag(X %*% solve(t(X) %*% X) %*% t(X)))
 ```
 
+Si nota immediatamente che per alcuni soggetti alcune delle variabili hanno valori molto diversi da quelli della maggior parte del campione: il caso più notevole sono due soggetti con caviglie particolarmente grandi: 
 
 ```{r}
-fit_mul <- lm(Pct.BF~ ., bodyfat[,c("Weight","Hip","Forearm","Age","Ankle","Pct.BF")])
+bodyfat[bodyfat$Ankle > 30,]
+```
+
+Guardiamo qual è l'impatto della presenza di queste due osservazioni sul modello stimato: 
+
+```{r}
+plot(bodyfat[,c("Ankle","Pct.BF")])
+points(bodyfat[bodyfat$Ankle > 30,c("Ankle","Pct.BF")], col = 2, pch = 16)
+abline(coef(lm(Pct.BF~Ankle, data = bodyfat)), col = 2)
+abline(coef(lm(Pct.BF~Ankle, data = bodyfat, subset = bodyfat$Ankle < 30)))
+```
+
+I due punti cambiano di molto la stima. Questo perché hanno un valore di _leverage_ alto: 
+
+```{r}
+plot(bodyfat$Ankle, hatvalues(lm(Pct.BF~Ankle, data = bodyfat)))
+```
+
+I due punti sono evidenti nel grafico che mostra il valore di leverage contro i residui e per uno dei due punti si nota anche un valore notevole del residuo standardizzato : 
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm(Pct.BF~Ankle, data = bodyfat))
+```
+
+Concentriamoci per un attimo sulle quantità utili per individuare punti di leva e punti particolarmente influenti nella stima:  
+
+```{r}
+fit_ankle <- lm(Pct.BF~Ankle, data = bodyfat)
+X <- model.matrix(fit_ankle)
+```
+
+Il valore di _leverage_ corrisponde alla diagonale della matrice cappello $H = X (X^{\top} X)^{-1}X^{\top}$: 
+
+```{r}
+head(hatvalues(fit_ankle))
+head(diag(X %*% solve(crossprod(X)) %*% t(X)))
+```
+
+Questa misura è semplice da visualizzare per modelli semplici ma diventa complicata quando si stanno utilizzando modelli multipli in cui un punto può avere un valore di leverage alto anche quando non è "estremo" per nessuna delle distribuzioni marginali dei predittori ma è diverso dal comportamento del resto del campione: 
+
+```{r}
+fit_mul <- lm(Pct.BF~Ankle+Weight+Age+Forearm+Hip, data = bodyfat)
+par(mfrow=c(1,2))
+plot(bodyfat$Age, hatvalues(fit_mul))
 plot(bodyfat$Ankle, hatvalues(fit_mul))
 ```
 
+I soggetti con valori molto alti per `Ankle` hanno si un valore alto di leverage ma ci sono altre osservazioni che sembrano avere un valore alto. Si nota anche come il valore dei leverage sia minimo vicino al valore della media delle $X_j$. I punti con valori alti di leverage sono soggetti per cui si osservano valori non in linea con il resto del campione:   
 
 ```{r}
+## points iwith high leverage in color 
+cvec <- rep("grey80", nrow(bodyfat))
+cvec[hatvalues(fit_mul)>0.1] <- c(2,3,4,5,6,7)
+plot(bodyfat[order(hatvalues(fit_mul)),c("Ankle","Weight","Age","Forearm","Hip")], pch = 16, 
+     col = cvec)
+```
+
+Un altro modo per valutare l'impatto che ha ogni punto sulla stima è valutare quale è la varianza per ogni residuo, R permette di estrarre questa informazione con la funzione `influence`, che crea molte misure utili a valutare l'influenza dei singoli punti sulla stima. Inoltre possiamo usare `rstandard` e `rstudent` per estrarre i residui standardizzati e studentizzati: 
+ 
+
+
+```{r}
+# ?influence
 head(rstandard(fit_mul))
 head(residuals(fit_mul)/(summary(fit_mul)$sigma*sqrt(1-hatvalues(fit_mul))))
-plot(rstandard(fit_mul)); abline(h = c(-2,2), lty = 2)
+
 head(rstudent(fit_mul))
+head(residuals(fit_mul)/(influence(fit_mul)$sigma * sqrt(1-hatvalues(fit_mul))))
+head(rstandard(fit_mul)*sqrt((fit_mul$df.residual-1)/((fit_mul$df.residual)-rstandard(fit_mul)^2)))
 ```
 
 ```{r}
-i = 24
-summary(fit_mul)$sigma
-summary(lm(Pct.BF ~ ., data = bodyfat[-i, c("Weight", "Hip", "Forearm", "Age", "Ankle", "Pct.BF")]))$sigma
+tail(sort(abs(rstandard(fit_mul))))
+tail(sort(abs(rstudent(fit_mul))))
+```
 
+I valori dei residui standardizzati sono quelli usati da R per alcuni dei grafici stampati di default:  
 
-i = 84
-predict(lm(Pct.BF ~ ., data = bodyfat[-i, c("Weight", "Hip", "Forearm", "Age", "Ankle", "Pct.BF")]), newdata = bodyfat[i, c("Weight", "Hip", "Forearm", "Age", "Ankle", "Pct.BF")])
+```{r}
+par(mfrow = c(2,2))
+plot(fit_mul)
+```
 
-bodyfat[i, c("Weight", "Hip", "Forearm", "Age", "Ankle", "Pct.BF")]
+Infatti ci si aspetta che i residui standardizzato seguano un distributzione normale standard e si più controllare velocemente se ci sono molti valori al di fuori dell'intervallo (-2,2), che pe runa normale standard dovrebbe contenere il $\approx$ 95% dei dati 
 
+Nel quarto grafico dei residui, che mostra il valore di leverage contro i residui, vediamo che c'è un punto che ha un valore grande di leverage e un residuo abbastanza grande: questi valori si riferiscono ad uno dei soggetti con un valore di `Ankle` particolarmente grande. Solo uno dei due soggetti viene evidenziato da questo grafico perché l'altro soggetto ha un valore di `Pct.BF` più in linea con la relazione generale. 
+
+Infine possiamo usare la distanza di Cook per individuare punti che abbiano una forte influenza sulla stima che si ottiene per i punti stessi: : 
+
+```{r}
+i <- 84
+ei <- bodyfat[i,"Pct.BF"] - 
+      predict(lm(formula = Pct.BF ~ Ankle + Weight + Age + Forearm + Hip, data = bodyfat, subset = -i), 
+              newdata = bodyfat[i,])
+# (residuals(fit_mul)[i]^2*hatvalues(fit_mul)[i]/((1-hatvalues(fit_mul)[i])^2))*(1/length(coef(fit_mul)))
 plot(cooks.distance(fit_mul))
-fit_withoutlargeankles <- lm(lm(Pct.BF ~ ., data = bodyfat[, c("Weight", "Hip", "Forearm", "Age", "Ankle", "Pct.BF")], subset = bodyfat$Ankle <30))
-summary(fit_withoutlargeankles)
-plot(cooks.distance(fit_withoutlargeankles))
-plot(fit_withoutlargeankles, which = 4)
-plot(fit_ankle, which = 4)
- colvec <- rep(1,250); colvec[31] <- 2; plot(bodyfat[, c("Weight", "Hip", "Forearm", "Age", "Ankle", "Pct.BF")], col = colvec, pch = 16)
 ```
 
-R permette di scegliere quali dei grafici far vedere 
+Un grafico simile viene profdotto automaticamente da R con 
 
 ```{r}
-par(mfrow=c(1,1)); plot(fit_mul, which=2, pch = 16, col = "darkred")
+plot(fit_mul, 4)
 ```
 
+La distaza di Cook viene derivata con 
+
+```{r}
+head((resid(fit_mul)^2)*(1/fit_mul$rank)*(hatvalues(fit_mul)/((1-hatvalues(fit_mul))^2))*(1/summary(fit_mul)$sigma^2))
+head(cooks.distance(fit_mul))
+# note compared to the slides R divides by summary(fit_mul)$sigma - no difference to the ranking of influential observations 
+```
+
+
+In questo dataset è probabile che i valori abnormi che vediamo siano dovuti ad errori di trascrizione ed è ipotizzabile che le caviglie di questi soggetti misurino 23.9 e 23.7 e non 33.9 e 33.7cm 
+
+```{r}
+bodyfat$Ankle[bodyfat$Ankle > 30]
+bodyfat$Ankle[bodyfat$Ankle > 30] <- bodyfat$Ankle[bodyfat$Ankle > 30] - 10
+```
+
+Che effetto ha questo cambiamento sulle stime del modello
+
+```{r}
+fit_mul_corr <- lm(Pct.BF ~ Ankle + Weight + Age + Forearm + Hip, data = bodyfat)
+par(mfrow=c(2,2))
+plot(fit_mul_corr)
+```
+
+C'è ancora un punto con un valore di leverage un po' alto ma niente di esagerato. Controllando invece le distanze di Cook
+
+```{r}
+plot(fit_mul_corr, which = 4) 
+```
+
+non vediamo osservazioni smodatamente influenti.  
+
+
+(Notice that the original plot between Density and Pct.BF shows that some of the Pct.BF calculations might not be correct for some subjects - maybe we should drop these individuals from the analysis or retrieve the correct value). 
 

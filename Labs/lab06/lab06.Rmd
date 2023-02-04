@@ -121,8 +121,8 @@ questo risulta in una difficoltà ad invertire $(X^\top X)$, la cui inversa tend
 Possiamo quantificare di quanto aumenta la variabilità nell'aggiungere predittori aggiuntivi tramite il _Variance Inflation Factor_ (VIF) per valutare se ci sono problematicità legate a multi-colinearità nel modello stimato. Possiamo usare la funzione `vif` nel pacchetto `car`: 
 
 ```{r}
-car::vif(fit_all)
-mean(car::vif(fit_all))
+# car::vif(fit_all)
+# mean(car::vif(fit_all))
 ```
 
 Se vediamo valori di VIF > 10 si tende a dire che ci sono problemi legati a multi-colinearità: nel modello stimato ci sono molti valori di VIF > 10. 
