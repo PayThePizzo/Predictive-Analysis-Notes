@@ -26,8 +26,9 @@ table(dat$opposed)
 ```
 
 ```{r}
-glm(opposed ~ year, data = dat, family = binomial)
-plot(opposed ~ year, data = dat)
+# glm(opposed ~ year, data = dat, family = binomial)
+# plot(opposed ~ year, data = dat)
+
 dat$numopp <- ifelse(dat$opposed == "opposed", 1, 0)
 plot(jitter(numopp, amount = 0.2) ~ 
        jitter(year, amount = 0.2), data = dat)
@@ -229,7 +230,8 @@ In un GLM dobbiamo fare due scelte:
 
 Simuliamo dati da una Binomiale con funzione legame logit e un predittore: 
 
-```{r}
+```{r, eval=FALSE}
+# TO FIX
 n <- 6000
 set.seed(12)
 x <- sort(runif(n, 0,1))
