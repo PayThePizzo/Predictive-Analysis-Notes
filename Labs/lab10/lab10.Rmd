@@ -5,7 +5,6 @@ output:
     toc: yes
 ---
 
-
 # La regressione logistica: un classificatore
 
 Fino ad ora quando abbiamo stimato modelli logistici per dati binari ci siamo concentrati sulla stima della funzione che descrive la probabilità di osservare un "successo". 
@@ -17,11 +16,14 @@ $$
 p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 1 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}]
 $$
 e
+
 $$
 1 - p(x_1,\ldots,x_{p - 1}) = \Pr[Y = 0 \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
 $$
 
-possiamo predire come classe di appartenenza di un'osservazione la classe a cui più probabile che appartenga l'osservazione. In generale questo tipo di classificatore è detto **the Bayes Classifier**:
+possiamo predire come classe di appartenenza di un'osservazione la classe a cui più probabile che appartenga l'osservazione. 
+
+In generale questo tipo di classificatore è detto **the Bayes Classifier**:
 
 $$
 C^B(x_1,\ldots,x_{p - 1}) = \underset{k}{\mathrm{argmax}} \ P[Y = k \mid X_1=x_1,\ldots,X_{p-1}=x_{p - 1}].
@@ -55,7 +57,7 @@ $$
 \end{cases}
 $$
 
-Possiamo quindi usare la regressione logistica per derivare le stime delle probabilità $\hat{p}({x_1,\ldots,x_{p - 1}})$, da usare poi nella classificazione.
+Possiamo quindi usare la regressione logistica per derivare le stime delle probabilità $\hat{p}({x_1,\ldots,x_{p - 1}})$, da usare poi nella classificazione e nella diagnostica.
 
 La regressione logistica non è l'unico modo in cui possiamo derivare queste probabilità, esistono altri modelli di stima ed esistono anche altri approcci alla classificazione. Tuttavia, la classificazione è uno degli usi più comuni della regressione logistica, quindi vale la pena soffermarsi su alcune caratteristiche dell'uso della regressione GLM come classificatore. 
 
@@ -75,33 +77,59 @@ names(spam) <- c("make", "address", "all", "num3d", "our", "over", "remove",
 "charHash", "capitalAve", "capitalLong", "capitalTotal", "type")
 ```
 
-Le prime 48 colonne contengono informazioni sulla frequenza di alcune parole in una mail (le parole sono dettagliate nel file `spambase.names`), mentre le colonne dalla 49 alla 54 contengono informazioni sulla frequenza di parole di una lettera e le ultime tre colonne contengono informazioni sulle parole scritte in maiuscolo. L'ultima colonna `type` è la variable risposta che contiene l'informazione se una mail era spam o una vera mail, dove lo spam è indicato con il valore 1: 
+Le prime 48 colonne contengono informazioni sulla frequenza di alcune parole in una mail (le parole sono dettagliate nel file `spambase.names`), mentre le colonne dalla 49 alla 54 contengono informazioni sulla frequenza di parole di una lettera e le ultime tre colonne contengono informazioni sulle parole scritte in maiuscolo. 
+
+L'ultima colonna `type` è la variable risposta che contiene l'informazione se una mail era spam `type = 1` o una vera mail `type = 0`: 
 
 ```{r}
 table(spam$type)
 ```
-
 Per poter valutare come il classificatore si comporta per dati di cui non ha informazioni creiamo un dataset test che non usiamo per stimare il nostro modello logistico e creare il classificatore: 
 
 ```{r}
+# Train-Test Split
 set.seed(42)
 spam_idx <- sample(nrow(spam), 2000)
-spam_trn <- spam[spam_idx,]  # train set 
-spam_tst <- spam[-spam_idx,] # test set
+
+# train set, used for model selection and diagnostics 
+spam_trn <- spam[spam_idx,] 
+
+# test set, used only at the end for evaluation
+spam_tst <- spam[-spam_idx,] 
 ```
 
 Stimiamo quattro modelli di complessità crescente: 
 
+* `fit_caps`: Un modello che considera solo il numero di maiuscole
+* `fit_selected`: Un modello che prendere alcuni predittori
+* `fit_additive`: Un modello che prende tutti i predittori
+* `fit_over`: Un modello che prende tutti i predittori e l'interazione dei predittori sul numero totale di maiuscole.
+
 ```{r}
-fit_caps <- glm(type ~ capitalTotal, data <- spam_trn, family = binomial)
-fit_selected <- glm(type ~ edu + money + capitalTotal + charDollar, data = spam_trn, family = binomial)
-fit_additive <- glm(type ~ ., data = spam_trn, family = binomial)
-fit_over <- glm(type ~ capitalTotal*(.), data = spam_trn, family = binomial, maxit = 120)
+fit_caps <- glm(type ~ capitalTotal, 
+                data <- spam_trn, 
+                family = binomial)
+
+fit_selected <- glm(type ~ edu + money + capitalTotal + charDollar, 
+                    data = spam_trn, 
+                    family = binomial)
+
+fit_additive <- glm(type ~ ., 
+                    data = spam_trn, 
+                    family = binomial)
+
+fit_over <- glm(type ~ capitalTotal*(.), 
+                data = spam_trn, 
+                family = binomial, maxit = 120)
 ```
+Riceviamo dei warning: i modelli stimati potrebbero avere dei problemi nella stima e non dovremmo fidarci troppo delle stime dei parametri (e della loro variabilità!). Questo perche' le stime (0 ed 1) non fanno parte del dominio e potrebbero essere fuorvianti. Il risultato potrebbe includere:
 
-Riceviamo dei warning: i modelli stimati potrebbero avere dei problemi nella stima e non dovremmo fidarci troppo delle stime dei parametri (e della loro variabilità!). 
+* Overfitting
+* Modello Sovraparametrizzato
 
-Tuttavia possiamo comunque costruire dei classificatori e valuteremo i modelli sulla base di quanto precisi sono i classificatori basati sulle loro stime. Come valutiamo quindi questi modelli? 
+Infatti andando ad analizzare i modelli possiamo notare che stiamo perdendo molti gradi di liberta'.
+
+Tuttavia possiamo comunque costruire dei classificatori e valuteremo i modelli sulla base di quanto precisi sono i classificatori basati sulle loro stime. **Come valutiamo quindi questi modelli?** 
 
 ## La valutazione di un classificatore 
 
@@ -122,15 +150,40 @@ I(y_i \neq \hat{C}({x_{i,1},\ldots,x_{i,p - 1}})) =
 $$
 Se usiamo questi due tassi per valutare un classificatore sul dataset usato per stimare il modello abbiamo lo stesso problema già discusso per il modelli lineari e il RSS: modelli più complessi tenderanno ad avere risultati migliori ma hanno una performance peggiore quando vengono usati su campioni diversi (non sono cioè generalizzabili). 
 
-Valutiamo la misclassification rate.
 ```{r}
-mean(ifelse(predict(fit_caps) > 0, 1, 0) != spam_trn$type)
-mean(ifelse(predict(fit_selected) > 0, 1, 0) != spam_trn$type)
-mean(ifelse(predict(fit_additive) > 0, 1, 0) != spam_trn$type)
-mean(ifelse(predict(fit_over) > 0, 1, 0) != spam_trn$type)
+# When the estimate for the 
+# linear predictor is greater than 0, 
+# we assign the type to spam
+par(mfrow=c(1,2))
+
+plot(predict(fit_caps), col = 1 + (predict(fit_caps)>0), pch=1,
+     main="Misclassification", xlab = "Index", ylab="Estimated Y")
+
+legend(x="topright", legend=c("Not spam","Spam"),
+       col=c("black","red"), lwd=1, lty=c(NA,NA), 
+       pch=c(1,1))
 ```
 
-Un modello troppo complesso è a rischio di overfitting, un modello troppo semplice è a rischio di underfitting: dobbiamo trovare una via di mezzo. Per trovare un modello che sia un compromesso tra gli estremi tramite la validazione incrociata, ma in questo tipo di applicazioni andiamo a fare la validazioni sul tasso di errore di classificazione. 
+Valutiamo la misclassification rate.
+```{r}
+# Misclassification rate for fit_caps
+c("fit_caps misclassification rate", 
+  mean(ifelse(predict(fit_caps) > 0, 1, 0) != spam_trn$type))
+
+# Misclassification rate for fit_selected
+c("fit_selected misclassification rate",
+  mean(ifelse(predict(fit_selected) > 0, 1, 0) != spam_trn$type))
+
+# Misclassification rate for fit_additive
+c("fit_additive misclassification rate",
+  mean(ifelse(predict(fit_additive) > 0, 1, 0) != spam_trn$type))
+
+# Misclassification rate for fit_over
+c("fit_over misclassification rate",
+  mean(ifelse(predict(fit_over) > 0, 1, 0) != spam_trn$type))
+```
+Un modello troppo complesso è a rischio di overfitting, un modello troppo semplice è a rischio di underfitting: dobbiamo trovare una via di mezzo. Per trovare un modello che sia un compromesso tra gli estremi tramite la **validazione incrociata**, ma in questo tipo di applicazioni andiamo a fare la **validazioni sul tasso di errore di classificazione**. 
+Altrimenti useremmo delle metriche in-sample, quando preferiamo una misura generalizzabile.
 
 ### Cross-validation based on misclassification rate
 

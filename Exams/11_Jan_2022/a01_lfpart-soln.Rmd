@@ -60,6 +60,7 @@ anova(fit2, fit1)
 Usando anova per confrontare fit1 e fit2 (che sono due modelli annidati) si verifica l'ipotesi nulla: \[H_0: \beta_{age} = 0 \]
 contro l'ipotesi alternativa 
 \[H_1: \beta_{age} \neq 0 \]
+
 Si verifica cioè se è possibile eliminare un predittore dal modello (e stimare un parametro in meno) ed ottenere una stima comparabile in termine di errore quadratico medio (RSS). 
 Dato che il p-value del test `anova` è molto alto non si può rifiutare l'ipotesi nulla: non vi è evidenza che mantenere la variabile `age` migliori la stima del modello e possiamo quindi eliminare la variabile. 
 
@@ -82,6 +83,7 @@ summary(dex1$numAccess)
 
 Il secondo intervallo di confidenza è più ampio del primo: questo perché non ci sono utenti nel campione che abbiano eseguito 200 accessi: per fare una stima per quel tipo di utente è necessario estrapolare la stima ben oltre i valori con cui il modello è stato stimato e quindi vi è molta incertezza nella stima. 
 Questo è vero sia per gli intervalli di confidenza che per gli intervalli di predizione. 
+
 Gli intervalli di confidenza danno un'indicazione dell'incertezza attorno al valore medio del tempo passato da ogni utente nell'app; gli intervalli di predizione invece danno un'indicazione dell'incertezza per quelli che possono essere gli effettivi valori del tempo passato da un utente nell'app. Dato che la media è per definizione meno variabile delle singole osservazioni gli intervalli di confidenza sono meno ampi degli intervalli di predizione.  
 
 

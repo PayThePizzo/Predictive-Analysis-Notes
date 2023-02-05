@@ -71,6 +71,7 @@ fit_bin <- glm(opposed ~ year, data = dat, family = binomial)
 ```
 
 Guardando le indicazioni in `?binomial` (che rimanda a `?family`) vediamo che non possiamo fornire una stringa come variabile risposta, ma dobbiamo usare: 
+
 * un fattore 
 * un valore numerico tra 0 e 1 (usando eventualmente anche l'opzione `weights`)
 * una matrice di due colonne 

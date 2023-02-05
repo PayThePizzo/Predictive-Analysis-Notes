@@ -31,7 +31,6 @@ Import dataset
 pengs <- read.csv("C:/Users/PayThePizzo/Projects/PredictiveAnalysisNotes/Labs/lab01/penguins.csv")
 ```
 
-
 Show a summary of the data
 
 * Returns `Min.`, `1st Qu.`, `Median`, `Mean`, `3rd Qu.`, `Max`, `NA's` for numerical variables
@@ -114,6 +113,8 @@ In R we use: `fit <- lm(formula = target ~ predictor, data = dataset)`
 
 fit <- lm(flipper_length_mm ~ body_mass_g , data = pengs)
 ```
+
+## Sampling
 
 Manually we estimate the coefficients through:
 
@@ -201,7 +202,11 @@ scatterplot_slr_model(pengs, pengs$flipper_length_mm, pengs$body_mass_g, ylabel 
 ```
 
 
-##
+## Inference
+
+Gli intervalli di confidenza danno un'indicazione dell'incertezza attorno al valore medio del tempo passato da ogni utente nell'app; gli intervalli di predizione invece danno un'indicazione dell'incertezza per quelli che possono essere gli effettivi valori del tempo passato da un utente nell'app. Dato che la media è per definizione meno variabile delle singole osservazioni gli intervalli di confidenza sono meno ampi degli intervalli di predizione.
+
+## Prediction
 
 This is considered interpolation as 3420 is not an observed value of x. (But is in the data
 range.)
@@ -235,7 +240,23 @@ coefficients(fit)[1] + coefficients(fit)[2] * 7500
 
 ---
 
-## SLR - Gaussian Noise
+# SLR - Gaussian Noise
+
+The model is briefly specified as follows (these are the assumptions):
+
+\[ Y_i|X=x_i \stackrel{iid}{\sim} N(\beta_0 + \beta_1 x_i, \sigma) \quad \quad \forall i= 1, \ldots, n \]. 
+
+or
+
+\[ Y = \beta_0 + \beta_1 x_i + \epsilon_{i} \quad \quad \forall i= 1, \ldots, n \]. 
+
+with $\epsilon \thicksim \mathcal{N}(0, \sigma^2)$ (independent errors)
+
+```{r, eval=FALSE}
+fit <- lm(formula = target ~ predictor, data = dataset)
+```
+
+
 
 $$\widehat{m}(x) \sim \mathcal{N}\left(\beta_{0}+\beta_{1}x, \sigma^{2}\left( \frac{1}{n}+\frac{(x-\bar{x})^2}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2} \right) \right) $$
 
@@ -246,7 +267,6 @@ $$\frac{\widehat{m}(x)-Y}{SE[\widehat{m}(x)]} \sim t_{n-2}$$
 $$\downarrow$$
 
 $$SE[\widehat{m}(x)] = s_{e}\sqrt{\frac{1}{n} + \frac{(x-\bar{x})^2}{\sum_{i=1}^{n}(x_{i}-\bar{x})^2}}$$
-
 
 ```{r, eval=FALSE}
 fit <- lm(formula = target ~ predictor, data = dataset)
@@ -308,11 +328,30 @@ computeSumSquares <- function(bs, y, x){
 }
 ```
 
-##
-
 ## Inference
 
 ### Confidence Intervals
+
+For some beta
+
+```{r}
+# EST + CRIT * sigma
+confint_samp <- function(est, alpha, sigma_est, n_rows, predictors){
+    est + qt(c(0.0 + (alpha/2), 1.0 - (alpha/2)), df=(n_rows-predictors)) * sigma_est
+}
+
+eval_hyp <- function(est, hyp, sigma_est, n_rows, predictors, alpha){
+    ts <- (est-hyp)/sigma_est
+    interval <- qt(c(0.0 + (alpha/2), 1.0 - (alpha/2)),
+                   df=(n_rows-predictors))
+    data.table::between(ts,
+                    interval[1],
+                    interval[2])
+}
+
+eval_hyp(1.5, 3, 2, 10, 2, alpha=0.05)
+
+```
 
 ### Prediction Intervals
 
@@ -323,7 +362,17 @@ computeSumSquares <- function(bs, y, x){
 
 # MLR
 
-$$$$
+The model is specified as follows (these are the assumptions):
+
+\[ target_{i} = \beta_{0} + \beta_{1}first_{i} + \beta_{2}second_{i} + \ldots + \beta_{p-1}pth + \epsilon_{i} \quad \quad \forall i=1,\ldots,n \]
+
+with $\epsilon_{i} \thicksim \mathcal{N}(0, \sigma^{2})$ (independent errors).
+
+```{r, eval= FALSE}
+fit <- lm(target~predictor1+predictor2, data = df)
+```
+
+## Sampling
 
 ```{r, eval=FALSE}
 ##lm - modelli lineari  -------
@@ -392,25 +441,252 @@ step(object = lm(y~1, data = df),
 
 ```
 
+## Inference
+
+### Confidence Intervals
+
+### Prediction Intervals
+
+### Hypothesis Testing
+
+## Model Selection
+
+### ANOVA
+
+## Quality Criterion
+
+```{r,eval=FALSE}
+logLik(fit)
+```
+
+### AIC
+
+$$-2logLik(M) + 2p(M)$$
+```{r, eval=FALSE}
+AIC(fit, k=2)
+
+# or
+AIC_man <- function(loglikelihood, p){
+    ((-2*loglikelihood)+(2*p))
+}
+```
+
+### BIC
+
+$$-2logLik(M)+ log(n)p(M)$$
+```{r, eval=FALSE}
+AIC(fit, k=log(n))
+
+BIC_man <- function(loglikelihood, n, p){
+    ((-2*loglikelihood)+(log(n)*p))
+}
+```
+
+
+### Adjusted $R^{2}$
+
+$$Adj-R^{2} = 1 - \frac{SS_{RES}/(n-p-1)}{SS_{TOT}/(n-1)}$$
+```{r, eval=FALSE}
+summary(fit)$adj.r.squared
+
+adj_r_squared <-function(y, y_hat, n,p){
+    (sum((y-y_hat)**2)/(n-p-1))/(sum((y-mean(y))**2)/(n-1))
+}
+```
+
+## Variable Selection
+
+### Stepwise Selection
+
+Forward S.S., Backward S.S, Septwise Search (Both)
+
+---
+
+## Categorical Predictors
+
+## Interactions
+
+## Categorical Predictors and Interactions
+
+--- 
+
+# Model Checking - LINE
+
+The assumptions for the model can be briefly written as:
+
+* Linearity: The response can be written as a linear combination of the predictors (With some nois about this true linear relationship);
+* Independence: The errors and the observations are independent;
+* Normality: The distribution of the errors $\epsilon \thicksim \mathcal{N}(0, \sigma^2)$;
+* Equal Variance: Homoskedasticity, the error variance is the same at any set of predictor values.
+
+These assumptions are typically verified through the study of the residuals.
+
+Queste assunzioni vengono tipicamente verificate tramite lo studio dei residui. Dalle informazioni a nostra disposizione non c'è modo di sapere se le aziende in esame sono indipendenti tra loro. 
+
+Dai grafici dei residui si nota che le altre assunzioni sembrano non essere valide per il modello `fit1`: i residui dimostrano di non essere sparsi in maniera casuale in funzione dei valori stimati, indicando problemi con l'assunzione di linearità della relazione (che già si notava nel grafico fatto al punto b), la varianza cresce al crescere dei valori stimati, le code della distribuzione dei residui sono più pesanti di quelle che ci si aspetterebbe da un campione estratto da una normale. Inoltre ci sono alcuni punti che hanno una forte influenza sulla stima, come evidenziato dal fatto che per alcuni punti la distanza di Cook e molto grande. 
+
+
+## Linearity
+We can check the linearity in many ways
+
+Plot $Y \text{ vs } \beta_{j}$
+
+```{r}
+
+```
+
+## Independence
+Hard to test unless specified in the data. We have no way to know whether the observations are independent between them.
+
+
+## Normality
+
+```{r}
+
+```
+
+## Equal Variance/ Homoskedasticity
+
+```{r}
+
+```
+
+---
+
+# Transformations
+
+
+
+---
+
+# Collinearity 
+
+Relationship of dependence involving pairs of predictors
+
+Can be checked through 
+
+* Pairplots
+* Correlation Matrix
+
+# Multicollinearity
+
+Relationship of dependence involving 3 or more of predictors
+
+Some signals include
+
+* 
+
+## VIF
+
+---
+
+# Influence
+
+
+
 ---
 
 # GLM
 
+
+## Poisson
+
+```{r, eval=FALSE}
+fit_pois <- glm(target~predictor1, 
+               data = df, 
+               family = poisson())
+```
+
 $$$$
 
 ```{r, eval=FALSE}
-##glm - modelli lineari generalizzati -------
+# Linear Predictor Estimate
 
-##in questo esempio usiamo una Poisson 
+# Manually with 
+# xb = beta0 + beta1 * x
 
-df <- data.frame(x1 = runif(15), x2 = runif(15), y  = rpois(15, 6))
+linear_pred <- predict(fit_pois, 
+                       newdata = nd, 
+                       type = "link")
+```
 
-## stima del modello 
-fit <- glm(y~x1+x2, data = df, family = poisson()) 
-## di default si usa la funzione legame canonica
-poisson()$link
-summary(fit) ## varie informazioni riassuntive sulla stima
-coef(fit) ## valori stimati dei coefficienti del modello 
+$$\mathbb{E}[Y=1|X=x] = exp(X\beta)$$
+```{r, eval=FALSE}
+# Expected Value Estimate
+
+# xb = beta0 + beta1 * x
+glm_pois_mu <-function(xb){
+    exp(xb)
+}
+
+response_pred <- predict(fit_pois, 
+                         newdata = nd, 
+                         type = "response")
+```
+
+## Bernoulli
+
+$$[Y|X=x] \thicksim Bern(p(x)) \rightarrow [Y|X=x] \thicksim Bin(k=1, p(x))$$
+
+```{r, eval=FALSE}
+fit_bern <- glm(target~predictor1, 
+                data = df, 
+                family = binomial())
+```
+
+$$$$
+
+```{r, eval=FALSE}
+# Fitted values on link scale
+
+xb <- coef(fit_bern)[1] + coef(fit_bern)[2] * nd$predictor1
+
+linear_pred <- predict(fit_bern, 
+                       newdata = nd, 
+                       type = "link") #default
+```
+
+$$\mathbb{E}[Y=1|X=x] = logit(X\beta)  = \frac{e^{X\beta}}{1-e^{X\beta}}$$
+
+```{r, eval=FALSE}
+# Fitted values on response scale
+
+# Manually with 
+# xb = beta0 + beta1 * x
+glm_bern_mu <- function(xb){
+    (exp(xb)/(1+exp(xb)))
+}
+
+# Or
+# nd <- data.frame(predictor1=c(0.5, ...))
+
+response_pred <- predict(fit_bern, 
+                         newdata = nd, 
+                         type="response")
+```
+
+$$oddsratio$$
+```{r}
+glm_odds_ratio <- function(xb){
+    (xb)
+}
+```
+
+## Binomial
+
+$$[Y|X=x] \thicksim Bin(k, p(x))$$
+
+```{r, eval=FALSE}
+fit_glm <- glm(target~predictor1+predictor2, data = df, family = binomial())
+```
+
+
+
+$$$$
+
+## Inference and Prediction
+
+```{r, eval=FALSE}
 confint.default(fit) ## intervalli di confidenza per i coefficienti del modello 
 
 ## predizione 
@@ -427,8 +703,11 @@ a <- predict(fit, newdata = nd, se.fit = TRUE); a
 alpha = 0.05
 cbind(a$fit + qnorm(alpha/2) * a$se.fit, 
       a$fit + qnorm(1-alpha/2) * a$se.fit)
-      
-        
+```      
+
+## Residuals
+
+```{r, eval = FALSE}     
 # residui 
 residuals(fit) ## di default deviance residuals 
 residuals(fit, type = "pearson") ## type = c("deviance", "pearson", "response"))
@@ -440,11 +719,13 @@ AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazi
 ## test anova per modelli annidati 
 # anova(small_model, big_model)
 anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
+```
 
+---
 
+## GLM - Classifier
 
-## glm as a classifier ------------- 
-
+```{r, eval=FALSE}
 ## funzioni implementate nelle slides/laboratorio 
 
 
@@ -490,8 +771,6 @@ get_spec <-  function(conf_mat) {
 }
 ```
 
----
-
-## GLM - Classifier
+##
 
 
