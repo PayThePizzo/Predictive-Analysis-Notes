@@ -1,0 +1,298 @@
+---
+title: "Tentativo - MLR Exercises"
+author: "Gianmaria Pizzo"
+output:
+  html_document:
+    fig_caption: yes
+    theme: flatly
+    highlight: pygments
+    code_folding: show
+    toc: yes
+    toc_depth: 1
+    number_sections: yes
+    toc_float:
+      smooth_scroll: no
+---
+
+# Esercizio 1
+
+I dati in grain.dat sono stati raccolti nel 2007 in uno studio sulla 
+relazione tra la resa in termini di alcool nel processo di distillazione 
+e l’azoto contenuto nel grano distillato. I dati sono stati raccolti in quattro diverse aree del Regno Unito.
+
+```{r}
+grains <-read.table("grains.dat")
+```
+
+Il dataset ha tre colonne: 
+
+* nitrogen, la percentuale di azoto (per kilogrammo),
+* alcohol e la resa in alcool in Litri per Tonnellata, 
+* elocation indica il luogo in cui e stato coltivato il grano. 
+
+[Il dataset e stato reso disponibile da Julian Faraway.] 
+
+La relazione tra la resa in termini di alcool e l’azoto contenuto nel grano pu`o essere indagata con il seguente modello lineare:
+
+$$alcohol_{i} = \alpha + \beta \text{ nitrogen}_{i} + \epsilon_{i}$$
+
+##
+
+Si produca un grafico dei dati. La relazione tra le variabili in esame appare lineare?
+
+```{r}
+fit_grain <- lm(alcohol~nitrogen, data = grains)
+plot(alcohol~nitrogen, data = grains)
+```
+
+La relazione tra le variabili in esame apparte lineare, sebbene si evidenzino dei cluster, rispettivamente nei range (1.6,2.0) e (2.1, 2.5).
+
+##
+
+Si dia una stima puntuale (stimare i coefficienti) per $\alpha$ e $\beta$
+
+\[ \widehat{alcohol_{i}} = \hat{\beta_{0}} + \hat{\beta_{1}}nitrogen_{i} + \epsilon_{i} = `r signif(as.numeric(fit_grain$coefficients[1]),5)` `r signif(as.numeric(fit_grain$coefficients[2]), 5)` \text{ }nitrogen_{i} + \epsilon_{i} \]
+
+```{r}
+fit_grain$coefficients
+```
+
+##
+
+Si dia una stima intervallare ad un livello di confidenza di 99% per $\alpha$ e $\beta$
+
+```{r}
+confint(fit_grain, level=0.99)
+```
+
+##
+
+Quali sono le assunzioni necessarie per poter aver stime puntuali per i valori $\alpha$ e $\beta$? 
+
+Per poter ottenere delle stime puntuali di $\alpha$ e $\beta$, si assume che le osservazioni siano indipendenti fra loro ed identicamente distribuite con varianza costante e valore atteso che cambia approssimatamente linearmente con X.
+
+Quali sono le assunzioni necessarie per poter ottenere delle stime intervallari per $\alpha$ e $\beta$?
+
+Per poter ottenere delle stime intervallari per $\alpha$ e $\beta$ si assume **anche** che gli errori siano indipendenti e seguano una distribuzione normale a media zero e varianza costante (omoschedasticita' degli errori) $\mathcal{N}(0, \sigma^2)$.
+
+##
+
+Si aggiunga la retta delle relazione stimata tra alcohol e nitrogen al
+grafico ottenuto al punto 1.
+
+```{r}
+plot(grains[,c("nitrogen","alcohol")])
+# Or
+# plot(alcohol~nitrogen, data = grains)
+
+abline(fit_grain, col=2)
+# Or
+#abline(a=coefficients(fit_grain)[1], b=coefficients(fit_grain)[2], col=2)
+```
+
+
+##
+
+Il dataset contiene la variabile `location`. 
+
+```{r}
+sort(unique(grains$location))
+```
+
+Si scriva in forma estesa il modello che R stima quando si usa la funzione `lm(alcohol~location, data = grain)`.
+
+$$alcohol_{i} = \alpha + \beta_{location} + \epsilon_{i}$$
+con $\epsilon_{i} \stackrel{iid}\thicksim \mathcal{N}(0, \sigma^{2})$ varianza costante $\forall i=1,\ldots,n$
+
+Il modello stimerebbe 4 rette diverse (considerando che $beta_{0}$ e' relativo al reference level rappresentato da `location = Aberdeen`):
+
+* $[alcohol | location = Aberdeen] = \alpha + \epsilon_{i}$ 
+* $[alcohol | location = Berwicks] = \alpha + \beta_{Berwicks}+ \epsilon_{i}$
+* $[alcohol | location = E.Lothian] = \alpha + \beta_{E.Lothian} + \epsilon_{i}$
+* $[alcohol | location = Norfolk] = \alpha + \beta_{Norfolk} + \epsilon_{i}$
+
+##
+
+E valida l’affermazione che la variabile location spiega una buona parte della variabilita della variabile alcohol?
+
+```{r}
+fit_grain2 <-lm(alcohol~location, data = grains)
+summary(fit_grain2)$r.squared
+```
+L'affermazione che la variabile location spiega una buona parte della variabilita della variabile alcohol, e' valida poiche' l'$R^2$ conferma che circa il `r (signif(summary(fit_grain2)$r.squared, 3)*100)` percento della varianza osservata nei dati e' spiegata dalla relazione lineare tra alcohol e la variabile location. 
+
+##
+
+Se si aggiunge la variabile location al modello in eq. (1) in cui solo nitrogen era presente nel modello, l’aggiunta di location **risulta significativa**? Come si puo misurare
+l’evidenza contro la non-inclusione di location nel modello?
+
+```{r}
+fit_grain_all <- lm(alcohol~nitrogen+location, data=grains)
+summary(fit_grain)
+summary(fit_grain_all)
+```
+L'aggiunta della variabile `location` al modello che includeva solo `nitrogen` 
+introduce una maggior varianza nella stima dell'intercetta e di nitrogen, il quale
+ora risulta molto poco significativo all'interno del modello. 
+
+Si evidenzia un aumento della statistica $R^{2}$ che e' probabilmente sintomo 
+di una sovraparmetrizzazione del modello, che aumenta di pochi punti, 
+considerando che si aggiungono 3 nuovi parametri stimati (e nessuno dei 
+quali e' particolamente significativo).
+
+Il confronto tra i modelli puo' essere svolto tramite un ANOVA poiche' i modelli sono modelli *nested*
+
+```{r}
+anova(fit_grain, fit_grain_all)
+```
+Dal test, vediamo che l'aggiunta della variabile `location` non risulta essere
+particolarmente significativa dal fatto che l' RSS aumenta di relativamente pochi
+punti sebbene una perdita di 3 gradi di liberta'. Inoltre il valore della statistica
+F e' alto e cio' indica che possiamo confermare il fatto che l'aggiunta della variabile
+non risulta significativa.
+
+##
+
+Si produca un grafico della relazione tra location e nitrogen - cosa si puo notare?
+
+```{r}
+par(mfrow = c(1,2))
+plot(as.numeric(factor(grains$location)), grains$nitrogen)
+boxplot(nitrogen~location, data=grains)
+```
+Dal grafico si evince che le due variabili hanno una relazione tra loro: sono
+parzialmente co-lineari.
+
+Inoltre, si nota che due fattori di location `Berwicks` e `E.Lothian`, hanno distribuzioni
+simili, e che una fusione dei due livelli possa giovare, se si include location nel
+modello.
+
+
+##
+
+Come si spiega la differenza dei p-value per location nei modelli stimati 
+al punto 6 e al punto 8?
+
+```{r}
+summary(fit_grain2)
+summary(fit_grain_all)
+```
+
+Dato che location è co-lineare con nitrogen sebbene la variabile sia significativa 
+quando inserita nel modello come unico predittore, essa diventa non significativa 
+quando viene inserita una combinazione con una variabile con cui è legata.
+
+##
+
+Usando il modello specificato in eq. (1): si predica il valore medio della resa di alcool per del grano contenente il 1.9% e il 2.7% di azoto per kilogrammo.
+
+```{r}
+nd <- data.frame(nitrogen = c(1.9, 2.7))
+
+predict(fit_grain, newdata=nd)
+```
+
+##
+
+Si stimino gli intervalli di confidenza al 95% per i valori medi della resa di alcool stimati al punto 11. 
+
+Quale `e l’ampiezza di questi intervalli: si spieghi la differenza nell’ampiezza.
+
+```{r}
+pred <- predict(fit_grain, newdata=nd, interval="confidence", level=0.95)
+
+# Range valori
+c(range(grains$nitrogen), mean(grains$nitrogen))
+
+# Ampiezza Intervalli
+c(pred[1,3]-pred[1,2],pred[2,3]-pred[2,2])
+```
+Gli intervalli stimati, prendono in considerazione due osservazioni ipotetiche
+in cui la prima assume un valore di `nitrogen` pari a `1.9` (all'interno del range dei valori osservati e vicino alla media); di conseguenza l'intervallo di confidenza per questa osservazione e' molto piu' stretto del secondo caso in cui
+stiamo estrapolando una stima del valore medio, dato che `2.7` e' fuori dal range dei valori osservati di `nitrogen`
+
+##
+
+Usando il modello specificato in eq. (1): si predica il valore effettivo della resa di alcool per del grano contenente il 1.9% e il 2.7% di azoto per kilogrammo. 
+Si dia una anche una valutazione degli intervalli predittivi al 95% per questi valori.
+
+```{r}
+pred2 <- predict(fit_grain, newdata=nd, interval="prediction", level=0.95)
+
+pred2
+
+# Ampiezza Intervalli
+pred2[,3]-pred2[,2]
+```
+
+Anche negli intervalli di predizione notiamo che quando il modello vine usato per predire valori al di fuori dell'intervallo osservato nei dati originali questa predizione sarà molto più incerta
+
+---
+
+# Esercizio 2
+
+I dati nel file hotel.csv contengono informazioni sulla temperatura (X) e sul livello di occupazione di tre hotel (Y) in tre diverse citta.
+
+```{r}
+hotels <- read.csv("hotels.csv")
+
+summary(hotels)
+```
+
+## 
+
+Si producano grafici di dispersione (o altri grafici che si ritengono utili) per valutare la relazione tra le variabili presenti nel dataset
+
+
+```{r}
+plot(hotels)
+```
+
+
+## 
+
+Si stimi un modello lineare in cui si assume che il tasso di occupazione degli alberghi dipenda dalla temperatura: si dia un’interpretazione del modello stimato
+
+$$Y_{i} = \beta_{0} + \beta_{1}x_{i} + \epsilon_{i}$$
+con $\epsilon \stackrel{iid}\thicksim \mathcal{N}(0, \sigma^2)$
+
+```{r}
+fit_hotel <- lm(y~x ,data=hotels)
+```
+
+## 
+
+Si stimino separatamente tre modelli lineari per ogni citt`a per studiare come il tasso di occupazione
+degli alberghi dipende dalla temperatura. Si dia un’interpretazione dei tre modelli confrontando i
+risultati con quelli ottenuti al punto 2.
+
+## 
+
+Alla luce dei modelli stimati al punto 3 - si specifichi un modello che si ritiene possa essere utile per
+spiegare nella maniera migliore possibile la variabilit`a dell’occupazione degli hotel al variare della
+temperatura in tutte le citt`a incluse nel dataset.
+
+
+---
+
+# Esercizio 3
+
+---
+
+# Esercizio 4
+
+---
+
+# Esercizio 5
+
+---
+
+# Esercizio 6
+
+---
+
+# Esercizio 7
+
+
+
+

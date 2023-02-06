@@ -14,14 +14,11 @@ output:
       smooth_scroll: no
 ---
 
-Get some more context by looking up the more complete version at [Handbook Formulas for Predictive Analysis](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/Analisi_Predittiva.pdf)
-
 # Setting Up, Basics and Plots
 
 Make sure to set the working directory properly. You can even create the file inside the folder to reach datasets from other sources. 
 ```{r, eval=FALSE}
 # setwd()
-
 # getwd()
 ```
 
@@ -105,12 +102,10 @@ Plot
 # SLR - Least Squares
 
 $$Y = \beta_{0} + \beta_{1}X + \epsilon$$
-In R we use: `fit <- lm(formula = target ~ predictor, data = dataset)`
 
 ```{r}
 # If not done before
 # pengs <- na.omit(pengs)
-
 fit <- lm(flipper_length_mm ~ body_mass_g , data = pengs)
 ```
 
@@ -226,8 +221,11 @@ coefficients(fit)[1] + coefficients(fit)[2] * 7500
 
 ### 
 
-
 ## Residuals
+
+```{r, eval = FALSE}
+
+```
 
 ## Goodness of fit
 
@@ -299,7 +297,7 @@ $$s_e^2 = \frac{\sum_{i=1}^{n}(y_{i} - \hat{y}_{i})^2}{n-2} $$
 #y <- pengs$flipper_length_mm
 #n <- length(x)
 
-# <- sum((x-mean(x))^2)/n
+#s2x <- sum((x-mean(x))^2)/n
 #s2y <- sum((y-mean(y))^2)/n
 
 #covxy <- cov(x,y) 
@@ -370,6 +368,9 @@ with $\epsilon_{i} \thicksim \mathcal{N}(0, \sigma^{2})$ (independent errors).
 
 ```{r, eval= FALSE}
 fit <- lm(target~predictor1+predictor2, data = df)
+
+## la matrice di disegno usata nella stima
+model.matrix(fit)
 ```
 
 ## Sampling
@@ -427,18 +428,21 @@ anova(lm(y~x1, data = df), fit)
 # k: per definire la penalizzazione del criterio di informazione
 # direction: per la direzione: forward, backward, both
 
-step(object = lm(y~1, data = df), 
-     scope = list(lower = lm(y~1, data = df), 
-                  upper = fit), 
-     direction = "forward",
-     k = 2
-) ## 
 
 
 ## trasformazione di Box-Cox 
 ## da usare se y|X risulta non-normale 
 ## MASS::boxcox
 
+```
+
+## Residuals
+
+```{r, eval=FALSE}
+# residui 
+residuals(fit) ## these are y - fitted(fit)
+rstandard(fit) ## standardised residuals 
+rstudent(fit)  ## studentized residuals 
 ```
 
 ## Inference
@@ -452,6 +456,14 @@ step(object = lm(y~1, data = df),
 ## Model Selection
 
 ### ANOVA
+
+```{r, eval=FALSE}
+## test anova per modelli annidati 
+# anova(small_model, big_model)
+anova(fit_small, fit_big)
+```
+
+Large F statistic -> reject H_{0}
 
 ## Quality Criterion
 
@@ -477,6 +489,8 @@ $$-2logLik(M)+ log(n)p(M)$$
 ```{r, eval=FALSE}
 AIC(fit, k=log(n))
 
+BIC(fit)
+
 BIC_man <- function(loglikelihood, n, p){
     ((-2*loglikelihood)+(log(n)*p))
 }
@@ -485,7 +499,7 @@ BIC_man <- function(loglikelihood, n, p){
 
 ### Adjusted $R^{2}$
 
-$$Adj-R^{2} = 1 - \frac{SS_{RES}/(n-p-1)}{SS_{TOT}/(n-1)}$$
+$$\text{Adjusted }R^{2} = 1 - \frac{SS_{RES}/(n-p-1)}{SS_{TOT}/(n-1)}$$
 ```{r, eval=FALSE}
 summary(fit)$adj.r.squared
 
@@ -496,9 +510,60 @@ adj_r_squared <-function(y, y_hat, n,p){
 
 ## Variable Selection
 
-### Stepwise Selection
+### Forward Stepwise Selection
 
-Forward S.S., Backward S.S, Septwise Search (Both)
+```{r, eval=FALSE}
+# Define null and full model
+
+# FS - AIC
+step(null, 
+     scope=list(lower=null, upper=full), 
+     direction="forward", k=2, trace=1)
+
+# FS - BIC
+step(null, scope=list(lower=null, upper=full), 
+     direction="forward", k=log(n), trace=1)
+```
+
+### Backward Stepwise Selection
+
+```{r, eval=FALSE}
+# Define null and full model
+
+# BS - AIC
+step(full, scope=list(lower=null, upper=full), 
+     direction="backward", k=2, trace=1)
+# BS - BIC
+step(full, scope=list(lower=null, upper=full), 
+     direction="backward", k=log(n), trace=1)
+```
+
+
+### Stepwise Selection (Both)
+
+```{r, eval=FALSE}
+# Define null, intermediate and full model
+
+# Step - AIC
+step(intermediate, 
+     scope = list(lower = null, upper=full),
+     direction="both", trace=1, k=2)
+
+# Step - BIC
+step(intermediate, 
+     scope = list(lower = null, upper=full),
+     direction="both", trace=1, k=log(n))
+```
+
+### LOOCV
+
+```{r, eval=FALSE}
+
+calc_loocv_rmse = function(model) {
+    sqrt(mean((resid(model) / (1 - hatvalues(model))) ˆ 2))
+}
+
+```
 
 ---
 
@@ -555,7 +620,68 @@ Hard to test unless specified in the data. We have no way to know whether the ob
 
 # Transformations
 
+## Variance Stabilizing Target Transformations
 
+Applying an invertible function to Y to achieve $Var[g(Y)|X=x] = c$
+
+$$g(Y) = \beta_{0} + \beta_{1}x + \varepsilon_{i} \rightarrow Y = g( \beta_{0} + \beta_{1}x + \varepsilon_{i})^{-1} $$
+Usually we apply the logarithm (positive data)
+
+$$log(Y_{i}) = \beta_{0} +\beta_{1}x_{i} + \varepsilon_{i} \rightarrow Y_{i} = exp \left\{ \beta_{0} + \beta_{1}x \right\} \cdot exp \left\{\varepsilon_{i} \right\}$$
+
+```{r, eval=FALSE}
+lm(log(target)~predictor, data = df)
+```
+
+Which results in a multiplicative model
+
+$$\hat{y_{i}} = \exp\{\hat{\beta_{0}}\} \cdot \exp\{\hat{\beta_{1}} x_{i}\}$$
+```{r, eval=FALSE}
+plot(target ~ predictor, data = df, 
+     col = "grey", pch = 20, cex = 1.5, main = "Title")
+
+# lower, upper are numbers at the extremes of the range
+curve(exp(fit$coef[1] + fit$coef[2] * x),
+      from = lower, to = upper, add = TRUE, 
+      col = "darkorange", lwd = 2)
+```
+
+## Box Cox 
+
+```{r, eval=FALSE}
+## trasformazione di Box-Cox 
+## da usare se y|X risulta non-normale 
+MASS::boxcox (y~x, data = df, lambda = seq(-0.5,0.5, by=0.05))
+
+bctransf$x[which.max(bctransf$y)]
+
+# Box-Cox transform
+boxcox(fit, plotit = TRUE)
+```
+
+## Polynomials
+
+Polynomials are used to make the model more flexible or to fix the violation of some assumptions.
+
+
+$$Y_{i} = \beta_{0} + \beta_{1}x_{i}+ \beta_{2}x^{2}_{i} + ... + \beta_{K}x^K_{i}+ \epsilon_i$$
+
+```{r, eval= FALSE}
+# Even count of polynomials
+lm(formula = target ~ predictor + I(predictor^2) + I(predictor^3) + I(predictor^4), data = df)
+
+# Or
+lm(formula = target ~ poly(predictor, 4, raw=TRUE), data = df)
+
+# --- 
+
+# Odd count of polynomials
+lm(formula = target ~ predictor + I(predictor^2) + I(predictor^3),
+   data = df)
+
+# Or
+lm(formula = target ~ poly(predictor, 3, raw=TRUE), data = df)
+```
 
 ---
 
@@ -578,6 +704,12 @@ Some signals include
 
 ## VIF
 
+```{r, eval=FALSE}
+hatvalues(fit) ##  leverages - punti di leva 
+car::vif(fit) ## variance inflation factors - ci sono problemi di colinearità? 
+cooks.distance(fit) # outliers/punti particolari 
+```
+
 ---
 
 # Influence
@@ -588,16 +720,49 @@ Some signals include
 
 # GLM
 
+## Dati Binari
+
+Tipicamente quando vogliamo vedere un predittore contro una risposta, ma la risposta e’ binaria, possiamo “sparpagliare” i valori di 0 e 1 con la funzione jitter. Questa funzione sparpaglia i valori in verticale.
+
+```{r, eval = FALSE}
+plot(jitter(ifelse(opposed == "opposed", 1,0), amount = 0.1) ~ year, data = dat)
+
+plot(jitter(ifelse(opposed == "opposed", 1,0), amount = 0.1) ~ jitter(year, amount = 0.2), data = dat)
+```
 
 ## Poisson
 
+$$Y_{i} = [Y|X=x_{i}] \thicksim Pois(\lambda(X_{i})) \quad \quad \text{per } i= 1, \ldots, n$$
+dove $\lambda(X_{i}) = exp\{X\beta\}$
+
 ```{r, eval=FALSE}
-fit_pois <- glm(target~predictor1, 
+fit_pois <- glm(target~predictor, 
                data = df, 
                family = poisson())
 ```
 
-$$$$
+Si descrive come:
+
+ $$\text{target}_i|\text{predictor}_i \sim Pois(\lambda(\text{predictor}_i)) \quad \quad \text{per } i= 1, \ldots, n$$
+dove $\lambda(predictor_{i}) = exp \left\{ \beta_{0} + \beta_{1}predictor_{i} \right\}$
+
+```{r, eval=FALSE}
+par(pch = 16, bty = "l", mfrow=c(1,2))
+
+nd <- data.frame(yearSince1979 = seq(1, 18, by = 1))
+
+### we can not plot the inverse-link transformed data
+### they take values -inf or + inf 
+plot(nd$yearSince1979, predict(fit_bin, newdata = nd),
+     type="l", main = "The linear predictor")
+
+plot(nd$yearSince1979, predict(fit_bin, newdata = nd, type="response"),
+     type="l", ylim = c(-0.25,1.25), main = "The estimated probability")
+
+### We can plot the original data
+points(dat$yearSince1979, jitter(dat$numfopp), col = "grey70")
+```
+
 
 ```{r, eval=FALSE}
 # Linear Predictor Estimate
@@ -610,7 +775,7 @@ linear_pred <- predict(fit_pois,
                        type = "link")
 ```
 
-$$\mathbb{E}[Y=1|X=x] = exp(X\beta)$$
+$$\mathbb{E}[Y=1|X=x_{i}] = \mathbb{E}[Yi] = Var(Y_{i}) = exp(X\beta)$$
 ```{r, eval=FALSE}
 # Expected Value Estimate
 
@@ -623,6 +788,64 @@ response_pred <- predict(fit_pois,
                          newdata = nd, 
                          type = "response")
 ```
+
+## Binomial
+
+$$[Y|X=x] \thicksim Bin(k, p(x))$$
+
+
+
+```{r, eval=FALSE}
+fit_glm <- glm(target~predictor, data = df, family = binomial)
+```
+
+More precisely, we need to specify the data for the binomial:
+
+```{r, eval=FALSE}
+
+# 1 - Factor
+# 'success' is interpreted as the factor not having the first level 
+# (and hence usually of having the second level)
+# WE NEED TO MAKE SURE THE RIGHT LEVEL IS USED TO REPRESENT SUCCESS
+df$target <- as.factor(df$target)
+
+glm(target ~ predictor, data = df, family = binomial)
+
+#--------------------
+
+# 2 - Numerical vector 
+# with values between 0 and 1, interpreted as the proportion 
+# of successful cases (with the total number of cases given by the weights).
+
+df$numsuccess <- as.numeric(df$target == "success") # 1 when 'success'
+
+glm(numsuccess ~ predictor, data = df, 
+    family = binomial, 
+    weights = rep(1, nrow(df))) # We need to specify the weights
+
+#--------------------
+
+# 3 - As a two-column integer matrix: 
+# the first column gives the number of successes and 
+# the second the number of failures.
+df$numsuccess <- as.numeric(df$target == "success") # successes
+df$ntrial <- rep(1, nrow(df)) # failures
+
+glm(cbind(df$numsuccess, df$ntrial-df$numsuccess) ~ df$predictor, 
+    family = binomial)
+```
+
+
+```{r, eval=FALSE}
+
+plot(jitter(Class, amount = 0.15)~Thick, 
+     data = wbca, ylab = "P(tumor is benign)")
+
+lines(sort(wbca$Thick), 
+      fitted(tumor_thick)[order(wbca$Thick)],col=2)
+```
+
+
 
 ## Bernoulli
 
@@ -672,17 +895,7 @@ glm_odds_ratio <- function(xb){
 }
 ```
 
-## Binomial
 
-$$[Y|X=x] \thicksim Bin(k, p(x))$$
-
-```{r, eval=FALSE}
-fit_glm <- glm(target~predictor1+predictor2, data = df, family = binomial())
-```
-
-
-
-$$$$
 
 ## Inference and Prediction
 
@@ -720,6 +933,8 @@ AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazi
 # anova(small_model, big_model)
 anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
 ```
+
+
 
 ---
 
