@@ -151,14 +151,17 @@ plot(fit)
 fit <- lm(target~predictor1+predictor2, data=df)
 
 ## Model Matrix = X
-head(model.matrix(fit))
+model.matrix(fit)
 
 # X =   1       predictor1_{1}      predictor2_{1}
 #       1       predictor1_{2}      predictor2_{2}
 #       1       ...                 ...
 #       1       predictor1_{n}      predictor2_{n}
 X <- cbind(rep(1, n), df$predictor1, df$predictor2)
+
+# hatvalues(fit)
 H <- X  %*% solve(t(X) %*% X) %*% t(X)
+
 y_hat <- as.vector(H %*% y)
 
 ## Variance
@@ -250,8 +253,14 @@ Anova_test <- function(fit_h0, fit_ha){
 ## i dati con la capacità del modello di fare predizioni non troppo incerte: 
 ## per ottenere questo bilanciamento cerchiamo di specificare modelli parsimoniosi.
 
+## Model Selection
+# Meno parametri -> stima meno incerta
+# Piu' parametri -> aumento della varianza nella stima
+
 ## Adjusted R^2 = 1-((SSres/(n-p-1))/(SStot/(n-1)))
 # Si tiene in considerazione la complessità del modello.
+# Ha una penalizzazione che tiene conto del numero di gradi di 
+# libertà usati dal modello
 summary(fit)$adj.r.square
 # adjr2 <- (sum((y-y_hat)**2)/(n-p-1))/(sum((y-mean(y))**2)/(n-1))
 
@@ -263,6 +272,10 @@ logLik(fit) # Lower is best
 # logLik <- sum(dnorm(df$target, fit$fitted.values, summary(fit)$sigma,log = TRUE))
 
 ## AIC 
+## AIC permette di individuare modelli in qualche senso ottimali bilanciando 
+# l'aumento della verosimiglianza per modelli più complessi con una 
+# penalizzazione basata sulla complessità del modelli 
+# (in termini di numero di parametri stimati)
 AIC(fit, k=2)
 # AIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
 
@@ -282,6 +295,12 @@ calc_loocv_rmse <- function(model) {
 ### to achieve "on average" evaluation
 
 ## Model Selection
+# L'algoritmo forward parte da un modello poco complesso e verifica di volta 
+# in volta se aumentare la complessità del modello migliora la bontà di 
+# adattamento misurata tramite AIC o BIC. 
+# L'algoritmo backward invece parte da un modello complesso e ad 
+# ogni passo dell'algoritmo verifica se sottrarre una variabile 
+# migliora la bontà di adattamento (misurata tramite AIC o BIC)
 
 ### FS - AIC
 step(null, 
@@ -333,20 +352,73 @@ step(intermediate,
 
 # Collinearity
 
+# Xj vs Y
+par(mfrow= c(3,4))
+for(j in 2:13){
+    plot(bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))][,c(j,1)])
+    title(main = paste("betahat is", signif(coef(fit_all)[j],3)))
+} 
 ## Check Correlation
 signif(cor(df),4)
 ## Check Covariance
+signif(cov(df),4)
 
-## VIF
+## VIF = 1/1-R^2
+### Model
+vif <- 1/(1-summary(fit)$r.squared) 
+### Bj
+vif_bj<- diag(solve(t(X) %*% X))[j]*(sum((data$bj-mean(data$bj))^2))
+
 car::vif(fit) ## variance inflation factors
-# Influence
 
-hatvalues(fit) ##  leverages - punti di leva 
-car::vif(fit) ## variance inflation factors - ci sono problemi di colinearità? 
+sort(car::vif(fit_all))
+
+##
+
+# Se vediamo valori di VIF > 10 si tende a dire che ci sono problemi 
+# legati a multi-colinearità
+# Un altro modo di interpretare il VIF è l’indicazione di quanto sia 
+# possibile stimare una delle variabili esplicative come una funzione 
+# delle altre variabili presenti nel dataset
+
+# La stima di $\beta_{CashFlow}$ cambia di segno dei due modelli: quando si 
+# tengono in considerazione tutte le altre variabili l'effetto del flusso di 
+# cassa diventa negativo (e non significativo): le altre variabili incluse nel 
+# modello catturano la variabilita spiegata da `CashFlow`. Questo avviene quando 
+# i predittori inseriti nel modello sono fortemente correlati tra loro e si ha 
+# il problema della multi-colinearità, come evidenziato anche dai valori alti 
+# dei variance inflation factors.
+
+# Data la forte correlazione tra i predittori potremmo trovarci in una 
+#situazione di multicolinearità, questo crea problemi alla stima dei modello
+#inflazionando la varianza della stima (che poi va anche ad influire sulla 
+#precisione della stima in termini di stima dell'effetto del predittore sulla
+#variabile risposta). Si può quantificare quanto la possibile colinearità dei 
+#predittori vada ad inflazionare la variabilità della stima usando i 
+#Variance Inflation Factors, che indicano quanto più è grande la varianza nel 
+#modello stimato rispetto ad un modello con variabili indipendenti. Valori 
+#grandi di VIFs indicano che la variabilità della stima è ben più grande di 
+#quella che potrebbe essere usando predittori indipendenti. 
+#Un altro controllo che è possibile (ed opportuno) fare è una verifica che le 
+#assunzioni del modello (normalità, varianza costante, etc...) siano soddisfatte:
+#i grafici dei residui non mostrano forti devianze dalle assunzioni del modello 
+#lineare. La normalità dei residui non è totalmente dimostrata ma il qqplot non 
+#è particolarmente problematico. Eventuali forti deviazioni dalle assunzioni del
+#modello possono inficiare la validità della stima di un modello lineare.
+
+# Includere una variabile esplicativa fortemente correlata ad un predittore 
+# già presente nel modello tipicamente riduce la significatività della relazione 
+# tra una o più delle variabili esplicative e la variabile risposta: questo 
+# avviene perché quando si inseriscono variabili correlate tra lor si inflaziona 
+# la variabilità delle stime dei coefficienti di regressione
+
+# Influence 
+## Influential points: outliers that greatly affect the slope of the regression line
+
 cooks.distance(fit) # outliers/punti particolari 
 
-
-
+hatvalues(fit) ##  leverages - punti di leva 
+plot(dataset$predictor, hatvalues(fit_mul))
 # ---------------------------------
 
 # GLM
