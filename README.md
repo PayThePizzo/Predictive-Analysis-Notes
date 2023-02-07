@@ -13,7 +13,7 @@ I tried to assemble some formulas and their translation to R, obviously there ar
 ---
 
 ## Visualize the notes!
-Some of the notes are not done since I recently switch from taking notes on my portable devices, to my laptop.
+Some of the notes are not done since I recently switch from taking notes on my portable devices, to my laptop. You should check out [this folder](https://univeit-my.sharepoint.com/:o:/g/personal/872966_stud_unive_it/EmzRSqQJNvdEvZhT6mza2cABYTuXF49ykUJIG-2f6PE8gg?e=MGkihy) for those notes (Students of UNIVE only).
 
 * [Basics of Probability and Statistics](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/0%20-%20BASICS.md)
 * [Simple Linear Regression](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/1%20-%20SLR.md)
