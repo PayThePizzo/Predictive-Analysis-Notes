@@ -8,7 +8,12 @@ All the credits go to the professor Prosdocimi Ilaria, the creators and owners o
 ## My formulas handbook
 I tried to assemble some formulas and their translation to R, obviously there are many ways to achieve the same results (depending on the given input).
 
-[Formulas Handbook](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/Formulas.html)
+[Formulas Handbook - Not finished](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Formulas%20Handbook/Formulas.html) 
+
+### Exam Script
+For this exams we are allowed to use a .R script with some comments and formulas.
+
+[Exam Script in R](Formulas%20Handbook/Formulas.R)
 
 ---
 
