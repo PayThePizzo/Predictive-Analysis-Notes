@@ -42,6 +42,7 @@ r2 <- summary(fit)$r.squared
 TS <- (beta_j - hyp)/se_beta_j
 ## 2. Check p-value
 2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE)
+# 2*(1-pt(abs(TS)), df=fit$df.residual)
 ## 3. If TS is large or small (far away from 0, so that the value can be
 ## on either tails of the t-student distribution), and the p-value is 
 ## small, REJECT THE NULL HYPOTHESIS
@@ -68,11 +69,22 @@ nd <- data.frame(predictor=c(1,2,3,...,10))
 predict(fit, newdata= nd, interval = "confidence", level=1-alpha)
 # E' come fare la stima puntuale
 
+# Or
+s_conf <- summary(fit)$sigma * sqrt(1/n+(((nd$predictor-mean(df$predictor))^2)/sum((df$predictor-mean(df$predictor))^2)))
+    
+cbind(est + qt(alpha/2, df=fit$df.residual) * s_conf,
+      est + qt(1-(alpha/2), df=fit$df.residual) * s_conf)
 
 ## Prediction Intervals 
 ## More variability 
 predict(fit, newdata= nd, interval = "prediction", level=1-alpha)
 
+# Or
+
+s_pred <- summary(fit)$sigma * sqrt(1 +(1/n)+(((nd$predictor-mean(df$predictor))^2)/sum((df$predictor-mean(df$predictor))^2))) 
+
+cbind(est + qt(alpha/2, df=fit$df.residual) * s_pred,
+      est + qt(1-(alpha/2), df=fit$df.residual) * s_pred)
 
 ## Assumptions - L.I.N.E
 # Le assunzioni si possono scrivere in maniera sintetica come
@@ -90,6 +102,17 @@ abline(beta0_hat, beta1_hat, col = 2, lwd = 1.4)
 # See if there are problematic points far from the mean
 plot(df$predictor, resid(fit))
 abline(h=0)
+
+whichCols <- names(fit$coefficients)[-1]
+
+if(any(whichCols == "predictor")) whichCols[whichCols == "predictor"] <- "predictor"
+
+par(mfrow=c(2, ceiling(length(whichCols)/2)), pch=16)
+
+for(j in seq_along(whichCols)){
+    plot(df[,whichCols[j]], residuals(fit)) 
+    abline(h=0,lty=2)
+}
 # Check other predictors vs residuals if possible
 
 ### Independence (of observations)
@@ -135,6 +158,18 @@ head(model.matrix(fit))
 #       1       ...                 ...
 #       1       predictor1_{n}      predictor2_{n}
 X <- cbind(rep(1, n), df$predictor1, df$predictor2)
+H <- X  %*% solve(t(X) %*% X) %*% t(X)
+y_hat <- as.vector(H %*% y)
+
+## Variance
+est_sigma <- sqrt(sum(fit$residuals^2)/(n-length(fit$coef)))
+se_beta_hat <- as.vector(est_sigma * sqrt(diag(solve(t(X) %*% X))))
+
+## Residuals
+residuals(fit) ## these are y - fitted(fit)
+rstandard(fit) ## standardised residuals 
+rstudent(fit)  ## studentized residuals 
+
 
 ## Hypothesis testing - TS = EST-HYP/SE ~ t_(n-p)
 ## 1. Compute TS
@@ -176,6 +211,8 @@ se_px0 <- est_sigma * sqrt(1+diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_px0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_px0)
 
+## Visualize the intervals
+
 
 ## Compare Nested Models 
 ## REJECT the bigger model for a large F-statics and a small p-value
@@ -194,6 +231,13 @@ Anova_test <- function(fit_h0, fit_ha){
     c(fobs, p_value)
 }
    
+## Model assessment 
+## The F-statistic for the model is large - the model is significant, i.e. 
+## it explains an amount of variability of the observed data that is considerably 
+## larger than using the mean only (Null model vs Model with some predictors).
+## This does not automatically mean that the model is better.
+## Find a balance between being able to explain some variability but keeping the 
+## number of predictors low enough to avoid inflating the model variability.
 
 ## Quando usiamo troppi parametri facciamo aumentare l’incertezza 
 ## nella stima: stiamo inserendo troppe variabili che non spiegano 
@@ -217,14 +261,15 @@ logLik(fit) # Lower is best
 ## AIC 
 AIC(fit, k=2)
 # AIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
+# 
 
 ## BIC - Prefers less complex models
 AIC(fit, k=log(n))
 BIC(fit)
 # BIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
 
-## LOOCV RMSE
-### Gives a measure of the possible out-of-sample prediction error
+## LOOCV RMSE - Lower is best
+### we assess how well would the model do if used to predict out-of-sample values.
 calc_loocv_rmse <- function(model) {
     sqrt(mean((resid(model) / (1 - hatvalues(model)))**2))
 }
@@ -270,15 +315,68 @@ step(intermediate,
 ## Predictor Transformation
 ## E[Y|XT = t*xi] = beta0 + (beta1 xi * t)
 
+## trasformazione di Box-Cox 
+## da usare se y|X risulta non-normale 
+## MASS::boxcox
 
 # Collinearity
 
+## Correlation
+signif(cor(df),4)
+
 # Influence
+
+hatvalues(fit) ##  leverages - punti di leva 
+car::vif(fit) ## variance inflation factors - ci sono problemi di colinearità? 
+cooks.distance(fit) # outliers/punti particolari 
+
 
 
 # ---------------------------------
 
 # GLM
+
+##in questo esempio usiamo una Poisson 
+
+df <- data.frame(x1 = runif(15), x2 = runif(15), y  = rpois(15, 6))
+
+## stima del modello 
+fit <- glm(y~x1+x2, data = df, family = poisson()) 
+## di default si usa la funzione legame canonica
+poisson()$link
+summary(fit) ## varie informazioni riassuntive sulla stima
+coef(fit) ## valori stimati dei coefficienti del modello 
+confint.default(fit) ## intervalli di confidenza per i coefficienti del modello 
+
+## predizione 
+# per i valori osservati delle X
+fitted(fit) ## predizione sulla scale di Y (exp(linear.predictor))
+predict(fit) ## predict di default mostra il predittore lineare
+predict(fit, type = "response") ## predict accetta un'opzione type per mostrare i valori stimati sulla scala delle Y 
+## per un oggetto glm predict non può costruire intervalli di confidenza (e non si possono costruire intervalli di predizione)
+predict(fit, se.fit = TRUE) # con opzione se.fit si ottiene lo standard error per il predittore lineare 
+## per un nuovo set di punti 
+nd <- data.frame(x1 = c(0.2,0.8), x2 = c(0.3,0.6))
+a <- predict(fit, newdata = nd, se.fit = TRUE); a
+# intervalli di confidenza manuali
+alpha = 0.05
+cbind(a$fit + qnorm(alpha/2) * a$se.fit, 
+      a$fit + qnorm(1-alpha/2) * a$se.fit)
+
+
+# residui 
+residuals(fit) ## di default deviance residuals 
+residuals(fit, type = "pearson") ## type = c("deviance", "pearson", "response"))
+
+# goodness of fit/ bontà di adattamento 
+plot(fit) # grafici riassuntivi
+AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazione
+
+## test anova per modelli annidati 
+# anova(small_model, big_model)
+anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
+
+
 
 ## Poisson
 
