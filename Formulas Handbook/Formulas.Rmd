@@ -575,7 +575,7 @@ calc_loocv_rmse = function(model) {
 
 --- 
 
-# Model Checking - LINE
+# Model Checking - LINE 
 
 The assumptions for the model can be briefly written as:
 
