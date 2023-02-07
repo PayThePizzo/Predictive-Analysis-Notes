@@ -184,11 +184,13 @@ TS <- (beta_j - hyp)/se_beta_j
 
 
 ## Confidence Intervals Bj
+
 # Stima puntuale
 
+## Y|X=x
+predict(fit, newdata = nd) # ritorna una stima puntuale
 
 ## Confidence Intervals Y|X=x 
-
 # Must take the right form
 x0 <- cbind(rep(1,3), c(1650, 3000, 5000),c(72, 75, 82))
 
@@ -210,6 +212,8 @@ se_px0 <- est_sigma * sqrt(1+diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_px0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_px0)
+
+
 
 ## Visualize the intervals
 
@@ -261,7 +265,6 @@ logLik(fit) # Lower is best
 ## AIC 
 AIC(fit, k=2)
 # AIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
-# 
 
 ## BIC - Prefers less complex models
 AIC(fit, k=log(n))
@@ -310,6 +313,13 @@ step(intermediate,
 
 # Categorical Predictors and Interactions
 
+# Interactions
+# Verificare se questo parametro (relativo all'interazione tra x1 e x2) è pari a 0
+# permette di verificare se l'effetto x1 è lo stesso nei vari livelli di x2
+
+
+# ---------------------------------
+
 # Transformations
 
 ## Predictor Transformation
@@ -319,11 +329,16 @@ step(intermediate,
 ## da usare se y|X risulta non-normale 
 ## MASS::boxcox
 
+# ---------------------------------
+
 # Collinearity
 
-## Correlation
+## Check Correlation
 signif(cor(df),4)
+## Check Covariance
 
+## VIF
+car::vif(fit) ## variance inflation factors
 # Influence
 
 hatvalues(fit) ##  leverages - punti di leva 
@@ -387,7 +402,7 @@ anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
 
 
 
-## Deviance
+## Deviance Analysis - Confronto tra modelli nested
 ## La devianza funge la stessa funzione del RSS nei modelli lineari: 
 ## più variabili si inseriscono nel modello più diminuisce la devianza.
 
@@ -396,14 +411,24 @@ anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
 # verosimiglianza e sono di conseguenza approssimativamente normalmente 
 # distribuite per n -> infinity
 
-## LRT
+## LRT - Confronto tra modelli nested
 ##Per verificare la significatività del modello si possono confrontare le devianze 
 ## nulle e residue nel summary: un confronto formale richiede l’uso di un LRT
-anova(fit, fit2, test="LRT")
+anova(fit_simple, fit_additive, test="LRT")
+
+### LR Test Statistics
+LR_stat <- -2 * as.numeric(logLik(fit_simple) - logLik(fit_additive))
+
+## AIC, BIC
+
+## Cross-Validation
+### Every time we need to re-estimate the model
+
 
 ## Hypothesis Testing
 
 ## Confidence Intervals Bj
+confint.default(fit,level=1-alpha/2)
 
 ## Confidence Intervals Y
 
