@@ -81,16 +81,16 @@ If you want to visualize the labs without having to download and run the Rmd fil
 * [Lab 01 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2001/lab01.html) - R e Regressione Lineare Semplice
 * [Lab 02 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2002/lab02.html) - Linear regression in R
 * [Lab 03 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2003/lab03.html) - More on Linear regression and simulation
-* [Lab 04 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2004/lab04_multiple.html)
-  * [MLR Exercise - Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2004/labInteract_soluzione.html) - Esercizio con Soluzione
-* [Lab 05 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2005/lab05_modTesting.html)
-* [Lab 06 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2006/lab_06.html)
-* [Lab 07 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2007/lab07.html)
-* [Lab 08 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2008/lab08_CollinInfluence.html) 
-* [Lab 09 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2009/la09_mlrRecap.html) - MLR Recap Exercise
-* [Lab 10 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2010/lab10_introGLM.html)
-* [Lab 11 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2011/lab11_moreOnGLM.html)
-* [Lab 12 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2012/lab12_spamDetection.html)
+  * [SLR Exercise - Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2004/labInteract_soluzione.html) - Esercizio con Soluzione
+* [Lab 04 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2004/lab04_multiple.html) - Multiple Linear Regression
+* [Lab 05 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2005/lab05_modTesting.html) - Multiple Linear Regression, model assessment
+* [Lab 06 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2006/lab_06.html) -  Model selection
+* [Lab 07 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2007/lab07.html) - Categorical variables
+* [Lab 08 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2008/lab08_CollinInfluence.html) - Things that can go wrong
+* [Lab 09 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2009/la09_mlrRecap.html) - Transformation, model selection and estimation
+* [Lab 10 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2010/lab10_introGLM.html) - GLMs in R
+* [Lab 11 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2011/lab11_moreOnGLM.html) - More about GLMs
+* [Lab 12 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2012/lab12_spamDetection.html) - Classification for binary classifiers
 
 
 ---
