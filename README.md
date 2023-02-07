@@ -100,10 +100,17 @@ If you want to visualize the labs without having to download and run the Rmd fil
 
 ---
 
-## Visualize some exercises
+## Visualize some random exercises
 * SLR
+  * [Quiz 1](Exercises/Quiz/SLR_21_22_1.pdf)
+  * [Quiz 2](Exercises/Quiz/SLR_21_22_2.pdf)
+  * [Quiz 3](Exercises/Quiz/SLR_21_23.pdf)
 * MLR
+  * [Quiz 1](Exercises/Quiz/MLR_21_22.pdf)
+  * [Quiz 2](Exercises/Quiz/MLR_22_23.pdf)
 * GLM
+  * [Quiz 1](Exercises/Quiz/GLM_21_22.pdf)
+  * [Quiz 2](Exercises/Quiz/GLM_22_23.pdf)
 
 ---
 ## Resources 
