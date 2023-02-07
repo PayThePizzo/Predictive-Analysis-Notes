@@ -77,7 +77,7 @@ If you want to visualize the labs without having to download and run the Rmd fil
 
 ## Old Labs
 
-* [Lab 00](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00.html) 
+* [Lab 00](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Labs/lab00/lab00.html) - Revisione di R e predittori ottimali
 * [Lab 01 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2001/lab01.html) - R e Regressione Lineare Semplice
 * [Lab 02 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2002/lab02.html) - Linear regression in R
 * [Lab 03 - Professor's Solution](https://htmlpreview.github.io/?https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Old%20Labs/Lab%2003/lab03.html) - More on Linear regression and simulation
