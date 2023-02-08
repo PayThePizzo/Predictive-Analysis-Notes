@@ -590,6 +590,37 @@ la validazione incrociata. Per i glm non esiste un risultato simile a
 quello visto per i modelli lineari che permetta di derivare con semplici
 calcoli analitici il valore di <span class="math inline">\(RMSE_{Loo}\)</span>, dobbiamo effettivamente
 togliere un osservazione e ricalcolare la stima del modello.</p>
+<p>In questo esempio si evidenzia il fatto che la funzione
+<code>boot::cv.glm()</code> non utilizza la misclassification rate come
+misura per fare cross-validation del modello, ma un errore che pesa ogni
+quanto sia distante la probabilita’ stimata dalla probabilita’
+effettiva. In questo framework, le probabilita’ diverse hanno pesi
+diversi.</p>
+<pre class="r"><code># LOOcv -&gt; n Observations = k Iterations
+n &lt;- 2000
+# save the errors of classification
+errorClass &lt;- rep(NA, n)
+
+# For each i-th observation (row) in the dataset
+for(i in 1:n){
+    # Fit the model without it
+    fit &lt;- glm(type ~ ., 
+               family = binomial, 
+               data = spam_trn, 
+               subset = -i)
+  
+    # Compute the misclassfication rate on the fit_{i-th} model
+    errorClass[i] &lt;- spam_trn$type[i] - ifelse(predict(fit, 
+                                                     newdata = spam_trn[i,], 
+                                                     type =&quot;r&quot;) &lt; 0.5, 0, 1)
+    # Typically this is what happens
+    # cv.glm() assesses this: how far is type from the estimate that `type = 1`
+    # So normally the probabilities of 0.98 and 0.51 have different weigth
+    # when compared to probabilities of 1.0 and 0.5
+    # error[i]&lt;- spam_trn$type[i] - predict(fit, newdata = spam_trn[i,], type=&quot;r&quot;)
+}</code></pre>
+<p>Stimare il modello 2000 volte e calcolarne l’errore, ha un tempo di
+esecuzione decisamente poco ottimale.</p>
 <p>Per evitare il costo computazionale di stimare un modello di
 regressione <span class="math inline">\(n\)</span> volte usiamo 5-fold o
 10-fold cross validation in cui togliamo da campione originale di volta
@@ -608,27 +639,48 @@ modo otteniamo una stima dell’errore stimando il modello 5 volte invece
 che <span class="math inline">\(n\)</span>, risparmiando sforzo
 computazionale.</p>
 <pre class="r"><code>cv_class &lt;- function(K=5, dat, model, cutoff = 0.5){
-  assign_group &lt;- rep(seq(1,K), each = floor(nrow(dat)/K))
-  ### this ensures we use all points in the dataset
-  ### this way we might have subgroups of different size 
-  if(length(assign_group) != nrow(dat)) assign_group &lt;- c(assign_group, sample(seq(1,K)))[1:nrow(dat)] 
+    # Ensure to use all the points in the dataset, only once
+    # Assign each point to one of the k groups 
+    # This way we might have subgroups of different size
+    assign_group &lt;- rep(seq(1,K), each = floor(nrow(dat)/K))
+    
+  if(length(assign_group) != nrow(dat)){ 
+      assign_group &lt;- c(assign_group, sample(seq(1,K)))[1:nrow(dat)]
+  }
   assign_group &lt;- sample(assign_group, size = nrow(dat))
+  
   error &lt;- 0
+  
   for(j in 1:K){
-    whichobs &lt;- (assign_group == j)
-    ## fit a model WITHOUT the hold-out data
-    folded_model &lt;- suppressWarnings(glm(model$formula, data = dat[!whichobs,], family = &quot;binomial&quot;))
-    ## evaluate the model on the hold-out data
-    fitted &lt;- suppressWarnings(predict(folded_model,dat[whichobs,], type=&quot;response&quot;))
-    observed &lt;- dat[whichobs, strsplit(paste(model$formula), &quot;~&quot;)[[2]]]
-    error &lt;- error + mean(observed != (fitted&gt;cutoff))/K 
-    ### in cv.glm the actual error is calculated as (y - p(y=1)) 
-    # error &lt;- error + mean((observed - fitted)^2)/K 
-    ### the mis-classification rate will depend on how we decide what is assigned to each category 
+      # Get subset of observations
+      whichobs &lt;- (assign_group == j)
+      #fit a model WITHOUT the hold-out data
+      folded_model &lt;- suppressWarnings(glm(model$formula, 
+                                           data = dat[!whichobs,], 
+                                           family = &quot;binomial&quot;))
+      # evaluate the model on the hold-out data
+      fitted &lt;- suppressWarnings(predict(folded_model,
+                                         dat[whichobs,],
+                                         type=&quot;response&quot;))
+      
+      observed &lt;- dat[whichobs, strsplit(paste(model$formula), &quot;~&quot;)[[2]]]
+      
+      # Misclassification rate
+      # fitted &gt; cutoff -&gt; spam
+      error &lt;- error + mean(observed != (fitted&gt;cutoff))/K 
+      
+      # in cv.glm the actual error is calculated as (y - p(y=1)) 
+      # error &lt;- error + mean((observed - fitted)^2)/K 
   }
   error
-}
-set.seed(1)
+}</code></pre>
+<p>L’errore di classificazione dipende sempre dal criterio scelto
+dall’analista per decidere in che categoria inserire una determinata
+osservazione. In questo caso decidiamo di non utilizzare il metodo di
+<code>cv.glm</code> e di dare come <strong>cutoff</strong> la
+probabilita’ <span class="math inline">\(p(x) &gt; 0.5 \rightarrow
+spam\)</span></p>
+<pre class="r"><code>set.seed(1)
 cv_class(K=5, dat = spam_trn, model = fit_caps)</code></pre>
 <pre><code>## [1] 0.348</code></pre>
 <pre class="r"><code>cv_class(K=5, dat = spam_trn, model = fit_selected)</code></pre>
@@ -637,11 +689,13 @@ cv_class(K=5, dat = spam_trn, model = fit_caps)</code></pre>
 <pre><code>## [1] 0.0865</code></pre>
 <pre class="r"><code>cv_class(K=5, dat = spam_trn, model = fit_over)</code></pre>
 <pre><code>## [1] 0.095</code></pre>
-<pre class="r"><code># set.seed(1)
+<pre class="r"><code>## Automatically through:
+# set.seed(1)
 # boot::cv.glm(spam_trn, fit_caps, K = 5)$delta[1]
 # boot::cv.glm(spam_trn, fit_selected, K = 5)$delta[1]
 # boot::cv.glm(spam_trn, fit_additive, K = 5)$delta[1]
 # boot::cv.glm(spam_trn, fit_over, K = 5)$delta[1]
+
 ## to do cross validation on the actual mis-classification rate
 # mycost = function(y, yhat) mean((y != (yhat&gt;0.5)))
 # boot::cv.glm(spam_trn, fit_caps, K = 5, cost = mycost)$delta[1]

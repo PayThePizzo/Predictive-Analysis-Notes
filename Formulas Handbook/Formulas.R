@@ -286,13 +286,23 @@ BIC(fit)
 
 ## LOOCV RMSE - Lower is best
 ### we assess how well would the model do if used to predict out-of-sample values.
+### Only for SLR and MLR
+### In the GLM model we need to recompute the model each time
 calc_loocv_rmse <- function(model) {
     sqrt(mean((resid(model) / (1 - hatvalues(model)))**2))
 }
 
 ## k-fold Cross Validation
-### Fit the model k times, while leaving out 1/k of the data
-### to achieve "on average" evaluation
+### Fit the model k times, while leaving out 1/k of the data which is used
+### to compute the estimation of the error. The final evaluation will be based
+### on the mean of the k estimations of the error
+###
+### We achieve "on average" evaluation of the model
+###
+### When k=n, then we perform the same process n times, by leaving out
+### just 1 observation at the time, which is more precise but computationally
+### expensive. In our framework we can just use RMSE_LOO
+
 
 ## Model Selection
 # L'algoritmo forward parte da un modello poco complesso e verifica di volta 
@@ -422,6 +432,9 @@ plot(dataset$predictor, hatvalues(fit_mul))
 # ---------------------------------
 
 # GLM
+## Valore atteso e' una trasformazione della combinazione lineare
+## E[Y|X=x] = g(Xbeta)
+
 
 ##in questo esempio usiamo una Poisson 
 
@@ -464,14 +477,13 @@ AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazi
 anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
 
 
+# ----------------------
 
 ## Poisson
 
 ## Bernoulli
 
-
 ## Binomial
-
 
 
 ## Deviance Analysis - Confronto tra modelli nested
@@ -506,10 +518,50 @@ confint.default(fit,level=1-alpha/2)
 
 # ---------------------------------
 
-# GLM Classifier
+# GLM Classifier - Logistic Regression
 
+## 1. Split train-test and use test only at the end
+### Train-Test Split
+### Seed changes the results
+set.seed(42)
+spam_idx <- sample(nrow(spam), 2000)
+### train set, used for model selection and diagnostics 
+spam_trn <- spam[spam_idx,] 
+### test set, used only at the end for evaluation
+spam_tst <- spam[-spam_idx,]
 
+## 2. Define success and cutoff 
+ifelse(p > cutoff, 1, 0)
 
+## 3. Define measure of error
+### Misclassification rate -> loocv/ k-fold cv
+### Confusion Matrix
+
+## loocv-fold cv on misclassification rate
+loocv_glm <- function(n, fit, target,  dataset){
+    # n observations = k 
+    n <- nrow(dataset)
+    # save the errors of classification
+    errorClass <- rep(NA, n)
+    # For each i-th observation (row) in the dataset
+    for(i in 1:n){
+        # Fit the model without it
+        # Check formula and family
+        fit <- glm(target ~ ., 
+                   family = binomial, 
+                   data = dataset, 
+                   subset = -i)
+        # Compute the misclassfication rate
+        # With the new model which excludes the i_th observation
+        # On the i_th observation, to see how far we are.
+        errorClass[i] <- (dataset$target[i] - 
+                              ifelse(predict(fit, 
+                                             newdata = dataset[i,], 
+                                             type ="r") < 0.5, 0, 1))
+    }
+}
+
+## k-fold cross validation on misclassification rate
 cv_class <- function(K=5, dat, model, cutoff = 0.5){
     assign_group <- rep(seq(1,K), each = floor(nrow(dat)/K))
     ### this ensures we use all points in the dataset
@@ -520,33 +572,129 @@ cv_class <- function(K=5, dat, model, cutoff = 0.5){
     for(j in 1:K){
         whichobs <- (assign_group == j)
         ## fit a model WITHOUT the hold-out data
-        folded_model <- suppressWarnings(glm(model$formula, 
-                                             data = dat[!whichobs,], 
-                                             family = "binomial"))
+        folded_model <- suppressWarnings(glm(model$formula, data = dat[!whichobs,], family = "binomial"))
         ## evaluate the model on the hold-out data
-        fitted <- suppressWarnings(predict(folded_model,
-                                           dat[whichobs,], 
-                                           type="response"))
+        fitted <- suppressWarnings(predict(folded_model,dat[whichobs,], type="response"))
         observed <- dat[whichobs, strsplit(paste(model$formula), "~")[[2]]]
         error <- error + mean(observed != (fitted>cutoff))/K 
+        
         ### in cv.glm the actual error is calculated as (y - p(y=1)) 
         # error <- error + mean((observed - fitted)^2)/K 
-        ### the mis-classification rate will depend on how we decide what is assigned to each category 
+        ### the mis-classification rate will depend on 
+        ### how we decide what is assigned to each category 
     }
     error
 }
 
+set.seed(1)
+cv_class(K=k, dat = data_train, model = fit)
 
+# Or
+
+## Cross validation on the actual mis-classification rate
+## 1. Define the cost function, which accepts
+## y, vector of observed values
+## yhat, vector of estimated values from the model
+cost_function <- function(y, yhat){
+    # misclassification rate on cutoff
+    mean((y != (yhat>0.5)))
+} 
+## 2. CV 
+boot::cv.glm(data=df, model= fit, K = k, cost = cost_function)
+
+
+# This uses the error calculated as (y - p(y=1)) 
+## error <- error + mean((observed - fitted)^2)/K 
+## NOT THE SAME
+set.seed(1)
+boot::cv.glm(data=data_train, model= fit, K = k)
+
+
+## Metrics
+predicted <- ifelse(predict(fit, 
+                            newdata=dataset_tst, 
+                            type="response") > cutoff, 1, 0)
+actual <- dataset_tst$target
+
+### Prevalence - Tasso con cui avviene l'evento di interesse
+### Se non avessimo alcuna info aggiuntiva, noi assegneremmo
+### Che p(x)=1 con una certa probabilita' data da prevalence
+get_prevalence <- function(actual, dataset){
+    table(actual)/nrow(dataset_tst)
+}
+
+## In qualche modo, questo e' pari a come classifica il modello nullo
+##
+## Null model: Il classificatore meno complesso a cui possiamo 
+## pensare, in cui tutto viene allocato alla 
+## categoria più frequente (è quello che farebbe un 
+## modello logistico con solo l’intercetta)
+## table(dataset$target) per controlare
+
+## Questo e' l'errore che otterremmo se avessimo stimato un modello con 
+## la sola intercetta
+round(as.numeric((table(dataset_tst$target)[2])) / nrow(dataset_tst),3)
+
+### Misclassification
+get_misclassification <- function(predicted, dataset, target){
+    mean(predicted != dataset_tst$target)
+}
+
+## Confusion Matrix
+## 1 denotes success
+##
+## True Positive = Predicted=1, Actual=1
+## True Negative = Predicted=0, Actual=0
+## False Positive = Predicted=1, Actual=0
+## False Negative = Predicted=0, Actual=1
+
+## Predicted           Actual
+##              0                   1
+##   0      True Negative    | False Negative
+##   1      False Positive   | True Positive
 make_conf_mat <- function(predicted, actual) {
     table(predicted = predicted, actual = actual)
 }
 
-get_sens <- function(conf_mat) {
-    conf_mat[2, 2] / sum(conf_mat[, 2])
-}
-# Note that this function is good for illustrative purposes, but is easily broken. (Think about what happens if there are no "positives" predicted.)
+### Sensitivity 
+# True Positive Rate, Tasso dei veri positiviti
+# TPR = Sens = TP/P = TP/(TP+FN) = 1-FNR
+
+# Note that this function is good for illustrative purposes, 
+# but is easily broken. (Think about what happens if there are 
+# no "positives" predicted.)
+
+### Specificity
+# True Negative Rate
+# TNR = Spec = TN/N = TN/(TN+FP) = 1-FPR
+
+### Precision 
+# PPV = TP/TP+FP = 1-FDR
+
+### Negative Predictive Value
+# NPV = TN/TN+FN = 1-FOR
+
+### Miss Rate
+# FNR = FN/P = FN/FN+TP = 1-TNR
+
+### False Positve Rate
+# FPR = FP/N = FP/FP+TN
+
+### Accuracy
+# Acc = TP+TN/TP + TN + FP + FN = 1 - MISC
+mean(spam_tst_pred == spam_tst$type)
+
+### Misclassification rate on Conf Matrix
+# Misc = FP+FN/TP + TN + FP + FN = 1 - ACC
+
+### Prevalence
+### Tasso con cui avviene l'evento di interesse
+# Prev = P/ #Observations = TP + FN/ #Observations
 
 
-get_spec <-  function(conf_mat) {
-    conf_mat[1, 1] / sum(conf_mat[, 1])
-}
+## We can change the cutoff but
+# Increasing cutoff -> more FN, less FP
+# Decreasing cutoff -> less FN (Specificity), more FP (Sensitivity)
+#
+# The important aspect is to cut the costs and increase the cutoff
+# based on what is less expensive (ex: real mail in the spam vs real spam in inbox)
