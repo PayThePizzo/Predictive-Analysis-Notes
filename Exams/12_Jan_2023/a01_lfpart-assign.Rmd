@@ -44,9 +44,9 @@ dex1 <- read.csv("a01ex12_data.csv", header = TRUE)
 
 ### Es. 1.a 
 
-```{asis}
+
 Si costruisca un primo modello lineare semplice `fit1` in cui la variabile risposta `MarketValue` viene spiegata in funzione del predittore `CashFlow`. Si commenti la significatività del modello e si derivi un intervallo di confidenza (a livello di confidenza 98\%) per il coefficiente angolare relativo alla variabile `CashFlow` nel modello `fit11`. Si verifichi inoltre il sistema di ipotesi $H_0: \beta_{CashFlow} = 10$ VS $H_1: \beta_{CashFlow} \neq 10$
-```
+
 
 
 
@@ -56,9 +56,9 @@ Si costruisca un primo modello lineare semplice `fit1` in cui la variabile rispo
 
 ### Es. 1.b
 
-```{asis}
+
 Si produca una visualizzazione che mostri come la relazione tra la variabile `MarketValue` e `CashFlow`, mostrando la relazione stimata dal modello `fit1` e un intervallo di confidenza per il valore atteso di `MarketValue` in funzione della variabile `CashFlow`. Per quale valore di `CashFlow` è più stretto l'intervallo di confidenza? 
-```
+
 
 
 
@@ -66,9 +66,9 @@ Si produca una visualizzazione che mostri come la relazione tra la variabile `Ma
 
 ### Es. 1.c
 
-```{asis}
+
 Si elenchino le assunzioni sottostanti il modello lineare semplice e si verifichi se queste sono soddisfatte per il modello `fit1`. Si suggerisca eventualmente come modificare il modello. 
-```
+
 
 
 
@@ -81,9 +81,8 @@ Si elenchino le assunzioni sottostanti il modello lineare semplice e si verifich
 
 ### Es. 1.d
 
-```{asis}
-Si stimi un modello lineare multiplo in cui tutte le variabili sono utilizzati come predittori. Si confronti il valore stimato di $\beta_{CashFlow}$ e la sua significatività nei due modelli: come si può interpretare il valore del parametro dei due modelli? Quale potrebbe essere la causa di una eventuale differenza del valore stimato per il parametro nei due modelli?  
-```
+
+Si stimi un modello lineare multiplo in cui tutte le variabili sono utilizzati come predittori. Si confronti il valore stimato di $\beta_{CashFlow}$ e la sua significatività nei due modelli: come si può interpretare il valore del parametro dei due modelli? Quale potrebbe essere la causa di una eventuale differenza del valore stimato per il parametro nei due modelli? 
 
 
 
@@ -110,9 +109,8 @@ table(dex1$Banks)
 
 ### Es. 2.a 
 
-```{asis}
 Si stimi un modello `fit1` utile a verificare se la variabile `Assets` è un predittore significativo per predire se un'azienda è o meno una banca. Che effetto ha la variabile `Assets` sulla probabilità che un'azienda sia una banca? 
-```
+
 
 
 
