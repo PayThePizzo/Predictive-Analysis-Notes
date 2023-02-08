@@ -1,7 +1,10 @@
+# Set Directory
+
 getwd()
 setwd()
 
 # ---------------------------------
+
 # Avoid missing data
 df = df[!is.na(df$predictor),]
 
@@ -33,29 +36,26 @@ beta1_hat <- fit$coefficients[2]
 residuals <- fit$residuals # or residuals(fit) or target - y_hat
 
 ## R^2
-## R^2*100% of the total variability observed in the target
-## is explained by the linear relationship with the predictor(s)
+# R^2*100% of the total variability observed in the target
+# is explained by the linear relationship with the predictor(s)
 r2 <- summary(fit)$r.squared
 
 ## Hypothesis testing - TS = EST-HYP/SE ~ t_(n-p)
-## 1. Compute TS
+# 1. Compute TS
 TS <- (beta_j - hyp)/se_beta_j
-## 2. Check p-value
+# 2. Check p-value
 2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE)
 # 2*(1-pt(abs(TS)), df=fit$df.residual)
-## 3. If TS is large or small (far away from 0, so that the value can be
-## on either tails of the t-student distribution), and the p-value is 
-## small, REJECT THE NULL HYPOTHESIS
-## 3B: We can also try confidence intervals 
-## 3C: Check if abs(TS)>qt(1-alpha/2, df=n-p)
+# 3. If TS is large or small (far away from 0, so that the value can be
+# on either tails of the t-student distribution), and the p-value is 
+# small, REJECT THE NULL HYPOTHESIS
+# 3B: We can also try confidence intervals 
+# 3C: Check if abs(TS)>qt(1-alpha/2, df=n-p)
 
-# se for m(x) 
-se <- summary(fit)$sigma
-# se <- sqrt(sum((dataset$target - fitted(fit))^2)/(nrow(dataset)-2))
-
+## Confidence Intervals Bj
+confint(fit, parm=bj, level=0.95)
 ## Confidence Intervals Beta_j - EST +- CRIT * SE
-## If the HYP is inside the interval We DO NOT REJECT THE NULL HYPOTHESIS
-
+# If the HYP is inside the interval We DO NOT REJECT THE NULL HYPOTHESIS
 est + qt(c(0.0+(alpha/2), 1.0-(alpha/2)), df=n-p) * sqrt(vcov[i,j])
 
 # Or
@@ -64,27 +64,35 @@ cbind(beta_hat+qt(0.0+(alpha/2), n-p)*se_beta_hat,
 # Or
 confint(fit, parm=predictor, level=0.95)
 
+
+## Stima puntuale Y|X=x
+predict(fit, newdata = nd) # ritorna una stima puntuale
+
+# se for m(x) 
+se <- summary(fit)$sigma
+# se <- $se.fit
+# se <- sqrt(sum((dataset$target - fitted(fit))^2)/(nrow(dataset)-2))
+
 ## Confidence Intervals - Y|X=x
 nd <- data.frame(predictor=c(1,2,3,...,10))
 predict(fit, newdata= nd, interval = "confidence", level=1-alpha)
-# E' come fare la stima puntuale
+# E' come fare la stima puntuale e trovare gli intervalli per ogni stima
 
 # Or
 s_conf <- summary(fit)$sigma * sqrt(1/n+(((nd$predictor-mean(df$predictor))^2)/sum((df$predictor-mean(df$predictor))^2)))
-    
 cbind(est + qt(alpha/2, df=fit$df.residual) * s_conf,
       est + qt(1-(alpha/2), df=fit$df.residual) * s_conf)
 
 ## Prediction Intervals 
-## More variability 
+# More variability 
 predict(fit, newdata= nd, interval = "prediction", level=1-alpha)
 
 # Or
-
-s_pred <- summary(fit)$sigma * sqrt(1 +(1/n)+(((nd$predictor-mean(df$predictor))^2)/sum((df$predictor-mean(df$predictor))^2))) 
-
+s_pred <- summary(fit)$sigma * sqrt(1 +(1/n)+(
+    ((nd$predictor-mean(df$predictor))^2)/sum((df$predictor-mean(df$predictor))^2))) 
 cbind(est + qt(alpha/2, df=fit$df.residual) * s_pred,
       est + qt(1-(alpha/2), df=fit$df.residual) * s_pred)
+
 
 ## Assumptions - L.I.N.E
 # Le assunzioni si possono scrivere in maniera sintetica come
@@ -173,6 +181,10 @@ residuals(fit) ## these are y - fitted(fit)
 rstandard(fit) ## standardised residuals 
 rstudent(fit)  ## studentized residuals 
 
+## Predictors with p_value lower than 0.05
+chosenVars <- rownames(coef(summary(fit))[coef(summary(fit))[,4] < 0.05,])
+# Fit them into new model
+fit2 <- lm(target~., data = prostate[,c(chosenVars,"target")])
 
 ## Hypothesis testing - TS = EST-HYP/SE ~ t_(n-p)
 ## 1. Compute TS
@@ -187,36 +199,30 @@ TS <- (beta_j - hyp)/se_beta_j
 
 
 ## Confidence Intervals Bj
+confint(fit, parm=bj, level=0.95)
 
-# Stima puntuale
-
-## Y|X=x
+## Stima puntuale Y|X=x
 predict(fit, newdata = nd) # ritorna una stima puntuale
 
 ## Confidence Intervals Y|X=x 
 # Must take the right form
 x0 <- cbind(rep(1,3), c(1650, 3000, 5000),c(72, 75, 82))
 
-predict(fit, newdata=nd, interval="confidence")
+predict(fit, newdata=nd, interval="confidence") # Stima puntuale + Intervalli
 
 # Or 
 se_cx0 <- est_sigma * sqrt(diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_cx0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_cx0)
 
-# Or
-
 
 ## Prediction Intervals Y
-predict(fit, newdata=nd, interval="prediction")
+predict(fit, newdata=nd, interval="prediction") # Stima puntuale + Intervalli
 
 # Or
 se_px0 <- est_sigma * sqrt(1+diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
-
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_px0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_px0)
-
-
 
 ## Visualize the intervals
 
@@ -433,19 +439,9 @@ plot(dataset$predictor, hatvalues(fit_mul))
 
 # GLM
 ## Valore atteso e' una trasformazione della combinazione lineare
-## E[Y|X=x] = g(Xbeta)
+## E[Y|X=x] = g^-1(Xbeta)
 
 
-##in questo esempio usiamo una Poisson 
-
-df <- data.frame(x1 = runif(15), x2 = runif(15), y  = rpois(15, 6))
-
-## stima del modello 
-fit <- glm(y~x1+x2, data = df, family = poisson()) 
-## di default si usa la funzione legame canonica
-poisson()$link
-summary(fit) ## varie informazioni riassuntive sulla stima
-coef(fit) ## valori stimati dei coefficienti del modello 
 confint.default(fit) ## intervalli di confidenza per i coefficienti del modello 
 
 ## predizione 
@@ -455,6 +451,7 @@ predict(fit) ## predict di default mostra il predittore lineare
 predict(fit, type = "response") ## predict accetta un'opzione type per mostrare i valori stimati sulla scala delle Y 
 ## per un oggetto glm predict non può costruire intervalli di confidenza (e non si possono costruire intervalli di predizione)
 predict(fit, se.fit = TRUE) # con opzione se.fit si ottiene lo standard error per il predittore lineare 
+
 ## per un nuovo set di punti 
 nd <- data.frame(x1 = c(0.2,0.8), x2 = c(0.3,0.6))
 a <- predict(fit, newdata = nd, se.fit = TRUE); a
@@ -464,26 +461,180 @@ cbind(a$fit + qnorm(alpha/2) * a$se.fit,
       a$fit + qnorm(1-alpha/2) * a$se.fit)
 
 
-# residui 
-residuals(fit) ## di default deviance residuals 
-residuals(fit, type = "pearson") ## type = c("deviance", "pearson", "response"))
+# residui, type = c("deviance", "pearson", "response"))
+residuals(fit) ## default deviance residuals 
+residuals(fit, type = "pearson") 
+residuals(fit, type = "response")
 
 # goodness of fit/ bontà di adattamento 
 plot(fit) # grafici riassuntivi
 AIC(fit, k = 2); BIC(fit); logLik(fit) ## verosimiglianza e criteri di informazione
 
 ## test anova per modelli annidati 
-# anova(small_model, big_model)
+# anova(small_model, small_model)
 anova(glm(y~x1, data = df, family=poisson()), fit, test = "LRT")
-
+# Or
+tstat <- as.numeric(2*(logLik(small_model) - logLik(big_model)))
+diff_df <- length(small_model$coefficients) - length(big_model$coefficients)
+pchisq(tstat, df = diff_df, lower.tail = FALSE)
 
 # ----------------------
 
 ## Poisson
+## Expected value = Variance
 
-## Bernoulli
+### Hypothesis Testing
 
-## Binomial
+### Stima puntuale 
+# Stima Predittore Lineare  
+# X beta
+# Or
+# preds_link <- predict(fit, newdata = nd) by default is link
+preds_link <- predict(fit, newdata = nd, type = "link")
+
+# Stima puntuale su scala della risposta (tra 0 ed 1) 
+# E[Y|X=x] = exp{X beta}
+# Or
+preds_resp <- predict(fit, newdata = nd, type = "response")
+# Or
+# exp(preds_link)
+
+### Confidence Interval
+confint.default(fit, parm="predictor", level= 1-alpha/2)
+# Or
+lpred <- predict(fit, type="link", se.fit=TRUE)
+# For linear predictor
+cbind(lpred$fit[i:j]+qnorm(0.0+(alpha/2))*lpred$se.fit[i:j],
+      lpred$fit[i:j]+qnorm(1-(alpha/2))*lpred$se.fit[i:j])
+# For expected value,
+exp(cbind(
+        lpred$fit[i:j]+qnorm(0.0+(alpha/2))*lpred$se.fit[i:j],
+        lpred$fit[i:j]+qnorm(1-(alpha/2))*lpred$se.fit[i:j]))
+
+est_bj + qnorm(c(0.0+(alpha/2), 1-(alpha/2))) * se_bj
+
+
+
+## Bernoulli - Y|X=x ~ Bern(p(x) ~ Bin(1, p(x))
+
+### Data:
+# 1 - Factor
+# 'success' is interpreted as the factor not having the first level 
+# (and hence usually of having the second level)
+# WE NEED TO MAKE SURE THE RIGHT LEVEL IS USED TO REPRESENT SUCCESS
+df$target <- as.factor(df$target)
+glm(target ~ predictor, data = df, family = binomial)
+
+# 2 - Numerical vector 
+# with values between 0 and 1, interpreted as the proportion 
+# of successful cases (with the total number of cases given by the weights).
+df$numsuccess <- as.numeric(df$target == "success") # 1 when 'success'
+glm(numsuccess ~ predictor, data = df, 
+    family = binomial, 
+    weights = rep(1, nrow(df))) # We need to specify the weights
+
+# 3 - As a two-column integer matrix: 
+# the first column gives the number of successes and 
+# the second the number of failures.
+df$numsuccess <- as.numeric(df$target == "success") # successes
+df$ntrial <- rep(1, nrow(df)) # failures
+glm(cbind(df$numsuccess, df$ntrial-df$numsuccess) ~ df$predictor, 
+    family = binomial)
+
+## Intercept: E[Y|X=0] 
+
+### Hypothesis Testing - EST-HYP/SE ~ N(0,1)
+## 1. Compute TS
+TS <- (beta_j - hyp)/se_beta_j
+## 2. Check p-value
+2*pnorm(abs(TS), lower.tail = FALSE)
+## 3. If TS is large or small (far away from 0, so that the value can be
+## on either tails of the t-student distribution), and the p-value is 
+## small, REJECT THE NULL HYPOTHESIS
+## 3B: We can also try confidence intervals 
+## 3C: Check if abs(TS)>qnorm(1-alpha/2, df=n-p)
+
+# Nota: a differenza di quanto fatto per il modelli 
+# lineari, per costruire l’intervallo di confidenza 
+# usiamo un normale (e non una T di Student) dato 
+# che stiamo utilizzando il fatto che le stime dei 
+# coefficienti di regressione nei GLM sono ottenute 
+# tramite massima verosimiglianza per cui possiamo 
+# sfruttare il fatto che per gli stimatori di massima 
+# verosimiglianza si ha una distribuzione 
+# approssimativamente normale.
+# Di conseguenza l’intervallo di confidenza è 
+# approssimato e l’approssimazione sarà tanto 
+# migliore quanto più è grande il campione.
+
+### Confidence Interval Bj
+confint.default(fit, parm="predictor", level= 1-alpha/2)
+# Or
+est_bj + qnorm(c(0.0+(alpha/2), 1-(alpha/2))) * se_bj
+
+### Stima puntuale 
+# Stima Predittore Lineare -> X beta
+# Or
+# preds_link <- predict(fit, newdata = nd) by default is link
+preds_link <- predict(fit, newdata = nd, type = "link") 
+
+# Stima puntuale su scala della risposta (tra 0 ed 1)
+# E[Y|X=x] = exp{X beta}/(1 + exp{X beta})
+# Or
+preds_resp <- predict(fit, newdata = nd, type = "response") 
+# Or
+# exp(preds_link)/(1+exp(preds_link))
+## Odd ratio = preds_resp/(1-preds_resp)
+
+### Confidence Interval
+preds <- predict(fit, newdata = nd, type = "link", se.fit = TRUE)
+pint <- cbind(fit$family$linkinv(preds$fit + qnorm(0.0+(alpha/2)) * preds$se.fit),
+              fit$family$linkinv(preds$fit + qnorm(1-(alpha/2)) * preds$se.fit))
+
+
+
+## Binomial - Y|X = x ~ Bin(k,p(x))
+# PRO: aggregated info = less space,  
+# CON: cannot estimate how single instances are impacted, or do some inference
+
+# Data for one aggregation (ex:by year) 
+# - column for the "groupby" (one row per year)
+# - column for count of successes (grouped by year)
+# - column for total trials (grouped by year)
+byYear <- data.frame(year = tapply(dat$year, factor(dat$year), unique), 
+                     numopp = tapply(dat$numopp, factor(dat$year), sum), 
+                     tpat = tapply(dat$numopp, factor(dat$year), length)) 
+
+# 1 - As a two-column integer matrix: 
+# the first column gives the number of successes (numopp) and 
+# the second the number of failures.
+byYear$n_notopp <- byYear$tpat - byYear$numopp # Columns of failures
+glm(cbind(numopp, n_notopp) ~ year, family = binomial, data=byYear)
+
+# 2 - Numerical vector 
+# with values between 0 and 1, interpreted as the proportion 
+# of successful cases (with the total number of cases given by the weights).
+byYear$propOpp <- byYear$num_opp/byYear$tpat
+glm(propOpp ~ year, data = byYear, family = binomial,  weights = tpat) 
+# We need to specify the weights
+
+
+### Hypothesis Testing
+
+### Confidence Interval Bj
+confint.default(fit, parm = "predictor")
+
+#Or 
+# Std. Error + Normal quantile at alpha=0.05 * SE
+coef(fit)[2] + qnorm(c(0.025,0.975))*sqrt(vcov(fit)[2,2])
+
+### Confidence Interval
+
+predict(fit, newdata = nd, type = "link")
+
+
+predict(fit, newdata = nd, type = "response")
+
 
 
 ## Deviance Analysis - Confronto tra modelli nested

@@ -178,15 +178,17 @@ L'effetto dei predittori, in questo contesto puo' essere interpretato come l'eff
 Per quanto riguarda `numAccess` l'effetto leggermente positivo di `r coefficients(fitTot)[2]` punti ed e' anche molto significativo dato che il p-value e' molto piccolo con un valore della z-value relativamente grande. 
 
 ```{r}
-plot(dex2$numAccess, jitter(dex2$fail, amount = 0.14), pch = 16)
+plot(dex2$numAccess, jitter(dex2$fail, amount = 0.14), pch = 16,
+     main="Confidence Interval for numAccess")
 
 # GLM with 1 predictor
 fit_numAccess <- glm(fail ~ numAccess, family=binomial, data=dex2)
 
 # "pure" numAccess effect
 lines(sort(dex2$numAccess), 
-      predict(fit_numAccess, newdata = data.frame(numAccess = sort(dex2$numAccess)), type = "response"), 
-      col = "red")
+      predict(fit_numAccess, 
+              newdata = data.frame(numAccess = sort(dex2$numAccess)), 
+              type = "response"), col = "red")
 
 # Fix the values
 nd <- data.frame(numAccess = seq(min(dex2$numAccess), max(dex2$numAccess)), 

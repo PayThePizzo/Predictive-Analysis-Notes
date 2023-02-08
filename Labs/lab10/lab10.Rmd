@@ -157,7 +157,14 @@ Se usiamo questi due tassi per valutare un classificatore sul dataset usato per 
 par(mfrow=c(1,2))
 
 plot(predict(fit_caps), col = 1 + (predict(fit_caps)>0), pch=1,
-     main="Misclassification", xlab = "Index", ylab="Estimated Y")
+     main="Misclassification for fit_caps", xlab = "Index", ylab="Estimated Y")
+
+legend(x="topright", legend=c("Not spam","Spam"),
+       col=c("black","red"), lwd=1, lty=c(NA,NA), 
+       pch=c(1,1))
+
+plot(predict(fit_additive), col = 1 + (predict(fit_additive)>0), pch=1,
+     main="Misclassification for fit_additive", xlab = "Index", ylab="Estimated Y")
 
 legend(x="topright", legend=c("Not spam","Spam"),
        col=c("black","red"), lwd=1, lty=c(NA,NA), 
@@ -345,6 +352,27 @@ conf_mat_50 <- make_conf_mat(predicted = spam_tst_pred,
 conf_mat_50     
 ```
 
+```{r}
+# When the estimate for the 
+# linear predictor is greater than 0, 
+# we assign the type to spam
+par(mfrow=c(1,2))
+
+plot(predict(fit_caps), col = 1 + (predict(fit_caps)>0), pch=1,
+     main="Misclassification for fit_caps", xlab = "Index", ylab="Estimated Y")
+
+legend(x="topright", legend=c("Not spam","Spam"),
+       col=c("black","red"), lwd=1, lty=c(NA,NA), 
+       pch=c(1,1))
+
+plot(predict(fit_additive), col = 1 + (predict(fit_additive)>0), pch=1,
+     main="Misclassification for fit_additive", xlab = "Index", ylab="Estimated Y")
+
+legend(x="topright", legend=c("Not spam","Spam"),
+       col=c("black","red"), lwd=1, lty=c(NA,NA), 
+       pch=c(1,1))
+```
+
 Definiamo con *Prevalence* il tasso con cui avviene l'evento di interesse (nel nostro esempio che la mail sia spam). Abbiamo quindi: 
 
 $$
@@ -488,7 +516,13 @@ c(get_sens(conf_mat_10), get_spec(conf_mat_10))
 
 Non è possibile migliorare specificità e sensitività allo stesso tempo: si deve decidere quale metrica è più importante e trovare un punto di equilibrio. 
 
-Questo modello è ovviamente molto semplice e sarebbe un pessimo filtro spam, anche perché si basa su un dataset vecchio e probabilmente poco generalizzabile. Possiamo probabilmente cercare di usare modelli più complessi per creare un filtro spam, ma giù usando un modello di regressione logistica riusciamo ad ottenere qualcosa che potrebbe in qualche modo funzionare in pratica. 
+Questo modello è ovviamente molto semplice e sarebbe un pessimo filtro spam, 
+anche perché si basa su un dataset vecchio e probabilmente poco generalizzabile. 
+
+Possiamo probabilmente cercare di usare modelli più complessi 
+per creare un filtro spam, ma giù usando un modello di regressione 
+logistica riusciamo ad ottenere qualcosa che potrebbe in qualche modo 
+funzionare in pratica. 
 
 
 
