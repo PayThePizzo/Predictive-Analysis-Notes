@@ -13,6 +13,51 @@ df = df[!is.na(df$predictor),]
 # \forall i=1,\ldots, n 
 # con \epsilon_i \thicksim \mathcal{N}(0, \sigma^2) errori indipendenti.
 
+slr_lse_coefficients <- function(predictor , target){
+    
+    # Define basic data
+    x <- predictor
+    y <- target
+    n <- length(x)
+    
+    # Find plugin variance
+    s2x <- empirical_variance(x,n)
+    s2y <- empirical_variance(y,n)
+    
+    rxy <- cor(x,y)
+    
+    mx <- mean(x)
+    my<- mean(y)
+    
+    # Angular coefficient
+    # Dictates how the y changes in proportion to x
+    beta1_hat <- rxy * sqrt(s2y/s2x)
+    # Alternatively
+    # covxy <- cov(x,y) 
+    # beta1_hat <- covxy/s2x
+    
+    # Intercept
+    # Forces the regression to pass by the sample mean of x and y.
+    beta0_hat <- my - beta1_hat *mx
+    # Alternatively
+    # beta0 _hat <- se * sqrt (1/n + mean (x) ^2/(n * s2x ))
+    
+    
+    # Estimated values
+    yhat <- beta0_hat + beta1_hat * x
+    
+    # Empirical MSE
+    mse_hat<-(sum((y-yhat)^2))
+    
+    # Residuals
+    res_hat <- y-yhat
+    
+    # Std. Error
+    se_hat <- sqrt(sum((yhat - y)^2)/(n-2))
+    
+    c(beta0_hat, beta1_hat, yhat, mse_hat, res_hat, se_hat)
+}
+
 fit <- lm(formula = target~predictor, data = df)
 
 y_hat <- fitted(fit) # stima puntuale/ valori stimati
@@ -270,7 +315,10 @@ Anova_test <- function(fit_h0, fit_ha){
 # Ha una penalizzazione che tiene conto del numero di gradi di 
 # libertà usati dal modello
 summary(fit)$adj.r.square
-# adjr2 <- (sum((y-y_hat)**2)/(n-p-1))/(sum((y-mean(y))**2)/(n-1))
+
+adj_r_squared <-function(y, y_hat, n,p){
+    (sum((y-y_hat)**2)/(n-p-1))/(sum((y-mean(y))**2)/(n-1))
+}
 
 ## IC - Higher is best
 ## Bontà di adattamento dei modelli in cui si tiene conto 
@@ -361,11 +409,42 @@ step(intermediate,
 # Transformations
 
 ## Predictor Transformation
-## E[Y|XT = t*xi] = beta0 + (beta1 xi * t)
+#
+# E[Y|XT = t*xi] = beta0 + (beta1 xi * t)
+#
+## Logaritmo 
+#
+# log(Y_{i}) = \beta_{0} +\beta_{1}x_{i} + \varepsilon_{i} \rightarrow Y_{i} 
+# = exp \left\{ \beta_{0} + \beta_{1}x \right\} \cdot exp \left\{\varepsilon_{i} 
+# \right\}
+#
+# \hat{y_{i}} = \exp\{\hat{\beta_{0}}\} \cdot \exp\{\hat{\beta_{1}} x_{i}\}
+#
+## Trasformazione di Box-Cox 
+# Da usare se y|X risulta non-normale 
+#
+MASS::boxcox (y~x, data = df, lambda = seq(-0.5,0.5, by=0.05))
 
-## trasformazione di Box-Cox 
-## da usare se y|X risulta non-normale 
-## MASS::boxcox
+bctransf$x[which.max(bctransf$y)]
+
+# Box-Cox transform
+boxcox(fit, plotit = TRUE)
+
+
+## Polynomials - Y_i = beta0 + beta1x1 + beta2 x^2_i + e_i
+#
+# Even count of polynomials
+lm(formula = target ~ predictor + I(predictor^2) + I(predictor^3) + I(predictor^4), 
+   data = df)
+# Or
+lm(formula = target ~ poly(predictor, 4, raw=TRUE), data = df)
+
+# Odd count of polynomials
+lm(formula = target ~ predictor + I(predictor^2) + I(predictor^3),
+   data = df)
+# Or
+lm(formula = target ~ poly(predictor, 3, raw=TRUE), data = df)
+
 
 # --------------- Collinearity ------------------
 
