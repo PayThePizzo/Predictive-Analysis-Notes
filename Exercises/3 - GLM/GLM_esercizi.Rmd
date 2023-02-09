@@ -1,0 +1,45 @@
+---
+title: "GLM Esercizi"
+output:
+  html_document:
+    theme: readable
+    toc: yes
+    code_folding: show
+---
+
+# Esercizio 1 
+
+Si consideri il dataset `wbca` del pacchetto `faraway`. 
+Il dataset contiene dati riguardo uno studio oncologico in cui 
+si vuole poter individuare se un tumore `e maligno o meno usando alcune
+caratteristiche delle cellule estratte usando un ago aspirato. Si veda anche `?faraway::wbca`.
+
+```{r}
+wbca <- faraway::wbca
+```
+
+## 1.1
+
+Si esegua una prima stima in cui la variabile `Class` , cioe la variabile che indica la classificazione del
+tumore, dipende dalla variabile `Thick`: si produca un grafico che mostra come la probabilit`a che
+un tumore sia benigno dipende da `Thick`. Si crei inoltre un intervallo di confidenza al 96% per il
+parametro relativo alla variabile `Thick`
+
+\[ [Class_i = \text{Benigno} | Thick = t_i] \sim ~ Bin(k=1, p(x))\]
+
+```{r}
+fit <- glm(Class~Thick, data=wbca, family=binomial)
+
+plot(jitter(Class, amount=0.15)~Thick,
+    data = wbca, ylab = "P(Tumor is benign)")
+lines(sort(wbca$Thick), fitted(fit)[order(wbca$Thick)],col=2)
+```
+
+```{r}
+confint.default(fit, parm="Thick", level = 0.96)
+```
+
+
+
+
+

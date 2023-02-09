@@ -193,7 +193,6 @@ TS <- (beta_j - hyp)/se_beta_j
 
 
 ## Confidence Intervals Bj
-
 confint(fit, parm=bj, level=0.95)
 
 
