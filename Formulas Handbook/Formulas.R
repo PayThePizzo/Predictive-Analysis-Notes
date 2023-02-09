@@ -139,61 +139,6 @@ cbind(est + qt(alpha/2, df=fit$df.residual) * s_pred,
       est + qt(1-(alpha/2), df=fit$df.residual) * s_pred)
 
 
-## Assumptions - L.I.N.E
-# Le assunzioni si possono scrivere in maniera sintetica come
-# $Y_i|X=x_i \stackrel{iid}{\sim} N(\beta_0 + \beta_1 x_i, \sigma)$ 
-# per ogni $i= 1, \ldots, n$. 
-# Si deve quindi verificare che la relazione tra X e Y sia lineare
-# e che le osservazioni seguano una normale e abbiano varianza costante. 
-
-### Linearity (of the model) - Residuals vs Predictors
-# Plot Y~X and the estimated regression, to see if there's a non-linear pattern
-plot(target ~ predictor, data = dataset, xlab=xlabel, ylab=ylabel, main=title)
-abline(beta0_hat, beta1_hat, col = 2, lwd = 1.4)
-# Plot Residuals vs Predictors
-# See if there is a pattern here, if so there's a problem
-# See if there are problematic points far from the mean
-plot(df$predictor, resid(fit))
-abline(h=0)
-
-whichCols <- names(fit$coefficients)[-1]
-
-if(any(whichCols == "predictor")) whichCols[whichCols == "predictor"] <- "predictor"
-
-par(mfrow=c(2, ceiling(length(whichCols)/2)), pch=16)
-
-for(j in seq_along(whichCols)){
-    plot(df[,whichCols[j]], residuals(fit)) 
-    abline(h=0,lty=2)
-}
-# Check other predictors vs residuals if possible
-
-### Independence (of observations)
-# Hard to test, unless specified (we just hope they are iid and well sampled
-# so that they represent the entire population)
-# Can we find any reason for the observations not to be independent?
-# Try to find collinearity/multicollinearity
-
-### Normality (of errors) - QQplot
-# It should not show heavy tails 
-qqnorm(resid(fit))
-qqline(resid(fit))
-
-### Equal Variance/ Homoskedasticity
-# Should not show a pattern, just random, equal distant points from the mean
-plot(fitted(fit), resid(fit))
-abline(h=0)
-
-### ALL IN ONE
-plot(fit)
-# Residuals vs Fitted
-## Smoother should follow the 0, no clear pattern present
-# Normal QQplot
-# Scale-Location
-## Heteroskedasticity would show growing variance as Y grows
-# Residuals vs Leverage
-## Shows problematic points
-
 # ---------------- MLR -----------------
 #
 # Y_i = \beta_0 + \beta_1 predictor1_i + \beta_2 predictor2_i + \epsilon_i,
@@ -237,11 +182,14 @@ fit2 <- lm(target~., data = prostate[,c(chosenVars,"target")])
 TS <- (beta_j - hyp)/se_beta_j
 ## 2. Check p-value
 2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE)
-## 3. If TS is large or small (far away from 0, so that the value can be
-## on either tails of the t-student distribution), and the p-value is 
-## small, REJECT THE NULL HYPOTHESIS
-## 3B: We can also try confidence intervals 
-## 3C: Check if abs(TS)>qt(1-alpha/2, df=n-p)
+# 3. If TS is large or small (far away from 0, so that the value can be
+# on either tails of the t-student distribution), and the p-value is 
+# small, REJECT THE NULL HYPOTHESIS
+# 3B: We can also try confidence intervals 
+# 3C: Check if abs(TS)>qt(1-alpha/2, df=n-p)
+#
+# 4 in the summary, the F-statistic must be small, with a significative
+# p-value for the model to be better than the null model
 
 
 ## Confidence Intervals Bj
@@ -394,6 +342,80 @@ step(intermediate,
      scope = list(lower = null, upper=full),
      direction="both", trace=1, k=log(n))
 
+
+# ----------------- Model Checking  ----------------
+
+## Assumptions - L.I.N.E
+# Linearity of the model
+# Independence of observations 
+# Normality of Errors, errors iid ~N(0, sigma^2)
+# Equal Variace/ Homoskedasticity
+
+
+# Le assunzioni si possono scrivere in maniera sintetica come
+# $Y_i|X=x_i \stackrel{iid}{\sim} N(\beta_0 + \beta_1 x_i, \sigma)$ 
+# per ogni $i= 1, \ldots, n$. 
+
+# $Y_i|x1, x2, ..., xn \stackrel{iid}{\sim} N([Scrivere modello esteso], \sigma^2)$ 
+# per ogni $i= 1, \ldots, n$. 
+
+### Linearity (of the model) - Residuals vs Predictors
+# Plot Y~X and the estimated regression, to see if there's a non-linear pattern
+plot(target ~ predictor, data = dataset, xlab=xlabel, ylab=ylabel, main=title)
+abline(beta0_hat, beta1_hat, col = 2, lwd = 1.4)
+# Plot Residuals vs Predictors
+# See if there is a pattern here, if so there's a problem
+# See if there are problematic points far from the mean
+plot(df$predictor, resid(fit))
+abline(h=0)
+
+whichCols <- names(fit$coefficients)[-1]
+
+if(any(whichCols == "predictor")) whichCols[whichCols == "predictor"] <- "predictor"
+
+par(mfrow=c(2, ceiling(length(whichCols)/2)), pch=16)
+
+for(j in seq_along(whichCols)){
+    plot(df[,whichCols[j]], residuals(fit)) 
+    abline(h=0,lty=2)
+}
+# Check other predictors vs residuals if possible
+
+### Independence (of observations)
+# Hard to test, unless specified (we just hope they are iid and well sampled
+# so that they represent the entire population)
+# Can we find any reason for the observations not to be independent?
+# Try to find collinearity/multicollinearity
+
+### Normality (of errors) - QQplot
+# Highlights the assumption of normality, 95% of values should be in (-2,2)
+# following a straight line and no heavy tails
+qqnorm(resid(fit))
+qqline(resid(fit))
+
+### Equal Variance/ Homoskedasticity
+## 1) Residuals vs Fitted
+# Highlights the functional form and over/under estimations
+# Should not show a pattern, just random, equal distant points from the mean 0
+plot(fitted(fit), resid(fit))
+abline(h=0)
+#
+## 2) Scale-Location
+# Highlights the assumption of homoskedasticity
+# Heteroskedasticity would show growing variance as Y gro
+#
+## 3) Residuals vs Leverage
+# Highlights influential points
+# If any point in this plot falls outside of Cook’s distance (the red dashed lines) 
+# then it is considered to be an influential observation.
+
+### ALL IN ONE
+plot(fit)
+
+### Remember that we can question how the data is gathered
+# Subpopulations might not be specified, Incentives, Probable errors
+# Spurious correlation, Weak generalizability
+
 # -----------------Categorical Predictors and Interactions ----------------
 
 # Categorical Predictors and Interactions
@@ -419,14 +441,22 @@ step(intermediate,
 # \right\}
 #
 # \hat{y_{i}} = \exp\{\hat{\beta_{0}}\} \cdot \exp\{\hat{\beta_{1}} x_{i}\}
-#
+
+
 ## Trasformazione di Box-Cox 
 # Da usare se y|X risulta non-normale 
-#
+# PRO: permettere di predire valori della variabile originale 
+# usando un modello moltiplicativo facile da implementare e 
+# da comunicare agli utenti del modello. 
+# Una volta finita la fase di costruzione del modello si potrebbe 
+# tornare a valutare la scelta della trasformazione usata per la 
+# variabile risposta.
+
 MASS::boxcox (y~x, data = df, lambda = seq(-0.5,0.5, by=0.05))
-
-bctransf$x[which.max(bctransf$y)]
-
+# Choose lambda
+dataset$boxcoxtarget <- (dataset$target^lmbda)/lambda
+hist(residuals(lm(boxcoxtarget ~ predictor, data = dataset)))
+#bctransf$x[which.max(bctransf$y)]
 # Box-Cox transform
 boxcox(fit, plotit = TRUE)
 
@@ -448,27 +478,72 @@ lm(formula = target ~ poly(predictor, 3, raw=TRUE), data = df)
 
 # --------------- Collinearity ------------------
 
-# Xj vs Y
+# 1) Controllo delle correlazioni/covarianze
+#
+# y vs predictors
 par(mfrow= c(3,4))
 for(j in 2:13){
     plot(bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))][,c(j,1)])
     title(main = paste("betahat is", signif(coef(fit_all)[j],3)))
 } 
 ## Check Correlation
-signif(cor(df),4)
+signif(cor(df),4) # values close to +1 or -1 are problematic
+
 ## Check Covariance
-signif(cov(df),4)
+signif(cov(df),4) 
+# Sometimes cov = 0 indicates non-linear relationships
+# Linearly, cov = 0 means linear independence
+# Linearly, strong (either positive or negative) covariance is problematic
 
-## VIF = 1/1-R^2
-### Model
-vif <- 1/(1-summary(fit)$r.squared) 
-### Bj
-vif_bj<- diag(solve(t(X) %*% X))[j]*(sum((data$bj-mean(data$bj))^2))
+# Quando i predittori inseriti nel modello sono fortemente correlati tra loro e si ha 
+# il problema della multi-colinearità, come evidenziato anche dai valori alti 
+# dei variance inflation factors.
+#
+# Includere una variabile esplicativa fortemente correlata ad un 
+# predittore già presente nel modello tipicamente riduce la significatività 
+# della relazione tra una o più delle variabili esplicative e la variabile 
+# risposta: questo avviene perché quando si inseriscono variabili correlate 
+# tra lorO si inflaziona la variabilità delle stime dei coefficienti 
+# di regressione 
+#
+# summary(fit_better) e' molto diverso summary(fit_worse)
 
-car::vif(fit) ## variance inflation factors
+# 2) Controllo come cambia l'errore per la regressione, e le stime dei coefficienti
+#
+# Multicolinearità, crea problemi alla stima dei modello
+# inflazionando la varianza della stima (che poi va anche ad influire sulla 
+# precisione della stima in termini di stima dell'effetto del predittore sulla
+# variabile risposta). 
+#
+# Ad esempio due modelli avranno un SE[m(x)] diverso, se1 < se2
+se1 <- predict(fit_better, newdata = data.frame(p1 = 110, p2 = 90), 
+               se.fit = TRUE)$se.fit
+se2 <- predict(fit_worse, newdata = data.frame(p1 = 110, p2 = 90), 
+               se.fit = TRUE)$se.fit
 
+# 3) Controllo VIF = 1/1-R^2
+#
+# Si può quantificare quanto la possibile colinearità dei 
+# predittori vada ad inflazionare la variabilità della stima usando i 
+# Variance Inflation Factors, che indicano quanto più è grande la varianza nel 
+# modello stimato rispetto ad un modello con variabili indipendenti. 
+
+# VIF for a beta_j
+#
+# 1) fit new model:
+# formula = focus_predictor ~ [same predictors as before, without the focus predictor]
+# [do not include target in the predictors now]
+fit <- lm(target ~ b1 + b2 + b3 + b4 + b5, data=dataset) # Original model
+fit_b1 <- lm(b1 ~ b2 + b3 + b4 + b5, data=dataset) # Model for vif_b1
+vif_b1 <- 1/(1-summary(fit_b1)$r.squared) 
+# Or
+# solve(t(X) %*% X))[2] -> for b1 
+# solve(t(X) %*% X))[1] -> b0 = cbind(rep(1, n))
+vif_b1<- diag(solve(t(X) %*% X))[2]*(sum((data$b1-mean(data$b1))^2))
+
+# For all beta_j
+car::vif(fit) 
 sort(car::vif(fit_all))
-
 
 # Se vediamo valori di VIF > 10 si tende a dire che ci sono problemi 
 # legati a multi-colinearità
@@ -476,45 +551,92 @@ sort(car::vif(fit_all))
 # possibile stimare una delle variabili esplicative come una funzione 
 # delle altre variabili presenti nel dataset
 
-# La stima di $\beta_{CashFlow}$ cambia di segno dei due modelli: quando si 
-# tengono in considerazione tutte le altre variabili l'effetto del flusso di 
-# cassa diventa negativo (e non significativo): le altre variabili incluse nel 
-# modello catturano la variabilita spiegata da `CashFlow`. Questo avviene quando 
-# i predittori inseriti nel modello sono fortemente correlati tra loro e si ha 
-# il problema della multi-colinearità, come evidenziato anche dai valori alti 
-# dei variance inflation factors.
-
-# Data la forte correlazione tra i predittori potremmo trovarci in una 
-#situazione di multicolinearità, questo crea problemi alla stima dei modello
-#inflazionando la varianza della stima (che poi va anche ad influire sulla 
-#precisione della stima in termini di stima dell'effetto del predittore sulla
-#variabile risposta). Si può quantificare quanto la possibile colinearità dei 
-#predittori vada ad inflazionare la variabilità della stima usando i 
-#Variance Inflation Factors, che indicano quanto più è grande la varianza nel 
-#modello stimato rispetto ad un modello con variabili indipendenti. Valori 
-#grandi di VIFs indicano che la variabilità della stima è ben più grande di 
-#quella che potrebbe essere usando predittori indipendenti. 
+# 4) Controllo assunzioni
+# 
 #Un altro controllo che è possibile (ed opportuno) fare è una verifica che le 
-#assunzioni del modello (normalità, varianza costante, etc...) siano soddisfatte:
-#i grafici dei residui non mostrano forti devianze dalle assunzioni del modello 
-#lineare. La normalità dei residui non è totalmente dimostrata ma il qqplot non 
-#è particolarmente problematico. Eventuali forti deviazioni dalle assunzioni del
-#modello possono inficiare la validità della stima di un modello lineare.
-
-# Includere una variabile esplicativa fortemente correlata ad un predittore 
-# già presente nel modello tipicamente riduce la significatività della relazione 
-# tra una o più delle variabili esplicative e la variabile risposta: questo 
-# avviene perché quando si inseriscono variabili correlate tra lor si inflaziona 
-# la variabilità delle stime dei coefficienti di regressione
+# assunzioni del modello (normalità, varianza costante, etc...) siano soddisfatte:
+# Eventuali forti deviazioni dalle assunzioni del
+# modello possono inficiare la validità della stima di un modello lineare.
+plot(fit)
 
 # --------------- Influence ------------------
 
 ## Influential points: outliers that greatly affect the slope of the regression line
 
-cooks.distance(fit) # outliers/punti particolari 
+# 0) Remove
+# Rimuovere questi (pochi) punti dall’analisi implicherebbe 
+# che il modello non sarebbe generalizzabile per luoghi le 
+# cui caratteristiche sono simili a quelle di queste stazioni
 
-hatvalues(fit) ##  leverages - punti di leva 
-plot(dataset$predictor, hatvalues(fit_mul))
+# 1) Find the values of the observed x_predictor that are >= or <= or < or > some 
+# cutoff value
+dataset[dataset$predictor > cutoff,]
+
+# 2) Plot Y vs X, see how the regression changes and identifiy outliers
+plot(bodyfat[,c("predictor","target")])
+points(dataset[dataset$predictor > cutoff ,
+               c("predictor","target")], col = 2, pch = 16)
+abline(coef(lm(target~predictor, data = dataset)), 
+       col = 2)# Fit with outliers
+abline(coef(lm(target~predictor, data = dataset, 
+               subset = dataset$predictor < cutoff))) #Exclude outliers
+
+
+# 3) Check leverage/hatvalues values: Leverage(fit) vs X
+# H_ii is the influence of an observation y_i on its own fitted value y_hat_i
+# It tells us how much of y_hat_i is just y_i
+#
+# Leverage of a point increases as the the point moves away from the mean of
+# the predictors. 
+hatvalues(fit) ##  leverages - punti di leva
+# H <- diag(X %*% solve(crossprod(X)) %*% t(X))
+
+plot(dataset$predictor, hatvalues(lm(target~predictor, data = dataset)))
+# Average Leverage = p+1/n 
+# is the typical value the leverage of a point x_i should take
+
+# 4) Use influence
+influence(fit)
+# 5) Apply a transformation that will change the impact of outliers
+
+# 6) Look at the residuals
+# The bigger the leverage of a point i, the smaller the variance
+# since the model focuses on trying to fit that hard point rather
+# than the regular ones.
+#
+# Standardized Residuals 
+# (used by R for plot(fit))
+rstandard(fit)
+# std_r_i = e_i/(est_sigma * sqrt(1-H_ii))
+#
+residuals(fit)/(summary(fit)$sigma*sqrt(1-hatvalues(fit)))
+
+# Studentized Residuals
+rstudent(fit)
+# stud_r_i = (r_i**2)/(n-p-1) ~ beta(1/2, 1/2(n-p-2)) ~ Norma as n->inf
+#
+residuals(fit)/(influence(fit)$sigma * sqrt(1-hatvalues(fit)))
+# Or
+rstandard(fit)*sqrt((fit$df.residual-1)/((fit$df.residual)-rstandard(fit)^2))
+
+# Externally Studentized Residuals ~ t_{n-p-2}
+t_i <- std_r_i * sqrt((n-p-2)/(n-p-1-(std_r_i**2)))
+
+# 7) Cook's distance 
+#
+# Per verificare quanto impatta la presenza di un punto, 
+# nel calcolo del modello stimato. The smaller the better 
+cooks.distance(fit) # outliers/punti particolari 
+# d_i <- (1/p+1)*(exp(1)**2)*(hatvalues(fit)/((1-hatvalues(fit))**2))
+# (resid(fit_mul)^2)*(1/fit_mul$rank)*(hatvalues(fit_mul)/((1-hatvalues(fit_mul))^2))*(1/summary(fit_mul)$sigma^2)
+
+# i is the index of the problematic value
+ei <- bodyfat[i,"Pct.BF"] - 
+    predict(lm(formula, data = dataset, subset = -i), newdata = bodyfat[i,])
+# (residuals(fit_mul)[i]^2*hatvalues(fit_mul)[i]/((1-hatvalues(fit_mul)[i])^2))*(1/length(coef(fit_mul)))
+plot(cooks.distance(fit))
+# Or
+plot(fit, 4)
 
 # --------------- GLM ------------------
 

@@ -193,7 +193,13 @@ abline(coef(lm(Pct.BF~Ankle, data = bodyfat, subset = bodyfat$Ankle < 30)))
 I due punti cambiano di molto la stima. Questo perché hanno un valore di _leverage_ alto: 
 
 ```{r}
-plot(bodyfat$Ankle, hatvalues(lm(Pct.BF~Ankle, data = bodyfat)))
+fit_lev <- lm(Pct.BF~Ankle, data = bodyfat)
+
+plot(bodyfat$Ankle, hatvalues(fit_lev),
+     xlab= "Ankle", ylab = "Hat Values")
+points(x=bodyfat$Ankle ,
+       y=hatvalues(fit_lev),
+       col = 1 + (hatvalues(fit_lev)> 0.05), pch = 16)
 ```
 
 I due punti sono evidenti nel grafico che mostra il valore di leverage contro i residui e per uno dei due punti si nota anche un valore notevole del residuo standardizzato : 
