@@ -44,8 +44,11 @@ dex1 <- read.csv("a01ex12_data.csv", header = TRUE)
 
 ### Es. 1.a 
 
-```{asis}
+
 Si costruisca un primo modello lineare semplice `fit1` in cui la variabile risposta `MarketValue` viene spiegata in funzione del predittore `CashFlow`. Si commenti la significatività del modello e si derivi un intervallo di confidenza (a livello di confidenza 98\%) per il coefficiente angolare relativo alla variabile `CashFlow` nel modello `fit11`. Si verifichi inoltre il sistema di ipotesi $H_0: \beta_{CashFlow} = 10$ VS $H_1: \beta_{CashFlow} \neq 10$
+
+```{r}
+
 ```
 
 

@@ -36,8 +36,7 @@ Il dataset `dex1` contiene informazioni sulla resa ottenuta in diversi lotti in 
 Si carichi il dataset usando il codice seguente (attenzione ad aver impostato la variabile matricola!):  
 
 ```{r,cache=TRUE}
-# dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex1.txt"))
-dex1 <- dget(paste0(your_path,matricola,"_a1ex1.txt"))
+dex1 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex1.txt"))
 ```
 
 Si desidera indagare come la resa sia influenzata dalla quantità di fertilizzante usata in ogni campo. 
@@ -130,8 +129,7 @@ Si carichi il dataset usando il codice seguente (attenzione ad aver impostato la
 
 
 ```{r,cache=TRUE}
-# dex2 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex2.txt"))
-dex2 <- dget(paste0(your_path,matricola,"_a1ex2.txt"))
+dex2 <- dget(paste0("https://raw.githubusercontent.com/ilapros/janExam/main/",matricola,"_a1ex2.txt"))
 ```
 
 ### Es. 2.a 

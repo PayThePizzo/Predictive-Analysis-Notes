@@ -1,155 +1,106 @@
 # Formulas
 
-# ---------------------------------
-# Extra
-
-# Avoid missing data
-df = df[!is.na(df$predictor),]
-
-# Gli intervalli di confidenza danno un'indicazione dell'incertezza 
-# attorno al valore medio E[Y|X=x]
-# Gli intervalli di predizione invece danno un'indicazione 
-# dell'incertezza per quelli che possono essere gli effettivi 
-# valori di Y (i veri possibili valori osservati in caso avessimo determinate
-# istanze. 
-#
-# Dato che la media è per definizione meno variabile delle singole 
-# osservazioni gli intervalli di confidenza sono meno ampi degli 
-# intervalli di predizione.  
-
-
 # ---------------- SLR -----------------
 
 # SLR - y_i = b0 + b1x + epsilon_i with 
 # [target | predictor = xi] = \beta_0 + \beta_1 predictor_i + \epsilon_i 
 # \forall i=1,\ldots, n 
 # con \epsilon_i \thicksim \mathcal{N}(0, \sigma^2) errori indipendenti.
+fit <- lm(formula = target~predictor, data = df)
 
 slr_lse_coefficients <- function(predictor , target){
-    
     # Define basic data
     x <- predictor
     y <- target
     n <- length(x)
-    
     # Find plugin variance
     s2x <- empirical_variance(x,n)
     s2y <- empirical_variance(y,n)
-    
     rxy <- cor(x,y)
-    
     mx <- mean(x)
     my<- mean(y)
-    
-    # Angular coefficient
-    # Dictates how the y changes in proportion to x
     beta1_hat <- rxy * sqrt(s2y/s2x)
-    # Alternatively
-    # covxy <- cov(x,y) 
-    # beta1_hat <- covxy/s2x
-    
-    # Intercept
-    # Forces the regression to pass by the sample mean of x and y.
+    # beta1_hat <- rxy * sqrt ( s2y / s2x )
     beta0_hat <- my - beta1_hat *mx
-    # Alternatively
-    # beta0 _hat <- se * sqrt (1/n + mean (x) ^2/(n * s2x ))
-    
+    # beta0_hat <- y _ bar - beta1 _ hat * x _ bar
     
     # Estimated values
     yhat <- beta0_hat + beta1_hat * x
-    
     # Empirical MSE
     mse_hat<-(sum((y-yhat)^2))
-    
     # Residuals
     res_hat <- y-yhat
-    
     # Std. Error
     se_hat <- sqrt(sum((yhat - y)^2)/(n-2))
-    
     c(beta0_hat, beta1_hat, yhat, mse_hat, res_hat, se_hat)
 }
 
-fit <- lm(formula = target~predictor, data = df)
-
 y_hat <- fitted(fit) # stima puntuale/ valori stimati
-
-# intercept -> (E[X], E[Y]=E[Y|X=0])
-beta0_hat <- fit$coefficients[1]
-# beta0_hat <- y _ bar - beta1 _ hat * x _ bar
-# SAME AS doing predict(fit, newdata= data.frame(predictor=0))
-
-# angular coefficient
-beta1_hat <- fit$coefficients[2] 
-# beta1_hat <- rxy * sqrt ( s2y / s2x )
-
-## Residuals 
-## epsilon_i \stackrel{iid}\sim (0, sigma^2)
-residuals <- fit$residuals # or residuals(fit) or target - y_hat
-
-## R^2
-# R^2*100% of the total variability observed in the target
-# is explained by the linear relationship with the predictor(s)
-r2 <- summary(fit)$r.squared
-
-
-## Hypothesis testing - TS = EST-HYP/SE ~ t_(alpha/2,n-p)
-
-# 1. Compute TS
-TS <- (beta_j - hyp)/se_beta_j
-# 2. Check p-value
-2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE)
-# 2*(1-pt(abs(TS)), df=fit$df.residual)
-# 3. If TS is large or small (far away from 0, so that the value can be
-# on either tails of the t-student distribution), and the p-value is 
-# small, REJECT THE NULL HYPOTHESIS
-# 3B: We can also try confidence intervals 
-# 3C: Check if abs(TS)>qt(1-alpha/2, df=n-p)
-
-
-## Confidence Intervals Bj
-
-confint(fit, parm=bj, level=0.95)
-## Confidence Intervals Beta_j - EST +- CRIT * SE
-# If the HYP is inside the interval We DO NOT REJECT THE NULL HYPOTHESIS
-est + qt(c(0.0+(alpha/2), 1.0-(alpha/2)), df=n-p) * sqrt(vcov[i,j])
-# Or
-cbind(beta_hat+qt(0.0+(alpha/2), n-p)*se_beta_hat,
-      beta_hat+qt(1.0-(alpha/2), n-p)*se_beta_hat)
-# Or
-confint(fit, parm=predictor, level=0.95)
-
-
-## Stima puntuale E[Y|X=x]
-predict(fit, newdata = nd)
 
 # se for m(x) 
 se <- summary(fit)$sigma
 # se <- $se.fit
-# se <- sqrt(sum((dataset$target - fitted(fit))^2)/(nrow(dataset)-2))
+se <- sqrt(sum((dataset$target - fitted(fit))^2)/(nrow(dataset)-2))
 
 
-## Confidence Intervals
+# intercept -> (E[X], E[Y]=E[Y|X=0])
+beta0_hat <- fit$coefficients[1]
+# angular coefficient
+beta1_hat <- fit$coefficients[2] 
+# Residuals 
+residuals <- fit$residuals # or residuals(fit) or target - y_hat
+# R^2
+r2 <- summary(fit)$r.squared
 
+## Hypothesis testing - TS = EST-HYP/SE ~ t_(alpha/2,n-p)
+# 1)
+hyp_test_t <- function(beta_j, hyp, se_beta_j, n, p){
+    # 1. Compute TS
+    TS <- (beta_j - hyp)/se_beta_j
+    # 2. Check p-value
+    p_value <- 2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE) # 2*(1-pt(abs(TS)), df=fit$df.residual)
+    # 3. If TS is large or small (far away from 0, so that the value can be
+    # on either tails of the t-student distribution), and the p-value is 
+    # small, REJECT THE NULL HYPOTHESIS
+    c(TS, p_value)
+}
+# 2): We can also try confidence intervals 
+# 3)
+p_value <- function(TS, alpha, n, p){
+    # Check if abs(TS)>qt(1-alpha/2, df=n-p)
+    ifelse((abs(TS)>qt(1-(alpha/2), df=n-p)), TRUE, FALSE)
+}
+
+
+# Confidence Intervals Beta_j -> EST +- CRIT * SE
+# If the HYP is inside the interval We DO NOT REJECT THE NULL HYPOTHESIS
+confint(fit, parm=bj, level=1-(alpha/2))
+# Or 
+est + qt(c((alpha/2), 1.0-(alpha/2)), df=n-p) * sqrt(vcov[j,j])
+# Or
+cbind(beta_hat+qt((alpha/2), n-p)*se_beta_hat,
+      beta_hat+qt(1.0-(alpha/2), n-p)*se_beta_hat)
+
+# Stima puntuale E[Y|X=x]
+predict(fit, newdata = data.frame(predictor= value))
+
+# Confidence Intervals - E[Y|X=x]
+#
 nd <- data.frame(predictor=c(1,2,3,...,10))
 predict(fit, newdata= nd, interval = "confidence", level=1-alpha)
-# E' come fare la stima puntuale e trovare gli intervalli per ogni stima
 # Or
 s_conf <- summary(fit)$sigma * sqrt(1/n+(((nd$predictor-mean(df$predictor))^2)/sum((df$predictor-mean(df$predictor))^2)))
 cbind(est + qt(alpha/2, df=fit$df.residual) * s_conf,
       est + qt(1-(alpha/2), df=fit$df.residual) * s_conf)
 
-
-## Prediction Intervals 
-# More variability 
-
+# Prediction Intervals - Actual Y
+# 
 predict(fit, newdata= nd, interval = "prediction", level=1-alpha)
 # Or
 s_pred <- summary(fit)$sigma * sqrt(1 +(1/n)+(
     ((nd$predictor-mean(df$predictor))^2)/sum((df$predictor-mean(df$predictor))^2))) 
 cbind(est + qt(alpha/2, df=fit$df.residual) * s_pred,
       est + qt(1-(alpha/2), df=fit$df.residual) * s_pred)
-
 
 # ---------------- MLR -----------------
 #
@@ -159,13 +110,9 @@ cbind(est + qt(alpha/2, df=fit$df.residual) * s_pred,
 
 fit <- lm(target~predictor1+predictor2, data=df)
 
-## Model Matrix = X
+# Model Matrix = X
 model.matrix(fit)
-
-# X =   1       predictor1_{1}      predictor2_{1}
-#       1       predictor1_{2}      predictor2_{2}
-#       1       ...                 ...
-#       1       predictor1_{n}      predictor2_{n}
+# Or
 X <- cbind(rep(1, n), df$predictor1, df$predictor2)
 
 # hatvalues(fit)
@@ -173,23 +120,22 @@ H <- X  %*% solve(t(X) %*% X) %*% t(X)
 
 y_hat <- as.vector(H %*% y)
 
-## Variance
+# Variance
 est_sigma <- sqrt(sum(fit$residuals^2)/(n-length(fit$coef)))
 se_beta_hat <- as.vector(est_sigma * sqrt(diag(solve(t(X) %*% X))))
 
-## Residuals
+# Residuals
 residuals(fit) ## these are y - fitted(fit)
 rstandard(fit) ## standardised residuals 
 rstudent(fit)  ## studentized residuals 
 
-## Predictors with p_value lower than 0.05
+# Predictors with p_value lower than 0.05
 chosenVars <- rownames(coef(summary(fit))[coef(summary(fit))[,4] < 0.05,])
 # Fit them into new model
 fit2 <- lm(target~., data = prostate[,c(chosenVars,"target")])
 
 
-## Hypothesis testing - TS = EST-HYP/SE ~ t_(alpha/2,n-p)
-
+# Hypothesis testing - TS = EST-HYP/SE ~ t_(alpha/2,n-p)
 ## 1. Compute TS
 TS <- (beta_j - hyp)/se_beta_j
 ## 2. Check p-value
@@ -200,40 +146,37 @@ TS <- (beta_j - hyp)/se_beta_j
 # 3B: We can also try confidence intervals 
 # 3C: Check if abs(TS)>qt(1-alpha/2, df=n-p)
 #
-# 4 in the summary, the F-statistic must be small, with a significative
-# p-value for the model to be better than the null model
 
 
-## Confidence Intervals Bj
-confint(fit, parm=bj, level=0.95)
+
+# Confidence Intervals Bj
+confint(fit, parm=bj, level=1-(alpha/2))
 
 
 ## Stima puntuale E[Y|X=x]
-
+#
 predict(fit, newdata = nd) # ritorna una stima puntuale
 
-## Confidence Intervals Y|X=x 
+## Confidence Intervals - E[Y|X=x] 
 # Must take the right form
 x0 <- cbind(rep(1,3), c(1650, 3000, 5000),c(72, 75, 82))
-predict(fit, newdata=nd, interval="confidence") # Stima puntuale + Intervalli
+predict(fit, newdata=nd, interval="confidence") 
 # Or 
 se_cx0 <- est_sigma * sqrt(diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_cx0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_cx0)
 
 
-## Prediction Intervals Y
-
-predict(fit, newdata=nd, interval="prediction") # Stima puntuale + Intervalli
+## Prediction Intervals - Actual Y
+predict(fit, newdata=nd, interval="prediction") 
 # Or
 se_px0 <- est_sigma * sqrt(1+diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_px0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_px0)
 
-## Visualize the intervals
+# Visualize the intervals
 
-
-## Compare Nested Models 
+# Compare Nested Models 
 # REJECT the bigger model for a large F-statics and a small p-value
 anova(fit_h0, fit_ha)
 
@@ -250,225 +193,107 @@ Anova_test <- function(fit_h0, fit_ha){
     c(fobs, p_value)
 }
    
-## Model assessment 
-## The F-statistic for the model is large - the model is significant, i.e. 
-## it explains an amount of variability of the observed data that is considerably 
-## larger than using the mean only (Null model vs Model with some predictors).
-## This does not automatically mean that the model is better.
-## Find a balance between being able to explain some variability but keeping the 
-## number of predictors low enough to avoid inflating the model variability.
-
-## Quando usiamo troppi parametri facciamo aumentare l’incertezza 
-## nella stima: stiamo inserendo troppe variabili che non spiegano 
-## variabilità generale dei dati ma seguono caratteristiche di 
-## alcune osservazioni. Dobbiamo bilanciare la necessità di “spiegare bene” 
-## i dati con la capacità del modello di fare predizioni non troppo incerte: 
-## per ottenere questo bilanciamento cerchiamo di specificare modelli parsimoniosi.
-
-## Model Selection
-# Meno parametri -> stima dei parametri meno incerta
-# Piu' parametri -> aumento della varianza nella stima (inflazione della stima)
-
-## Adjusted R^2 = 1-((SSres/(n-p-1))/(SStot/(n-1)))
-# Si tiene in considerazione la complessità del modello.
-# Ha una penalizzazione che tiene conto del numero di gradi di 
-# libertà usati dal modello
+# Adjusted R^2
 summary(fit)$adj.r.square
-
+# Or
 adj_r_squared <-function(y, y_hat, n,p){
+    # Adjusted R^2 = 1-((SSres/(n-p-1))/(SStot/(n-1)
     (sum((y-y_hat)**2)/(n-p-1))/(sum((y-mean(y))**2)/(n-1))
 }
 
-## IC - Lower is better
-## Bontà di adattamento dei modelli in cui si tiene conto 
-## della complessità del modello sono i criteri di 
-## informazione legati alla verosimiglianza:
-logLik(fit) # Lower is best
+# IC - Lower is better
+logLik(fit) 
 # logLik <- sum(dnorm(df$target, fit$fitted.values, summary(fit)$sigma,log = TRUE))
 
-## AIC 
-## AIC permette di individuare modelli in qualche senso ottimali bilanciando 
-# l'aumento della verosimiglianza per modelli più complessi con una 
-# penalizzazione basata sulla complessità del modelli 
-# (in termini di numero di parametri stimati)
+# AIC 
 AIC(fit, k=2)
-# AIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
+# Or
+AIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
 
-## BIC - Prefers less complex models
+#BIC - Prefers less complex models
 AIC(fit, k=log(n))
+# Or
 BIC(fit)
-# BIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
+# Or
+BIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
 
-## LOOCV RMSE - Lower is best
-### we assess how well would the model do if used to predict out-of-sample values.
-### Only for SLR and MLR
-### In the GLM model we need to recompute the model each time
+# RMSE_LOOCV
 calc_loocv_rmse <- function(model) {
     sqrt(mean((resid(model) / (1 - hatvalues(model)))**2))
 }
 
-## k-fold Cross Validation
-### Fit the model k times, while leaving out 1/k of the data which is used
-### to compute the estimation of the error. The final evaluation will be based
-### on the mean of the k estimations of the error
-###
-### We achieve "on average" evaluation of the model
-###
-### When k=n, then we perform the same process n times, by leaving out
-### just 1 observation at the time, which is more precise but computationally
-### expensive. In our framework we can just use RMSE_LOO
-
-
-## Model Selection
-# L'algoritmo forward parte da un modello poco complesso e verifica di volta 
-# in volta se aumentare la complessità del modello migliora la bontà di 
-# adattamento misurata tramite AIC o BIC. 
-# L'algoritmo backward invece parte da un modello complesso e ad 
-# ogni passo dell'algoritmo verifica se sottrarre una variabile 
-# migliora la bontà di adattamento (misurata tramite AIC o BIC)
-
-### FS - AIC
-step(null, 
+# Model Selection
+# FS - AIC
+step(object = null, 
      scope=list(lower=null, upper=full), 
      direction="forward", k=2, trace=1)
-
-### FS - BIC
-step(null, scope=list(lower=null, upper=full), 
+# FS - BIC
+step(object = null, scope=list(lower=null, upper=full), 
      direction="forward", k=log(n), trace=1)
-
-### BS - AIC
-step(full, scope=list(lower=null, upper=full), 
+# BS - AIC
+step(object = full, scope=list(lower=null, upper=full), 
      direction="backward", k=2, trace=1)
-### BS - BIC
-step(full, scope=list(lower=null, upper=full), 
+# BS - BIC
+step(object = full, scope=list(lower=null, upper=full), 
      direction="backward", k=log(n), trace=1)
-
-### Step - AIC
-step(intermediate, 
+# Step - AIC
+step(object = intermediate, 
      scope = list(lower = null, upper=full),
      direction="both", trace=1, k=2)
-
-### Step - BIC
-step(intermediate, 
+# Step - BIC
+step(object = intermediate, 
      scope = list(lower = null, upper=full),
      direction="both", trace=1, k=log(n))
 
 
 # ----------------- Model Checking  ----------------
 
-## Assumptions - L.I.N.E
-# Linearity of the model
-# Independence of observations 
-# Normality of Errors, errors iid ~N(0, sigma^2)
-# Equal Variace/ Homoskedasticity
+# Assumptions - L.I.N.E
 
-
-# Le assunzioni si possono scrivere in maniera sintetica come
-# $Y_i|X=x_i \stackrel{iid}{\sim} N(\beta_0 + \beta_1 x_i, \sigma)$ 
-# per ogni $i= 1, \ldots, n$. 
-
-# $Y_i|x1, x2, ..., xn \stackrel{iid}{\sim} N([Scrivere modello esteso], \sigma^2)$ 
-# per ogni $i= 1, \ldots, n$. 
-
-### Linearity (of the model) - Residuals vs Predictors
-# Plot Y~X and the estimated regression, to see if there's a non-linear pattern
+# Residuals vs Predictors
 plot(target ~ predictor, data = dataset, xlab=xlabel, ylab=ylabel, main=title)
 abline(beta0_hat, beta1_hat, col = 2, lwd = 1.4)
-# Plot Residuals vs Predictors
-# See if there is a pattern here, if so there's a problem
-# See if there are problematic points far from the mean
-plot(df$predictor, resid(fit))
-abline(h=0)
 
 whichCols <- names(fit$coefficients)[-1]
-
 if(any(whichCols == "predictor")) whichCols[whichCols == "predictor"] <- "predictor"
-
 par(mfrow=c(2, ceiling(length(whichCols)/2)), pch=16)
-
 for(j in seq_along(whichCols)){
     plot(df[,whichCols[j]], residuals(fit)) 
     abline(h=0,lty=2)
 }
-# Check other predictors vs residuals if possible
 
-### Independence (of observations)
-# Hard to test, unless specified (we just hope they are iid and well sampled
-# so that they represent the entire population)
-# Can we find any reason for the observations not to be independent?
-# Try to find collinearity/multicollinearity
-
-### Normality (of errors) - QQplot
-# Highlights the assumption of normality, 95% of values should be in (-2,2)
-# following a straight line and no heavy tails
+# QQplot
 qqnorm(resid(fit))
 qqline(resid(fit))
 
-### Equal Variance/ Homoskedasticity
-## 1) Residuals vs Fitted
-# Highlights the functional form and over/under estimations
-# Should not show a pattern, just random, equal distant points from the mean 0
+# Homoskedasticity
+# 1) Residuals vs Fitted
 plot(fitted(fit), resid(fit))
 abline(h=0)
-#
-## 2) Scale-Location
-# Highlights the assumption of homoskedasticity
-# Heteroskedasticity would show growing variance as Y gro
-#
-## 3) Residuals vs Leverage
-# Highlights influential points
-# If any point in this plot falls outside of Cook’s distance (the red dashed lines) 
-# then it is considered to be an influential observation.
+# 2) Scale-Location
+# 3) Residuals vs Leverage
 
-### ALL IN ONE
+# ALL IN ONE
 plot(fit)
-
-### Remember that we can question how the data is gathered
-# Subpopulations might not be specified, Incentives, Probable errors
-# Spurious correlation, Weak generalizability
 
 # -----------------Categorical Predictors and Interactions ----------------
 
-# Categorical Predictors and Interactions
+# Categorical Predictors
 
 # Interactions
-
-# Verificare se questo parametro (relativo all'interazione tra x1 e x2) è pari a 0
-# permette di verificare se l'effetto x1 è lo stesso nei vari livelli di x2
-
 
 # ---------------- Transformations -----------------
 
 # Transformations
 
-## Predictor Transformation
-#
-# Se applichiamo una trasformazione lineare alla variabile esplicativa
-# e/o alla risposta, questo non cambia il coefficiente angolare e percio'
-# avra' stesso R2 e spieghera' la stessa variabilita' 
-#
-# E[Y|X -+ 10 = x -+ 10] e' lineare 
-#
-# E[Y|XT = t*xi] = beta0 + (beta1 xi * t) non e' lineare
-#
-## Logaritmo 
-#
-# log(Y_{i}) = \beta_{0} +\beta_{1}x_{i} + \varepsilon_{i} \rightarrow Y_{i} 
-# = exp \left\{ \beta_{0} + \beta_{1}x \right\} \cdot exp \left\{\varepsilon_{i} 
-# \right\}
-#
-# \hat{y_{i}} = \exp\{\hat{\beta_{0}}\} \cdot \exp\{\hat{\beta_{1}} x_{i}\}
+# Predictor Transformation
+linear_fit <- lm(formula = target ~ predictor + I(predictor-10), data = df)
+nonlinear_fit <- lm(formula = target ~ predictor + log(predictor), data = df)
 
+# Logaritmo 
 
-## Trasformazione di Box-Cox 
+# Trasformazione di Box-Cox 
 # Da usare se y|X risulta non-normale 
-# PRO: permettere di predire valori della variabile originale 
-# usando un modello moltiplicativo facile da implementare e 
-# da comunicare agli utenti del modello. 
-# Una volta finita la fase di costruzione del modello si potrebbe 
-# tornare a valutare la scelta della trasformazione usata per la 
-# variabile risposta.
-
 MASS::boxcox (y~x, data = df, lambda = seq(-0.5,0.5, by=0.05))
 # Choose lambda
 dataset$boxcoxtarget <- (dataset$target^lmbda)/lambda
@@ -477,8 +302,7 @@ hist(residuals(lm(boxcoxtarget ~ predictor, data = dataset)))
 # Box-Cox transform
 boxcox(fit, plotit = TRUE)
 
-
-## Polynomials - Y_i = beta0 + beta1x1 + beta2 x^2_i + e_i
+# Polynomials
 #
 # Even count of polynomials
 lm(formula = target ~ predictor + I(predictor^2) + I(predictor^3) + I(predictor^4), 
@@ -504,7 +328,7 @@ for(j in 2:13){
     title(main = paste("betahat is", signif(coef(fit_all)[j],3)))
 } 
 ## Check Correlation
-signif(cor(df),4) # values close to +1 or -1 are problematic
+signif(cor(df),4) 
 
 ## Check Covariance
 signif(cov(df),4) 
@@ -732,6 +556,10 @@ plot(residuals(fit ,type="response")~predict(fit,type="link"),
 
 # Assumptions hard to verify
 
+# per un oggetto glm predict non può costruire intervalli di confidenza 
+# (e non si possono costruire intervalli di predizione)
+# con opzione se.fit si ottiene lo standard error per il predittore lineare 
+
 nd <- data.frame(Assets = c(2000,20000))
 preds <- predict(fit1, newdata = nd, type = "link", se.fit = TRUE)
 # LOWER BOUNDS 
@@ -869,6 +697,7 @@ cbind(
 # --------- GLM Binomial -------------
 
 # Target_i ~ Bin(k,p(Predictor1_i, Predictor2_i))
+
 # PRO: aggregated info = less space,  
 # CON: cannot estimate how single instances are impacted, or do some inference
 
@@ -904,9 +733,7 @@ confint.default(fit, parm = "predictor")
 coef(fit)[2] + qnorm(c(0.025,0.975))*sqrt(vcov(fit)[2,2])
 
 ### Confidence Interval
-
 predict(fit, newdata = nd, type = "link")
-
 
 predict(fit, newdata = nd, type = "response")
 
@@ -915,22 +742,14 @@ predict(fit, newdata = nd, type = "response")
 
 # GLM Classifier - Logistic Regression
 
-## 1. Split train-test and use test only at the end
-# Train-Test Split
-# Seed changes the results
+# 1. Train-Test Split
 set.seed(42)
 spam_idx <- sample(nrow(spam), 2000)
-# train set, used for model selection and diagnostics 
 spam_trn <- spam[spam_idx,] 
-# test set, used only at the end for evaluation
 spam_tst <- spam[-spam_idx,]
-
-## 2. Define success and cutoff 
+## 2. success and cutoff 
 ifelse(p > cutoff, 1, 0)
-
 ## 3. Define measure of error
-### Misclassification rate -> loocv/ k-fold cv
-### Confusion Matrix
 
 ## loocv-fold cv on misclassification rate
 loocv_glm <- function(n, fit, target,  dataset){
@@ -985,22 +804,17 @@ set.seed(1)
 cv_class(K=k, dat = data_train, model = fit)
 
 # Or
-
-## Cross validation on the actual mis-classification rate
-## 1. Define the cost function, which accepts
-## y, vector of observed values
-## yhat, vector of estimated values from the model
+# 1. Cross validation on the actual mis-classification rate
 cost_function <- function(y, yhat){
     # misclassification rate on cutoff
     mean((y != (yhat>0.5)))
 } 
-## 2. CV 
+# 2. CV 
 boot::cv.glm(data=df, model= fit, K = k, cost = cost_function)
 
 
 # This uses the error calculated as (y - p(y=1)) 
-## error <- error + mean((observed - fitted)^2)/K 
-## NOT THE SAME
+# error <- error + mean((observed - fitted)^2)/K 
 set.seed(1)
 boot::cv.glm(data=data_train, model= fit, K = k)
 
@@ -1011,70 +825,27 @@ predicted <- ifelse(predict(fit,
                             type="response") > cutoff, 1, 0)
 actual <- dataset_tst$target
 
-### Prevalence - Tasso con cui avviene l'evento di interesse
-### Se non avessimo alcuna info aggiuntiva, noi assegneremmo
-### Che p(x)=1 con una certa probabilita' data da prevalence
-get_prevalence <- function(actual, dataset){
-    table(actual)/nrow(dataset_tst)
-}
-
-## In qualche modo, questo e' pari a come classifica il modello nullo
-##
-## Null model: Il classificatore meno complesso a cui possiamo 
-## pensare, in cui tutto viene allocato alla 
-## categoria più frequente (è quello che farebbe un 
-## modello logistico con solo l’intercetta)
-## table(dataset$target) per controllare
-
-## Questo e' l'errore che otterremmo se avessimo stimato un modello con 
-## la sola intercetta
-round(as.numeric((table(dataset_tst$target)[2])) / nrow(dataset_tst),3)
-
-### Misclassification
+# Misclassification
 get_misclassification <- function(predicted, dataset, target){
     mean(predicted != dataset_tst$target)
 }
 
-## Confusion Matrix
-## 1 denotes success
-##
-## True Positive = Predicted=1, Actual=1
-## True Negative = Predicted=0, Actual=0
-## False Positive = Predicted=1, Actual=0
-## False Negative = Predicted=0, Actual=1
-
-## Predicted           Actual
-##              0                   1
-##   0      True Negative    | False Negative
-##   1      False Positive   | True Positive
+# Confusion Matrix
 make_conf_mat <- function(predicted, actual) {
     table(predicted = predicted, actual = actual)
 }
-# table(as.numeric(predict(fitTot, type = "response") > 0.5),dex2$fail)
+# Or
+table(as.numeric(predict(fitTot, type = "response") > 0.5),dex2$fail)
 
-### Sensitivity 
-# True Positive Rate, Tasso dei veri positiviti
+# Sensitivity 
 # TPR = Sens = TP/P = TP/(TP+FN) = 1-FNR
 
 # Note that this function is good for illustrative purposes, 
 # but is easily broken. (Think about what happens if there are 
 # no "positives" predicted.)
 
-### Specificity
-# True Negative Rate
+# Specificity
 # TNR = Spec = TN/N = TN/(TN+FP) = 1-FPR
-
-### Precision 
-# PPV = TP/TP+FP = 1-FDR
-
-### Negative Predictive Value
-# NPV = TN/TN+FN = 1-FOR
-
-### Miss Rate
-# FNR = FN/P = FN/FN+TP = 1-TNR
-
-### False Positve Rate
-# FPR = FP/N = FP/FP+TN
 
 ### Accuracy
 # Acc = TP+TN/TP + TN + FP + FN = 1 - MISC
@@ -1085,14 +856,5 @@ mean(as.numeric(predict(fitTot, type = "response") > 0.5) == dex2$fail)
 # Misc = FP+FN/TP + TN + FP + FN = 1 - ACC
 mean(as.numeric(predict(fitTot, type = "response") > 0.5) != dex2$fail)
 
-### Prevalence
-### Tasso con cui avviene l'evento di interesse
+# Prevalence
 # Prev = P/ #Observations = TP + FN/ #Observations
-
-
-## We can change the cutoff but
-# Increasing cutoff -> more FN, less FP
-# Decreasing cutoff -> less FN (Specificity), more FP (Sensitivity)
-#
-# The important aspect is to cut the costs and increase the cutoff
-# based on what is less expensive (ex: real mail in the spam vs real spam in inbox)
