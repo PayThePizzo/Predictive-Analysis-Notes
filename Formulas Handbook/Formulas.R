@@ -6,6 +6,18 @@
 # Avoid missing data
 df = df[!is.na(df$predictor),]
 
+# Gli intervalli di confidenza danno un'indicazione dell'incertezza 
+# attorno al valore medio E[Y|X=x]
+# Gli intervalli di predizione invece danno un'indicazione 
+# dell'incertezza per quelli che possono essere gli effettivi 
+# valori di Y (i veri possibili valori osservati in caso avessimo determinate
+# istanze. 
+#
+# Dato che la media è per definizione meno variabile delle singole 
+# osservazioni gli intervalli di confidenza sono meno ampi degli 
+# intervalli di predizione.  
+
+
 # ---------------- SLR -----------------
 
 # SLR - y_i = b0 + b1x + epsilon_i with 
@@ -267,7 +279,7 @@ adj_r_squared <-function(y, y_hat, n,p){
     (sum((y-y_hat)**2)/(n-p-1))/(sum((y-mean(y))**2)/(n-1))
 }
 
-## IC - Higher is best
+## IC - Lower is better
 ## Bontà di adattamento dei modelli in cui si tiene conto 
 ## della complessità del modello sono i criteri di 
 ## informazione legati alla verosimiglianza:
@@ -820,9 +832,13 @@ preds_resp <- predict(fit, newdata = nd, type = "response")
 # Confidence Interval
 # con opzione se.fit si ottiene lo standard error per il predittore lineare 
 preds <- predict(fit, newdata = nd, type = "link", se.fit = TRUE)
-pint <- cbind(fit$family$linkinv(preds$fit + qnorm(0.0+(alpha/2)) * preds$se.fit),
+pint <- cbind(fit$family$linkinv(preds$fit + qnorm(alpha/2) * preds$se.fit),
               fit$family$linkinv(preds$fit + qnorm(1-(alpha/2)) * preds$se.fit))
 
+preds <- predict(fit, newdata = nd, type = "link", se.fit = TRUE)
+cbind(
+    binomial()$linkinv(preds$fit + qnorm(alpha/2)*preds$se.fit),
+      binomial()$linkinv(preds$fit + qnorm(1-(alpha/2))*preds$se.fit))
 
 # --------- GLM Binomial -------------
 
@@ -1008,6 +1024,7 @@ get_misclassification <- function(predicted, dataset, target){
 make_conf_mat <- function(predicted, actual) {
     table(predicted = predicted, actual = actual)
 }
+# table(as.numeric(predict(fitTot, type = "response") > 0.5),dex2$fail)
 
 ### Sensitivity 
 # True Positive Rate, Tasso dei veri positiviti
@@ -1036,9 +1053,11 @@ make_conf_mat <- function(predicted, actual) {
 ### Accuracy
 # Acc = TP+TN/TP + TN + FP + FN = 1 - MISC
 mean(spam_tst_pred == spam_tst$type)
+mean(as.numeric(predict(fitTot, type = "response") > 0.5) == dex2$fail)
 
 ### Misclassification rate on Conf Matrix
 # Misc = FP+FN/TP + TN + FP + FN = 1 - ACC
+mean(as.numeric(predict(fitTot, type = "response") > 0.5) != dex2$fail)
 
 ### Prevalence
 ### Tasso con cui avviene l'evento di interesse

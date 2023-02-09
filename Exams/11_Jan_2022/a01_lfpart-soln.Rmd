@@ -141,15 +141,6 @@ Usando il BIC come criterio per selezionare il modello ottimale si individua un 
 ### Es. 2.c 
 
 
-```{r}
-nd <- data.frame(numAccess = c(10,5290), 
-                 numRequests = c(2000,5000), 
-                 durationMean = c(10,24.8), 
-                 durationMax = c(75,90), 
-                 durationMin = c(9,5))
-rownames(nd) <- c("day1","day2")
-```
-
 ```{r, solution = TRUE}
 nd <- data.frame(numAccess = c(10,5290), 
                  numRequests = c(2000,5000), 
