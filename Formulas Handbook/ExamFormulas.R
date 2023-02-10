@@ -2,10 +2,6 @@
 
 # ---------------- SLR -----------------
 
-# SLR - y_i = b0 + b1x + epsilon_i with 
-# [target | predictor = xi] = \beta_0 + \beta_1 predictor_i + \epsilon_i 
-# \forall i=1,\ldots, n 
-# con \epsilon_i \thicksim \mathcal{N}(0, \sigma^2) errori indipendenti.
 fit <- lm(formula = target~predictor, data = df)
 
 slr_lse_coefficients <- function(predictor , target){
@@ -43,7 +39,7 @@ se <- summary(fit)$sigma
 se <- sqrt(sum((dataset$target - fitted(fit))^2)/(nrow(dataset)-2))
 
 
-# intercept -> (E[X], E[Y]=E[Y|X=0])
+# intercept 
 beta0_hat <- fit$coefficients[1]
 # angular coefficient
 beta1_hat <- fit$coefficients[2] 
@@ -52,16 +48,13 @@ residuals <- fit$residuals # or residuals(fit) or target - y_hat
 # R^2
 r2 <- summary(fit)$r.squared
 
-## Hypothesis testing - TS = EST-HYP/SE ~ t_(alpha/2,n-p)
-# 1)
+## Hypothesis testing 
 hyp_test_t <- function(beta_j, hyp, se_beta_j, n, p){
     # 1. Compute TS
     TS <- (beta_j - hyp)/se_beta_j
     # 2. Check p-value
-    p_value <- 2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE) # 2*(1-pt(abs(TS)), df=fit$df.residual)
-    # 3. If TS is large or small (far away from 0, so that the value can be
-    # on either tails of the t-student distribution), and the p-value is 
-    # small, REJECT THE NULL HYPOTHESIS
+    p_value <- 2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE) 
+    # 2*(1-pt(abs(TS)), df=fit$df.residual)
     c(TS, p_value)
 }
 # 2): We can also try confidence intervals 
@@ -73,7 +66,6 @@ p_value <- function(TS, alpha, n, p){
 
 
 # Confidence Intervals Beta_j -> EST +- CRIT * SE
-# If the HYP is inside the interval We DO NOT REJECT THE NULL HYPOTHESIS
 confint(fit, parm=bj, level=1-(alpha/2))
 # Or 
 est + qt(c((alpha/2), 1.0-(alpha/2)), df=n-p) * sqrt(vcov[j,j])
@@ -81,11 +73,10 @@ est + qt(c((alpha/2), 1.0-(alpha/2)), df=n-p) * sqrt(vcov[j,j])
 cbind(beta_hat+qt((alpha/2), n-p)*se_beta_hat,
       beta_hat+qt(1.0-(alpha/2), n-p)*se_beta_hat)
 
-# Stima puntuale E[Y|X=x]
+# Stima puntuale
 predict(fit, newdata = data.frame(predictor= value))
 
-# Confidence Intervals - E[Y|X=x]
-#
+# Confidence Intervals
 nd <- data.frame(predictor=c(1,2,3,...,10))
 predict(fit, newdata= nd, interval = "confidence", level=1-alpha)
 # Or
@@ -93,8 +84,8 @@ s_conf <- summary(fit)$sigma * sqrt(1/n+(((nd$predictor-mean(df$predictor))^2)/s
 cbind(est + qt(alpha/2, df=fit$df.residual) * s_conf,
       est + qt(1-(alpha/2), df=fit$df.residual) * s_conf)
 
-# Prediction Intervals - Actual Y
-# 
+# Prediction Intervals
+
 predict(fit, newdata= nd, interval = "prediction", level=1-alpha)
 # Or
 s_pred <- summary(fit)$sigma * sqrt(1 +(1/n)+(
@@ -103,10 +94,6 @@ cbind(est + qt(alpha/2, df=fit$df.residual) * s_pred,
       est + qt(1-(alpha/2), df=fit$df.residual) * s_pred)
 
 # ---------------- MLR -----------------
-#
-# Y_i = \beta_0 + \beta_1 predictor1_i + \beta_2 predictor2_i + \epsilon_i,
-# \forall i=1,\ldots, n 
-# con \epsilon_i \thicksim \mathcal{N}(0, \sigma^2) errori indipendenti.
 
 fit <- lm(target~predictor1+predictor2, data=df)
 
@@ -135,29 +122,20 @@ chosenVars <- rownames(coef(summary(fit))[coef(summary(fit))[,4] < 0.05,])
 fit2 <- lm(target~., data = prostate[,c(chosenVars,"target")])
 
 
-# Hypothesis testing - TS = EST-HYP/SE ~ t_(alpha/2,n-p)
+# Hypothesis testing 
 ## 1. Compute TS
 TS <- (beta_j - hyp)/se_beta_j
 ## 2. Check p-value
 2*pt(abs(TS), df=nrow(df)-p, lower.tail = FALSE)
-# 3. If TS is large or small (far away from 0, so that the value can be
-# on either tails of the t-student distribution), and the p-value is 
-# small, REJECT THE NULL HYPOTHESIS
-# 3B: We can also try confidence intervals 
-# 3C: Check if abs(TS)>qt(1-alpha/2, df=n-p)
-#
-
-
 
 # Confidence Intervals Bj
 confint(fit, parm=bj, level=1-(alpha/2))
 
-
-## Stima puntuale E[Y|X=x]
+## Stima puntuale
 #
-predict(fit, newdata = nd) # ritorna una stima puntuale
+predict(fit, newdata = nd) 
 
-## Confidence Intervals - E[Y|X=x] 
+## Confidence Intervals  
 # Must take the right form
 x0 <- cbind(rep(1,3), c(1650, 3000, 5000),c(72, 75, 82))
 predict(fit, newdata=nd, interval="confidence") 
@@ -166,18 +144,14 @@ se_cx0 <- est_sigma * sqrt(diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_cx0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_cx0)
 
-
-## Prediction Intervals - Actual Y
+## Prediction Intervals 
 predict(fit, newdata=nd, interval="prediction") 
 # Or
 se_px0 <- est_sigma * sqrt(1+diag(x0 %*% solve(t(X) %*% X) %*% t(x0)))
 cbind(x0 %*% beta_hat + qt(0.025, n-length(beta_hat)) * se_px0,
       x0 %*% beta_hat + qt(0.975, n-length(beta_hat)) * se_px0)
 
-# Visualize the intervals
-
 # Compare Nested Models 
-# REJECT the bigger model for a large F-statics and a small p-value
 anova(fit_h0, fit_ha)
 
 Anova_test <- function(fit_h0, fit_ha){
@@ -201,7 +175,7 @@ adj_r_squared <-function(y, y_hat, n,p){
     (sum((y-y_hat)**2)/(n-p-1))/(sum((y-mean(y))**2)/(n-1))
 }
 
-# IC - Lower is better
+# IC 
 logLik(fit) 
 # logLik <- sum(dnorm(df$target, fit$fitted.values, summary(fit)$sigma,log = TRUE))
 
@@ -210,7 +184,7 @@ AIC(fit, k=2)
 # Or
 AIC <-(-2*as.numeric(logLik(fit)))+(2*(1+length(fit$coef)))
 
-#BIC - Prefers less complex models
+#BIC 
 AIC(fit, k=log(n))
 # Or
 BIC(fit)
@@ -319,61 +293,30 @@ lm(formula = target ~ poly(predictor, 3, raw=TRUE), data = df)
 
 # --------------- Collinearity ------------------
 
-# 1) Controllo delle correlazioni/covarianze
-#
 # y vs predictors
 par(mfrow= c(3,4))
 for(j in 2:13){
     plot(bodyfat[,-which(names(bodyfat) %in% c("Density", "Abdomen"))][,c(j,1)])
     title(main = paste("betahat is", signif(coef(fit_all)[j],3)))
 } 
-## Check Correlation
+
+#Check Correlation
 signif(cor(df),4) 
 
-## Check Covariance
+# Check Covariance
 signif(cov(df),4) 
-# Sometimes cov = 0 indicates non-linear relationships
-# Linearly, cov = 0 means linear independence
-# Linearly, strong (either positive or negative) covariance is problematic
 
-# Quando i predittori inseriti nel modello sono fortemente correlati tra loro e si ha 
-# il problema della multi-colinearità, come evidenziato anche dai valori alti 
-# dei variance inflation factors.
-#
-# Includere una variabile esplicativa fortemente correlata ad un 
-# predittore già presente nel modello tipicamente riduce la significatività 
-# della relazione tra una o più delle variabili esplicative e la variabile 
-# risposta: questo avviene perché quando si inseriscono variabili correlate 
-# tra lorO si inflaziona la variabilità delle stime dei coefficienti 
-# di regressione 
-#
-# summary(fit_better) e' molto diverso summary(fit_worse)
-
-# 2) Controllo come cambia l'errore per la regressione, e le stime dei coefficienti
-#
-# Multicolinearità, crea problemi alla stima dei modello
-# inflazionando la varianza della stima (che poi va anche ad influire sulla 
-# precisione della stima in termini di stima dell'effetto del predittore sulla
-# variabile risposta). 
-#
-# Ad esempio due modelli avranno un SE[m(x)] diverso, se1 < se2
+# Errore 
 se1 <- predict(fit_better, newdata = data.frame(p1 = 110, p2 = 90), 
                se.fit = TRUE)$se.fit
 se2 <- predict(fit_worse, newdata = data.frame(p1 = 110, p2 = 90), 
                se.fit = TRUE)$se.fit
 
 # 3) Controllo VIF = 1/1-R^2
-#
-# Si può quantificare quanto la possibile colinearità dei 
-# predittori vada ad inflazionare la variabilità della stima usando i 
-# Variance Inflation Factors, che indicano quanto più è grande la varianza nel 
-# modello stimato rispetto ad un modello con variabili indipendenti. 
 
 # VIF for a beta_j
-#
-# 1) fit new model:
+# fit new model:
 # formula = focus_predictor ~ [same predictors as before, without the focus predictor]
-# [do not include target in the predictors now]
 fit <- lm(target ~ b1 + b2 + b3 + b4 + b5, data=dataset) # Original model
 fit_b1 <- lm(b1 ~ b2 + b3 + b4 + b5, data=dataset) # Model for vif_b1
 vif_b1 <- 1/(1-summary(fit_b1)$r.squared) 
@@ -386,30 +329,11 @@ vif_b1<- diag(solve(t(X) %*% X))[2]*(sum((data$b1-mean(data$b1))^2))
 car::vif(fit) 
 sort(car::vif(fit_all))
 
-# Se vediamo valori di VIF > 10 si tende a dire che ci sono problemi 
-# legati a multi-colinearità
-# Un altro modo di interpretare il VIF è l’indicazione di quanto sia 
-# possibile stimare una delle variabili esplicative come una funzione 
-# delle altre variabili presenti nel dataset
-
-# 4) Controllo assunzioni
-# 
-#Un altro controllo che è possibile (ed opportuno) fare è una verifica che le 
-# assunzioni del modello (normalità, varianza costante, etc...) siano soddisfatte:
-# Eventuali forti deviazioni dalle assunzioni del
-# modello possono inficiare la validità della stima di un modello lineare.
+# Controllo assunzioni.
 plot(fit)
 
 # --------------- Influence ------------------
 
-## Influential points: outliers that greatly affect the slope of the regression line
-
-# 0) Remove
-# Rimuovere questi (pochi) punti dall’analisi implicherebbe 
-# che il modello non sarebbe generalizzabile per luoghi le 
-# cui caratteristiche sono simili a quelle di queste stazioni
-
-# 1) Find the values of the observed x_predictor that are >= or <= or < or > some 
 # cutoff value
 dataset[dataset$predictor > cutoff,]
 
@@ -420,38 +344,22 @@ points(dataset[dataset$predictor > cutoff ,
 abline(coef(lm(target~predictor, data = dataset)), 
        col = 2)# Fit with outliers
 abline(coef(lm(target~predictor, data = dataset, 
-               subset = dataset$predictor < cutoff))) #Exclude outliers
+               subset = dataset$predictor < cutoff))) # Exclude outliers
 
-
-# 3) Check leverage/hatvalues values: Leverage(fit) vs X
-# H_ii is the influence of an observation y_i on its own fitted value y_hat_i
-# It tells us how much of y_hat_i is just y_i
-#
-# Leverage of a point increases as the the point moves away from the mean of
-# the predictors. 
+# 3)Leverage(fit) vs X
 hatvalues(fit) ##  leverages - punti di leva
 # H <- diag(X %*% solve(crossprod(X)) %*% t(X))
 
 plot(dataset$predictor, hatvalues(lm(target~predictor, data = dataset)))
 # Average Leverage = p+1/n 
-# is the typical value the leverage of a point x_i should take
 
-# 4) Use influence
 influence(fit)
-# 5) Apply a transformation that will change the impact of outliers
-
 # 6) Look at the residuals
-# The bigger the leverage of a point i, the smaller the variance
-# since the model focuses on trying to fit that hard point rather
-# than the regular ones.
-#
 # Standardized Residuals 
-# (used by R for plot(fit))
 rstandard(fit)
 # std_r_i = e_i/(est_sigma * sqrt(1-H_ii))
 #
 residuals(fit)/(summary(fit)$sigma*sqrt(1-hatvalues(fit)))
-
 # Studentized Residuals
 rstudent(fit)
 # stud_r_i = (r_i**2)/(n-p-1) ~ beta(1/2, 1/2(n-p-2)) ~ Norma as n->inf
@@ -465,8 +373,6 @@ t_i <- std_r_i * sqrt((n-p-2)/(n-p-1-(std_r_i**2)))
 
 # 7) Cook's distance 
 #
-# Per verificare quanto impatta la presenza di un punto, 
-# nel calcolo del modello stimato. The smaller the better 
 cooks.distance(fit) # outliers/punti particolari 
 # d_i <- (1/p+1)*(exp(1)**2)*(hatvalues(fit)/((1-hatvalues(fit))**2))
 # (resid(fit_mul)^2)*(1/fit_mul$rank)*(hatvalues(fit_mul)/((1-hatvalues(fit_mul))^2))*(1/summary(fit_mul)$sigma^2)
@@ -481,37 +387,9 @@ plot(fit, 4)
 
 # --------------- GLM ------------------
 
-# Valore atteso e' una trasformazione della combinazione lineare
-# E[Y|X=x] = g^-1(Xbeta)
-
-## Inferenza ed intervalli di confidenza
-#
-# Nota: a differenza di quanto fatto per il modelli 
-# lineari, per costruire l’intervallo di confidenza 
-# usiamo un normale (e non una T di Student) dato 
-# che stiamo utilizzando il fatto che le stime dei 
-# coefficienti di regressione nei GLM sono ottenute 
-# tramite massima verosimiglianza per cui possiamo 
-# sfruttare il fatto che per gli stimatori di massima 
-# verosimiglianza si ha una distribuzione 
-# approssimativamente normale.
-# Di conseguenza l’intervallo di confidenza è 
-# approssimato e l’approssimazione sarà tanto 
-# migliore quanto più è grande il campione.
-# 
-# L’inferenza per i parametri nei GLM si basa sul fatto che 
-# le stime dei coefficienti di regressione sono stime di massima 
-# verosimiglianza e sono di conseguenza approssimativamente normalmente 
-# distribuite per n -> infinity
-
-
-## Analysis of Deviance Table/ LRT Test - Confronto tra modelli nested
-# La devianza funge la stessa funzione del RSS nei modelli lineari: 
-# più variabili si inseriscono nel modello più diminuisce la devianza.
+## Analysis of Deviance Table/ LRT Test 
 summary(fit)$deviance
 summary(fit)$null.dev
-# Per verificare la significatività del modello si possono confrontare le devianze 
-# nulle e residue nel summary: un confronto formale richiede l’uso di un LRT
 #
 # anova(small_model, big_model)
 anova(small_model, big_model, test="LRT")
@@ -525,9 +403,7 @@ pchisq(tstat, df = diff_df, lower.tail = FALSE)-
 AIC(fit, k = 2); 
 AIC(fit, k = log(n)); BIC(fit);
     
-## Cross-Validation
-# Every time we need to re-estimate the model
-
+# Cross-Validation
 plot(fit)
 
 ## Residuals
@@ -535,26 +411,23 @@ plot(fit)
 # Deviance
 residuals(fit) ## default deviance residuals 
 # Pearson
-residuals(fit, type = "pearson") # ~ N(0,1) approximately
-# Response
+residuals(fit, type = "pearson") 
 residuals(fit, type = "response")
 # Working residuals
 fit$residuals
 # 
-# Deviance residuals vs Bj - check for patterns (none should be there)
+# Deviance residuals vs Bj 
 plot(residuals(fit)~ data$predictor, ylab="Deviance residuals")
 # Dev Res vs mu_hat
 plot(residuals(fit)~ predict(fit,type="response"), 
      xlab=expression(hat(mu)), ylab="Deviance residuals")
-# Dev Res vs eta_hat - 
+# Dev Res vs eta_hat 
 plot(residuals(fit)~ predict(fit,type="link"), 
      xlab=expression(hat(eta)), ylab="Deviance residuals")
-# Response residuals vs eta_hat - No increasing pattern
+# Response residuals vs eta_hat 
 plot(residuals(fit ,type="response")~predict(fit,type="link"), 
      xlab=expression(hat(eta)),ylab="Response residuals")
-# Working residuals vs linear predictor - should be linear
-
-# Assumptions hard to verify
+# Working residuals vs linear predictor
 
 # per un oggetto glm predict non può costruire intervalli di confidenza 
 # (e non si possono costruire intervalli di predizione)
@@ -576,31 +449,17 @@ lines(nd$Assets, binomial()$linkinv(preds$fit + qnorm(0.99) * preds$se.fit), col
 
 # --------- GLM Poisson -------------
 
-# [Target_i|Predictor_i] ~ Pois(lambda(Predictor_i)) per i=1,...,n
-#
-# dove lambda(Predictor_i) = exp{beta0 + beta1 Predictor_i}
-#
-## Expected value = Variance
-
-
 ### Hypothesis Testing
 
-
 ### Stima puntuale 
-# Stima Predittore Lineare  
-# X beta
-# Or
-# preds_link <- predict(fit, newdata = nd) by default is link
+# Predittore Lineare 
 preds_link <- predict(fit, newdata = nd, type = "link")
-
-# Stima puntuale su scala della risposta (tra 0 ed 1) 
-# E[Y|X=x] = exp{X beta}
-# Or
+# Risposta 
 preds_resp <- predict(fit, newdata = nd, type = "response")
 # Or
-# exp(preds_link)
+exp(preds_link)
 
-### Confidence Interval
+# Confidence Interval
 confint.default(fit, parm="predictor", level= 1-alpha/2)
 # Or
 # con opzione se.fit si ottiene lo standard error per il predittore lineare 
@@ -617,10 +476,6 @@ est_bj + qnorm(c(0.0+(alpha/2), 1-(alpha/2))) * se_bj
 
 
 # --------- GLM Bernoulli -------------
-
-# Target_i ~ Bern(p(Predictor1_i, Predictor2_i))
-# dove logit(p(Predictor1_i, Predictor2_i)) 
-# = beta_0 + beta_1 Predictor1_i + beta2 Predictor2_i + ...
 
 ### Data:
 # 1 - Factor
@@ -646,42 +501,27 @@ df$ntrial <- rep(1, nrow(df)) # failures
 glm(cbind(df$numsuccess, df$ntrial-df$numsuccess) ~ df$predictor, 
     family = binomial)
 
-## Intercept: E[Y|X=0] 
-
-### Hypothesis Testing - EST-HYP/SE ~ N(0,1)
-## 1. Compute TS
+# Hypothesis Testing 
+# 1. Compute TS
 TS <- (beta_j - hyp)/se_beta_j
-## 2. Check p-value
+# 2. Check p-value
 2*pnorm(abs(TS), lower.tail = FALSE)
-## 3. If TS is large or small (far away from 0, so that the value can be
-## on either tails of the t-student distribution), and the p-value is 
-## small, REJECT THE NULL HYPOTHESIS
-## 3B: We can also try confidence intervals 
-## 3C: Check if abs(TS)>qnorm(1-alpha/2, df=n-p)
 
-
-### Confidence Interval Bj
-
+# Confidence Interval Bj
 confint.default(fit, parm="predictor", level= 1-alpha/2)
 # Or
 est_bj + qnorm(c(0.0+(alpha/2), 1-(alpha/2))) * se_bj
 
-
 # Stima puntuale 
 
-# Stima Predittore Lineare -> X beta
-# Or
-# preds_link <- predict(fit, newdata = nd) by default is link
+# Predittore Lineare
 preds_link <- predict(fit, newdata = nd, type = "link") 
 
-# Stima puntuale su scala della risposta (tra 0 ed 1)
-
-# E[Y|X=x] = exp{X beta}/(1 + exp{X beta})
-# Or
+# Risposta
 preds_resp <- predict(fit, newdata = nd, type = "response") 
 # Or
-# exp(preds_link)/(1+exp(preds_link))
-## Odd ratio = preds_resp/(1-preds_resp)
+exp(preds_link)/(1+exp(preds_link))
+# Odd ratio = preds_resp/(1-preds_resp)
 
 # Confidence Interval
 # con opzione se.fit si ottiene lo standard error per il predittore lineare 
@@ -695,11 +535,6 @@ cbind(
       binomial()$linkinv(preds$fit + qnorm(1-(alpha/2))*preds$se.fit))
 
 # --------- GLM Binomial -------------
-
-# Target_i ~ Bin(k,p(Predictor1_i, Predictor2_i))
-
-# PRO: aggregated info = less space,  
-# CON: cannot estimate how single instances are impacted, or do some inference
 
 # Data for one aggregation (ex:by year) 
 # - column for the "groupby" (one row per year)
@@ -722,7 +557,6 @@ byYear$propOpp <- byYear$num_opp/byYear$tpat
 glm(propOpp ~ year, data = byYear, family = binomial,  weights = tpat) 
 # We need to specify the weights
 
-
 ### Hypothesis Testing
 
 ### Confidence Interval Bj
@@ -732,7 +566,7 @@ confint.default(fit, parm = "predictor")
 # Std. Error + Normal quantile at alpha=0.05 * SE
 coef(fit)[2] + qnorm(c(0.025,0.975))*sqrt(vcov(fit)[2,2])
 
-### Confidence Interval
+# Confidence Interval
 predict(fit, newdata = nd, type = "link")
 
 predict(fit, newdata = nd, type = "response")
