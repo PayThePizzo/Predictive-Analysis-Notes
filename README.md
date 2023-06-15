@@ -18,7 +18,7 @@ For this exams we are allowed to use a .R script with some comments and formulas
 ---
 
 ## Visualize the notes!
-Some of the notes are not done since I recently switch from taking notes on my portable devices, to my laptop. You should check out [this folder](https://univeit-my.sharepoint.com/:o:/g/personal/872966_stud_unive_it/EmzRSqQJNvdEvZhT6mza2cABYTuXF49ykUJIG-2f6PE8gg?e=MGkihy) for those notes (Students of UNIVE only).
+Some of the notes are not done since I recently switch from taking notes on my portable devices, to my laptop. You should check out [this folder](https://univeit-my.sharepoint.com/:o:/g/personal/872966_stud_unive_it/EmzRSqQJNvdEvZhT6mza2cABYTuXF49ykUJIG-2f6PE8gg?e=MGkihy) regarding notes about SLR and MLR (Students of Ca'Foscari University of Venice only).
 
 * [Basics of Probability and Statistics](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/0%20-%20BASICS.md)
 * [Simple Linear Regression](https://github.com/PayThePizzo/Predictive-Analysis-Notes/blob/main/Theory/1%20-%20SLR.md)
@@ -143,4 +143,8 @@ I take no credit from any of the material that is included, nor I assure the cor
 All the material cited is intended for personal use and I highly recommend purchasing 
 the textbooks cited.
 
-If you feel like your work has not been cited correctly, or you want me to remove it, please contact me as soon as possible.
+Please contact me as soon as possible, if you feel like:
+1. Your work has not been cited correctly, or you want me to remove it
+2. There are some errors I should correct, or unclear sections.
+
+PS: Sorry but some parts are in italian as i was trying to jot down as much as I could.
