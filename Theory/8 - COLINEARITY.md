@@ -6,9 +6,9 @@ Remember our formula for the estimated coefficients in a multiple linear regress
 $$\hat{\beta} = (X^{T}X)^{-1}X^{T}y$$
 
 Where:
-* $X^{T}$ is a $p \operatorname{x} n$ matrix
-* $X$ is a $n \operatorname{x} p$ matrix
-* y is a $n \operatorname{x} 1$ vector
+* $X^{T}$ is a $p \times n$ matrix
+* $X$ is a $n \times p$ matrix
+* $y$ is a $n \times 1$ vector
 
 This is obviously going to lead to problems if $X^{T}X$ isn’t invertible. Similarly, the variance of the estimates:
 
@@ -18,13 +18,13 @@ will blow up when $X^{T}X$ is singular. If that matrix isn’t exactly singular,
 
 ### Quick Algebra Review
 There are several equivalent conditions for any square matrix, say $u$, to be singular or non-invertible:
-1. $\operatorname{det} u = 0$ or $|u| = 0$
+1. $\text{det} u = 0$ or $|u| = 0$
    1. The determinant of $u$ is 0, 
-   2. We cannot invert the matrix since $u^{-1} = \frac{\operatorname{adj} u}{\operatorname{det} u}$ is not defined when $\operatorname{det}u = 0$.
+   2. We cannot invert the matrix since $u^{-1} = \frac{\text{adj} u}{\text{det} u}$ is not defined when $\text{det}u = 0$.
    3. Hence, the **inverse of a singular matrix is NOT defined**
 2. At least one eigenvalue of u is 0.
    1. This is because the determinant of a matrix is the product of its eigenvalues
-   2. Again the $\operatorname{det}u = 0$
+   2. Again the $\text{det} u = 0$
 3. $u$ is rank deficient, meaning that one or more of its columns (or rows) is equal to a linear combination of the other rows.
    1. When the columns of $X$ are not linearly independent and we cannot use the matrix notation formula above.
 
