@@ -60,7 +60,7 @@ Ideally you would use knowledge on the measuring processes and about the process
 ## Diagnosing collinearity among pairs of predictor variables
 Linear relationships between pairs of variables are fairly easy to diagnose:
 * Few variables: we make the pairs plot of all the variables, and we see if any of them fall on a straight line, or close to one. Unless the number of variables is huge, this is by far the best method. 
-* Lots of variables: If the number of variables is huge, look at the correlation matrix, and worry about any entry off the diagonal which is (nearly) $\plusmn 1$
+* Lots of variables: If the number of variables is huge, look at the correlation matrix, and worry about any entry off the diagonal which is (nearly) $\pm 1$
 
 Example from the car dataset
 ```r
@@ -99,15 +99,15 @@ If the predictors are correlated with each other, the standard errors of the coe
 
 If the predictors were UNCORRELATED 
 
-$$\text{Var} \[ \hat{\beta}_{i} \] = \frac{\hat{\sigma^{2}}}{ns_{X_{i}}^{2}}$$
+$$\text{Var} \left [ \hat{\beta}_{i} \right ] = \frac{\hat{\sigma^{2}}}{ns_{X_{i}}^{2}}$$
 
 If they were CORRELATED 
 
-$$\text{Var} \[ \hat{\beta}_{i} \] = \sigma^{2}(X^{T}X)_{i+1,i+1}^{-1}$$
+$$\text{Var} \left [ \hat{\beta}_{i} \right ] = \sigma^{2} (X^{T}X)_{i+1,i+1}^{-1}$$
 
 The ratio between the two variances is the **variance inflation factor** for the $i^{th}$ coefficient, $VIF_{i}$:
 
-$$ VIF_{i} =(X^{T}X)_{i+1,i+1}^{-1} \cdot ns_{X_{i}}^{2}$$
+$$VIF_{i} =(X^{T}X)_{i+1,i+1}^{-1} \cdot ns_{X_{i}}^{2}$$
 
 It tells us how much the variance of $\hat{\beta_{i}}$ is inflated if we have problems of collinearity.
 
