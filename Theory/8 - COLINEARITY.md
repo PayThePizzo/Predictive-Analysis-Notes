@@ -99,11 +99,11 @@ If the predictors are correlated with each other, the standard errors of the coe
 
 If the predictors were UNCORRELATED 
 
-$$Var\left[ \hat{\beta}_{i} \right] = \frac{\hat{\sigma^{2}}}{ns_{X_{i}}^{2}}$$
+$$\text{Var} \[ \hat{\beta}_{i} \] = \frac{\hat{\sigma^{2}}}{ns_{X_{i}}^{2}}$$
 
 If they were CORRELATED 
 
-$$Var\left[ \hat{\beta}_{i} \right] = \sigma^{2}(X^{T}X)_{i+1,i+1}^{-1}$$
+$$\text{Var} \[ \hat{\beta}_{i} \] = \sigma^{2}(X^{T}X)_{i+1,i+1}^{-1}$$
 
 The ratio between the two variances is the **variance inflation factor** for the $i^{th}$ coefficient, $VIF_{i}$:
 
