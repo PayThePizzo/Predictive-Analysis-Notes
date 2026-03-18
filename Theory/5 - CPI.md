@@ -53,11 +53,11 @@ $$Y = \beta_{0} + \beta_{1}x_{1} + \beta_{2}x_{2} + \varepsilon$$
 
 For our example the meaning is: 
 
-$$x_{2} = \left\{ 
+$$ x_{2} = \left\{ 
 \begin{matrix}
 1 & \text{male} & Y_{\text{male}} = (\beta_{0}+\beta_{2}) + \beta_{1}x_{1} + \varepsilon \\ 
 0 & \text{female} & Y_{\text{female}} = \beta_{0} + \beta_{1}x_{1}+\varepsilon
-\end{matrix} \right.$$
+\end{matrix} \right $$
 
 We end up effectively writing and estimating two different models. However, they are not completely different from each other. 
 In fact,
