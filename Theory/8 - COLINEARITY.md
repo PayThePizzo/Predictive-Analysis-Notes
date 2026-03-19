@@ -49,7 +49,8 @@ necessarily a problem if all we care about is prediction.
 Since not all of the $p$ predictor variables are actually contributing information, a natural
 way of dealing with collinearity is to **drop some predictor variables** from the model.
 
-If you want to do this, you should think very carefully about which predictor variable to delete.
+If you want to do this, <mark style="background: red!important">you should think very carefully about which predictor variable to delete.
+</mark>
 
 Ideally you would use knowledge on the measuring processes and about the process under study.
 * Ex: As a concrete example: if we try to include all of a student’s grades as predictors, as well as their over-all GPA, we’ll have a problem with collinearity (since GPA is a linear function of the grades). 
