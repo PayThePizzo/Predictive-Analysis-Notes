@@ -10,11 +10,13 @@ Where:
 * $X$ is a $n \times p$ matrix
 * $y$ is a $n \times 1$ vector
 
-This is obviously going to lead to problems if $X^{T}X$ isn’t invertible. Similarly, the variance of the estimates:
+This is obviously going to lead to problems if $X^{T}X$ isn’t invertible. 
+
+Similarly, the variance of the estimates:
 
 $$Var[\hat{\beta}] = \sigma^{2}(X^{T}X)^{-1}$$
 
-will blow up when $X^{T}X$ is singular. If that matrix isn’t exactly singular, but is close to being non-invertible, the variances will become huge.
+will blow up when $X^{T}X$ is singular. Again, if that matrix isn’t exactly singular, but is close to being non-invertible, the variances will become huge.
 
 ### Quick Algebra Review
 There are several equivalent conditions for any square matrix, say $u$, to be singular or non-invertible:
@@ -25,10 +27,10 @@ There are several equivalent conditions for any square matrix, say $u$, to be si
 2. At least one eigenvalue of u is 0.
    1. This is because the determinant of a matrix is the product of its eigenvalues
    2. Again the $\text{det} u = 0$
-3. $u$ is rank deficient, meaning that one or more of its columns (or rows) is equal to a linear combination of the other rows.
+3. $u$ <mark>is rank deficient, meaning that one or more of its columns (or rows) is equal to a linear combination of the other rows</mark>.
    1. When the columns of $X$ are not linearly independent and we cannot use the matrix notation formula above.
 
-The last explains why we call this problem collinearity: it looks like we have $p$ different predictor variables (**considering as an additional predictor variable the column defining the constant term**), but really some of them are linear combinations of the others, so they don’t add any information. 
+The last explains why we call this problem collinearity: it looks like we have $p$ different predictor variables (*considering as an additional predictor variable the column defining the constant term*), but **really some of them are linear combinations of the others, so they don’t add any information**. 
 
 The real number of distinct variables is $q < p$, the column rank of $X$, which is number of linearly independent columns it has.
 
