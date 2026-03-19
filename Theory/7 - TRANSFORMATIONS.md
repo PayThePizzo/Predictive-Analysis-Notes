@@ -145,13 +145,15 @@ For data vectors $y_{1},...,y_{n}$ in which each $y_{i} > 0$, the power transfor
 ```math
 y_i^{(\lambda)} =
 \begin{cases}
-\dfrac{y_i^\lambda-1}{\lambda(\operatorname{GM}(y))^{\lambda -1}} , &\text{if } \lambda \neq 0 \\[12pt]
-\operatorname{GM}(y)\ln{y_i} , &\text{if } \lambda = 0
+\dfrac{y_i^\lambda-1}{\lambda(\text{GM}(y))^{\lambda -1}} , &\text{if } \lambda \neq 0 \\[12pt]
+\text{GM}(y)\ln{y_i} , &\text{if } \lambda = 0
 \end{cases}
 ```
+
 where: 
+
 ```math
-\operatorname{GM}(y) = (\prod_{i=1}^{n}y_{i})^{\frac{1}{n}} = \sqrt[n]{y_1 y_2 \cdots y_n} \, 
+\text{GM}(y) = (\prod_{i=1}^{n}y_{i})^{\frac{1}{n}} = \sqrt[n]{y_1 y_2 \cdots y_n} \, 
 ```
 is the geometric mean of the observations $y_{1},..., y_{n}$. 
 
@@ -192,7 +194,7 @@ where $SS_{err}(\lambda) = \sum_{i=1}^{n}(y_{\lambda,i} - \hat{y}_{\lambda, i})^
    1. Choose the predictors 
 2. We compute many $\lambda$ values
 3. We compute the likelihood of the transformation
-4. We choose the $\lambda$ value that "stabilize" the values of Y, so that its variability is reduced. That is a $\lambda$ value that maximizes the function $\operatorname{L}(\lambda)$
+4. We choose the $\lambda$ value that "stabilize" the values of Y, so that its variability is reduced. That is a $\lambda$ value that maximizes the function $\text{L}(\lambda)$
 
 ### 1.2.2 - In R - Confidence Intrerval for $\lambda$
 This is implemented in R through the function `boxcox` in the package MASS. We then use the boxcox function to find the best transformation of the form considered by the Box-Cox method, and builds a confidence interval for the best lambda values. 
